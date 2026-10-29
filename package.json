@@ -6,7 +6,7 @@
   "publisher": "local",
   "license": "UNLICENSED",
   "engines": {
-    "vscode": "^1.94.0"
+    "vscode": "^1.91.0"
   },
   "categories": [
     "AI",
