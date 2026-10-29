@@ -1,0 +1,73 @@
+/* Dev only: a subset of VS Code's Dark Modern / Light Modern theme variables. VS Code sets
+   them on <html>, so they go on :root here too. */
+:root:has(> body.vscode-dark) {
+  --vscode-font-family: "Segoe WPC", "Segoe UI", sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-family: Consolas, "Courier New", monospace;
+  --vscode-editor-font-size: 13px;
+  --vscode-foreground: #cccccc;
+  --vscode-descriptionForeground: #9d9d9d;
+  --vscode-sideBar-background: #181818;
+  --vscode-editor-background: #1f1f1f;
+  --vscode-editor-foreground: #cccccc;
+  --vscode-input-background: #313131;
+  --vscode-input-foreground: #cccccc;
+  --vscode-input-border: #3c3c3c;
+  --vscode-input-placeholderForeground: #989898;
+  --vscode-widget-border: #313131;
+  --vscode-focusBorder: #0078d4;
+  --vscode-textCodeBlock-background: #2b2b2b;
+  --vscode-toolbar-hoverBackground: #5a5d5e50;
+  --vscode-menu-background: #1f1f1f;
+  --vscode-menu-foreground: #cccccc;
+  --vscode-menu-border: #454545;
+  --vscode-list-activeSelectionBackground: #04395e;
+  --vscode-list-activeSelectionForeground: #ffffff;
+  --vscode-button-background: #0078d4;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #026ec1;
+  --vscode-button-secondaryBackground: #313131;
+  --vscode-button-secondaryForeground: #cccccc;
+  --vscode-button-secondaryHoverBackground: #3c3c3c;
+  --vscode-editorWidget-background: #202020;
+  --vscode-textLink-foreground: #4daafc;
+  --vscode-errorForeground: #f85149;
+  --vscode-gitDecoration-addedResourceForeground: #81b88b;
+  --vscode-badge-background: #616161;
+  --vscode-badge-foreground: #f8f8f8;
+  --vscode-scrollbarSlider-background: #79797966;
+  --vscode-widget-shadow: #0000005c;
+}
+:root:has(> body.vscode-light) {
+  --vscode-font-family: "Segoe WPC", "Segoe UI", sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-family: Consolas, "Courier New", monospace;
+  --vscode-editor-font-size: 13px;
+  --vscode-foreground: #3b3b3b;
+  --vscode-descriptionForeground: #3b3b3b;
+  --vscode-sideBar-background: #f8f8f8;
+  --vscode-editor-background: #ffffff;
+  --vscode-editor-foreground: #3b3b3b;
+  --vscode-input-background: #ffffff;
+  --vscode-input-foreground: #3b3b3b;
+  --vscode-input-border: #cecece;
+  --vscode-input-placeholderForeground: #767676;
+  --vscode-widget-border: #e5e5e5;
+  --vscode-focusBorder: #005fb8;
+  --vscode-textCodeBlock-background: #f8f8f8;
+  --vscode-toolbar-hoverBackground: #b8b8b850;
+  --vscode-menu-background: #ffffff;
+  --vscode-menu-border: #cecece;
+  --vscode-list-activeSelectionBackground: #e8e8e8;
+  --vscode-list-activeSelectionForeground: #000000;
+  --vscode-button-background: #005fb8;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-secondaryBackground: #e5e5e5;
+  --vscode-button-secondaryForeground: #3b3b3b;
+  --vscode-editorWidget-background: #f8f8f8;
+  --vscode-textLink-foreground: #005fb8;
+  --vscode-errorForeground: #f85149;
+  --vscode-gitDecoration-addedResourceForeground: #587c0c;
+  --vscode-badge-background: #cccccc;
+  --vscode-badge-foreground: #3b3b3b;
+}

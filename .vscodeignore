@@ -1,0 +1,6 @@
+.git/**
+.claude/**
+dev/**
+test/**
+plan.md
+**/*.test.js

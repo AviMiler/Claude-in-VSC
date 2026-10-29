@@ -1,0 +1,132 @@
+{
+  "name": "claude-local",
+  "displayName": "Claude Code Local",
+  "description": "ממשק VS Code בעברית ל-Claude Code CLI. ה-CLI הוא מקור האמת; התוסף רק מציג.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.94.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Claude Code Local",
+      "properties": {
+        "claudeLocal.claudePath": {
+          "type": "string",
+          "default": "claude",
+          "markdownDescription": "קובץ ההפעלה של Claude Code CLI. שם בלבד (`claude`) מחופש ב-PATH; אפשר גם נתיב מלא ל-`.exe` או `.cmd`."
+        },
+        "claudeLocal.allowDangerouslySkipPermissions": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "מציג את המצב **ללא הרשאות** (`bypassPermissions`) בבורר המצבים. Claude יפעל בלי לבקש אישור."
+        },
+        "claudeLocal.useCtrlEnterToSend": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Ctrl+Enter שולח הודעה, ו-Enter יורד שורה."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "claude-local.editor.open",
+        "title": "פתיחה בלשונית חדשה",
+        "category": "Claude Code Local",
+        "icon": "resources/claude-logo.svg"
+      },
+      {
+        "command": "claude-local.editor.openLast",
+        "title": "פתיחת Claude",
+        "category": "Claude Code Local",
+        "icon": "resources/claude-logo.svg"
+      },
+      {
+        "command": "claude-local.sidebar.open",
+        "title": "פתיחה בסרגל הצד",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.newConversation",
+        "title": "שיחה חדשה",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.showLogs",
+        "title": "הצגת יומן",
+        "category": "Claude Code Local"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "claude-local.editor.open",
+        "key": "ctrl+shift+escape",
+        "mac": "cmd+shift+escape"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "claude-local.editor.openLast",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "claude-local.editor.openLast",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-local-sidebar",
+          "title": "Claude Code Local",
+          "icon": "resources/claude-logo.svg",
+          "when": "claude-local:doesNotSupportSecondarySidebar"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "claude-local-sidebar-secondary",
+          "title": "Claude Code Local",
+          "icon": "resources/claude-logo.svg",
+          "when": "!claude-local:doesNotSupportSecondarySidebar"
+        }
+      ]
+    },
+    "views": {
+      "claude-local-sidebar": [
+        {
+          "type": "webview",
+          "id": "claudeLocalSidebar",
+          "name": "Claude Code Local",
+          "when": "claude-local:doesNotSupportSecondarySidebar"
+        }
+      ],
+      "claude-local-sidebar-secondary": [
+        {
+          "type": "webview",
+          "id": "claudeLocalSidebarSecondary",
+          "name": "Claude Code Local",
+          "when": "!claude-local:doesNotSupportSecondarySidebar"
+        }
+      ]
+    }
+  }
+}

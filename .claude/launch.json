@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chat-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev/preview-server.js", "5199"],
+      "port": 5199
+    }
+  ]
+}
