@@ -1,0 +1,440 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>מדריך תוסף Claude Code ל-VS Code</title>
+<style>
+/* Layout: one reading column, sticky index on wide screens, sections as stacked blocks. */
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --fg: #1c1d21;
+  --muted: #5d6170;
+  --line: #e4e1d8;
+  --accent: #2f5d8c;
+  --accent-soft: #e6eef7;
+  --code-bg: #f1efe9;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181c;
+    --surface: #1f2026;
+    --fg: #ececf1;
+    --muted: #a3a7b5;
+    --line: #34363f;
+    --accent: #8fb4de;
+    --accent-soft: #252d38;
+    --code-bg: #101114;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181c;
+  --surface: #1f2026;
+  --fg: #ececf1;
+  --muted: #a3a7b5;
+  --line: #34363f;
+  --accent: #8fb4de;
+  --accent-soft: #252d38;
+  --code-bg: #101114;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Heebo", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 64px;
+}
+.wrap { max-width: 880px; margin-inline: auto; }
+header.top { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 28px; }
+h1 { font-size: clamp(26px, 5vw, 36px); line-height: 1.25; margin: 0 0 8px; text-wrap: balance; }
+h2 { font-size: 22px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); text-wrap: balance; }
+h3 { font-size: 17px; margin: 22px 0 6px; color: var(--accent); }
+p.lead { color: var(--muted); margin: 0; }
+ul { padding-inline-start: 22px; margin: 6px 0 12px; }
+li { margin: 4px 0; }
+code, .ltr { direction: ltr; unicode-bidi: isolate; font-family: ui-monospace, Consolas, monospace; font-size: 0.92em; background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+kbd { direction: ltr; unicode-bidi: isolate; font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--surface); }
+.table-wrap { overflow-x: auto; margin: 10px 0 16px; }
+table { border-collapse: collapse; width: 100%; min-width: 360px; font-size: 15px; }
+th, td { text-align: start; border-bottom: 1px solid var(--line); padding: 8px 10px; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+.note { background: var(--accent-soft); border-inline-start: 3px solid var(--accent); padding: 10px 14px; border-radius: 6px; margin: 14px 0; }
+nav.index { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; }
+nav.index ol { margin: 0; padding-inline-start: 20px; columns: 2; column-gap: 24px; }
+nav.index a { color: var(--accent); text-decoration: none; }
+nav.index a:hover, nav.index a:focus-visible { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 560px) { nav.index ol { columns: 1; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap" dir="rtl" lang="he">
+<header class="top">
+  <h1>מדריך תוסף Claude Code ל-VS Code</h1>
+  <p class="lead">סיכום בעברית של פיצ'רי התוסף, לפי התיעוד הרשמי של Claude Code (נקרא בתאריך 30.10.2026). שמות פקודות, מקשים והגדרות מופיעים באנגלית כפי שהם בתוסף.</p>
+</header>
+
+<nav class="index" aria-label="תוכן עניינים">
+<ol>
+  <li><a href="#open">פתיחה והפעלה</a></li>
+  <li><a href="#prompt">תיבת הפרומפט</a></li>
+  <li><a href="#context">הקשר מהעורך</a></li>
+  <li><a href="#review">בדיקת שינויים</a></li>
+  <li><a href="#sessions">סשנים והיסטוריה</a></li>
+  <li><a href="#rewind">Checkpoints וחזרה לאחור</a></li>
+  <li><a href="#background">עבודה ברקע</a></li>
+  <li><a href="#usage">שימוש וחשבון</a></li>
+  <li><a href="#display">תצוגה</a></li>
+  <li><a href="#plugins">תוספים</a></li>
+  <li><a href="#chrome">דפדפן (Chrome)</a></li>
+  <li><a href="#git">Git</a></li>
+  <li><a href="#mcp">שרתי MCP</a></li>
+  <li><a href="#ide">שילוב IDE</a></li>
+  <li><a href="#commands">פקודות משותפות</a></li>
+  <li><a href="#a11y">נגישות</a></li>
+  <li><a href="#voice">הכתבה קולית</a></li>
+  <li><a href="#settings">הגדרות</a></li>
+  <li><a href="#keys">קיצורי מקלדת</a></li>
+  <li><a href="#interactive">מצב אינטראקטיבי</a></li>
+  <li><a href="#remote">Remote Control</a></li>
+  <li><a href="#hooks">Hooks</a></li>
+  <li><a href="#managed">הגדרות מנוהלות</a></li>
+  <li><a href="#schedule">משימות מתוזמנות ו-/loop</a></li>
+</ol>
+</nav>
+
+<section id="open">
+<h2>1. פתיחה והפעלה</h2>
+<ul>
+  <li><strong>אייקון Spark</strong> בסרגל הכלים של העורך (מופיע כשיש קובץ פתוח).</li>
+  <li><strong>אייקון ב-Activity Bar</strong> שפותח את רשימת הסשנים.</li>
+  <li><strong>פריט בסרגל המצב</strong> "✻ Claude Code", שעובד גם בלי קובץ פתוח.</li>
+  <li>פקודות ב-Command Palette: Open in New Tab, Open in Side Bar, Open in Terminal, Open in New Window.</li>
+  <li>אפשר לגרור את הפאנל לסרגל צד משני, לסרגל ראשי או לאזור העורך. נעילת קבוצות העורך נשלטת ב-<code>lockEditorGroups</code>.</li>
+  <li>מסך התחברות עולה בפתיחה הראשונה ובשגיאות "Not logged in". צ'קליסט ההיכרות ניתן להסתרה (<code>hideOnboarding</code>).</li>
+  <li>קישורי URI: <code>vscode://anthropic.claude-code/open</code> פותח לשונית (עם פרמטרים <code>prompt</code> ו-<code>session</code>), ו-<code>vscode://anthropic.claude-code/install-plugin</code> פותח את דיאלוג התוסף.</li>
+</ul>
+</section>
+
+<section id="prompt">
+<h2>2. תיבת הפרומפט</h2>
+<h3>מצבי הרשאות</h3>
+<ul>
+  <li><strong>Auto</strong>: מסווג מודל בודק את רוב הפעולות.</li>
+  <li><strong>Manual</strong>: שואל לפני עריכות ופקודות רוב.</li>
+  <li><strong>Plan</strong>: מציע תוכנית וממתין לאישור. התוכנית נפתחת כמסמך Markdown עם הערות.</li>
+  <li><strong>Edit automatically</strong>: מאשר עריכות אוטומטית.</li>
+  <li><strong>Bypass permissions</strong>: מופיע רק כשמוגדר <code>allowDangerouslySkipPermissions</code>.</li>
+</ul>
+<h3>תפריט הפקודות (<kbd>/</kbd>)</h3>
+<ul>
+  <li><strong>Customize</strong>: skills (<code>/skills</code>), סגנונות פלט, Hooks, Permissions (Allow / Ask / Deny), זיכרון אוטומטי, ועורך CLAUDE.md.</li>
+  <li><strong>Context</strong>: <code>/status</code>, <code>/sandbox</code>, <code>/chrome</code>, <code>/export</code>.</li>
+  <li><strong>Settings</strong>: מתג Remote Control לכל הסשנים, מצב Focus view, <code>/logout</code>, ו-<code>/bug</code> או <code>/feedback</code> (נשמר ארכיון מקומי ב-<span class="ltr">~/.claude/feedback-bundles/</span>).</li>
+</ul>
+<h3>פיצ'רים נוספים בתיבה</h3>
+<ul>
+  <li><code>/plan</code> נכנס למצב תוכנית, ו-<code>/plan open</code> פותח את קובץ התוכנית.</li>
+  <li>בורר מודל עם שורת <strong>Effort</strong> ומתג <strong>Ultracode</strong> (כשזמין).</li>
+  <li><code>/btw</code> לשאלות צד בפאנל נפרד. נשמרות 20 האחרונות.</li>
+  <li>העתקת תשובות עם <code>/copy</code> (ו-<code>/copy 2</code> לתשובה קודמת), וסימניות עם <code>/bookmarks</code>.</li>
+  <li>שורת קבצים שנשלחו מ-Claude ב-Remote Control, ומד הקשר עם <code>/compact</code>.</li>
+  <li>שעון קאש הפרומפטים מציג את הזמן שנותר לפני תפוגה, ונצבע באדום כשפג התוקף.</li>
+  <li><strong>מפת סוכנים</strong> (או <code>/tasks</code>) להצגת תתי-סוכנים ומשימות ברקע, עם אפשרות עצירה.</li>
+  <li>מתג <strong>Thinking</strong> לחשיבה מורחבת.</li>
+  <li><kbd>Shift</kbd>+<kbd>Enter</kbd> לשורה חדשה. הדבקת תמונות וגרירת קבצים עם <kbd>Shift</kbd>.</li>
+  <li><strong>@-mentions</strong>: קבצים, תיקיות (עם / בסוף), <span class="ltr">@terminal:name</span> לפלט טרמינל, ו-<code>@browser</code> לדפדפן.</li>
+  <li>קריאת עמודים מסוימים מ-PDF (דורש poppler-utils). רינדור LaTeX בתשובות.</li>
+</ul>
+</section>
+
+<section id="context">
+<h2>3. הקשר מהעורך</h2>
+<ul>
+  <li>קוד מסומן נשלח אוטומטית, והסרגל התחתון מציג את מספר השורות.</li>
+  <li>הקובץ הפתוח נשלח כהקשר, ושמו מופיע.</li>
+  <li><kbd>Option</kbd>+<kbd>K</kbd> (Mac) או <kbd>Alt</kbd>+<kbd>K</kbd> מוסיף הפניה כמו <span class="ltr">@app.ts#5-10</span>.</li>
+  <li>ההגדרות <code>attachSelection</code> ו-<code>attachOpenFile</code> מכבות את ההקשר האוטומטי.</li>
+  <li>טקסט מקבצים שמוחרגים או ב-<code>.gitignore</code> לא מוצג בפאנל, ונשלח רק הנתיב.</li>
+</ul>
+</section>
+
+<section id="review">
+<h2>4. בדיקת שינויים</h2>
+<ul>
+  <li><strong>תצוגת הבדלים</strong> צד לצד. במצב Manual אפשר לקבל או לדחות כל שינוי.</li>
+  <li>כפתורים "Accept this change" ו-"Reject this change" לכל שינוי (לא מוצגים מעל 100 שינויים).</li>
+  <li>פקודות: <strong>Accept Change at Cursor</strong> ו-<strong>Reject Change at Cursor</strong>.</li>
+</ul>
+</section>
+
+<section id="sessions">
+<h2>5. סשנים והיסטוריה</h2>
+<ul>
+  <li>היסטוריית סשנים עם חיפוש ושתי לשוניות: <strong>Local</strong> ו-<strong>Web</strong> (סשנים בענן).</li>
+  <li>המשך שיחה, שינוי שם, ארכוב וביטול ארכוב. ארכוב אוטומטי אחרי 14 ימי חוסר פעילות (<code>archiveInactiveSessions</code>).</li>
+  <li>קבוצות סשנים עם שם, ניתנות לכיווץ ונשמרות לכל תיקיית עבודה.</li>
+  <li>מסננים: Active, Needs input, Working, Completed, Open, Closed.</li>
+  <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> לפתיחת סשן שנסגר.</li>
+  <li>נקודות צבע בלשוניות: כחול לבקשת הרשאה, כתום לסשן שהסתיים בלשונית מוסתרת.</li>
+  <li><code>continueAfterReload</code> ממשיך שלב שנקטע אחרי רענון.</li>
+  <li>משיכת סשן מהענן דרך לשונית Web, ו"Open worktree" בבאנר של worktree.</li>
+</ul>
+</section>
+
+<section id="rewind">
+<h2>6. Checkpoints וחזרה לאחור</h2>
+<p>ריחוף על הודעה מציג כפתור חזרה עם שלוש אפשרויות: <strong>fork conversation</strong>, <strong>rewind code</strong>, או <strong>fork and rewind</strong>. בתפריט <code>/rewind</code> (או <kbd>Esc</kbd> <kbd>Esc</kbd>) יש גם סיכום מהנקודה הזו או עד אליה.</p>
+</section>
+
+<section id="background">
+<h2>7. עבודה ברקע</h2>
+<ul>
+  <li>כפתור <strong>Run in background</strong> מופיע מתחת לפקודה ארוכה או לתת-סוכן.</li>
+  <li><code>/tasks</code> פותח את מפת הסוכנים: משימות, מוניטורים ותתי-סוכנים, עם פלט חי ועצירה.</li>
+</ul>
+</section>
+
+<section id="usage">
+<h2>8. שימוש וחשבון</h2>
+<ul>
+  <li><code>/usage</code> פותח דיאלוג חשבון ושימוש: פסי שימוש בתוכנית, פילוח לפי skills, תתי-סוכנים, תוספים ו-MCP, והמלצות עם כפתור <strong>Fix</strong>.</li>
+  <li>מעבר בין יום לשבוע (Day / Week). למשתמשי API מוצגת עלות הסשן.</li>
+</ul>
+</section>
+
+<section id="display">
+<h2>9. תצוגה</h2>
+<ul>
+  <li><strong>Focus view</strong> (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>F</kbd>) מסתיר קריאות כלים, תוצאות וחשיבה.</li>
+  <li>חותמות זמן (<code>showMessageTimestamps</code>), מילות ספינר מותאמות (<code>spinnerVerbs</code>), וגלילה לסוף בעת שליחה (<code>scrollToBottomOnSend</code>).</li>
+  <li><strong>Terminal mode</strong> (<code>useTerminal</code>) מציג את הפאנל כממשק טרמינל.</li>
+</ul>
+</section>
+
+<section id="plugins">
+<h2>10. תוספים</h2>
+<ul>
+  <li>דיאלוג <code>/plugins</code> עם לשוניות <strong>Plugins</strong> ו-<strong>Marketplaces</strong>: הפעלה וכיבוי, התקנה, הגדרת אפשרויות והסרה. שגיאות טעינה מוצגות עם הסיבה.</li>
+  <li>היקף התקנה: <strong>לי</strong> (user), <strong>לפרויקט</strong> (project) או <strong>מקומי</strong> (local).</li>
+  <li>ב-"Disable for me" או "Disable for everyone" אפשר לכבות תוסף משותף.</li>
+  <li><strong>Mods</strong>: תוספים שמציירים פאנלים, הודעות קופצות, שורות מצב והודעות בפאנל (דורש גרסה 2.1.299 ומעלה).</li>
+</ul>
+</section>
+
+<section id="chrome">
+<h2>11. דפדפן (Chrome)</h2>
+<ul>
+  <li>הקלדת <code>@browser</code> בפרומפט, או תפריט כלי דפדפן.</li>
+  <li>דורש את התוסף Claude in Chrome בגרסה 1.0.36 ומעלה. Claude משתמש בלשונית ובהתחברות הקיימת בדפדפן.</li>
+  <li>מתג <strong>Enabled by default</strong> משותף ל-CLI ול-VS Code: מחבר כל סשן בהפעלה (מגרסה 2.1.287).</li>
+  <li>הרשאות לאתרים מנוהלות בהגדרות תוסף Chrome.</li>
+</ul>
+</section>
+
+<section id="git">
+<h2>12. Git</h2>
+<p>Claude יכול לבצע commit, לפתוח Pull Request ולסכם שינויים בתוך ה-repository.</p>
+</section>
+
+<section id="mcp">
+<h2>13. שרתי MCP</h2>
+<p>דיאלוג <code>/mcp</code> מאפשר הוספה, הסרה, הפעלה וכיבוי, חיבור מחדש, והתחברות OAuth לשרתים מוגדרים.</p>
+</section>
+
+<section id="ide">
+<h2>14. שילוב IDE</h2>
+<ul>
+  <li>שרת מקומי על <span class="ltr">ws://127.0.0.1</span> בפורט אקראי, מאומת בקובץ נעילה ב-<span class="ltr">~/.claude/ide/</span>.</li>
+  <li>כלים: <code>getDiagnostics</code> (קורא את לוח הבעיות) ו-<code>executeCode</code> (מריץ Python בנוטבוק Jupyter, לאחר אישור).</li>
+  <li>שיתוף בחירה וקובץ פתוח עם ה-CLI.</li>
+</ul>
+</section>
+
+<section id="commands">
+<h2>15. פקודות משותפות עם ה-CLI</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>קבוצה</th><th>פקודות</th></tr></thead>
+  <tbody>
+    <tr><td>הקשר</td><td><code>/compact [focus]</code>, <code>/context</code>, <code>/clear</code></td></tr>
+    <tr><td>סשנים</td><td><code>/resume</code>, <code>/branch [name]</code>, <code>/rename</code>, <code>/export</code></td></tr>
+    <tr><td>חזרה לאחור</td><td><code>/rewind</code></td></tr>
+    <tr><td>מודל ו-Effort</td><td><code>/model</code>, <code>/effort</code>, <code>/autocompact</code>, <code>/advisor</code></td></tr>
+    <tr><td>מטרה</td><td><code>/goal &lt;condition&gt;</code>, <code>/goal</code>, <code>/goal clear</code></td></tr>
+    <tr><td>Workflows</td><td><code>/workflows</code>, <code>/deep-research &lt;question&gt;</code></td></tr>
+    <tr><td>Skills ופלאגינים</td><td><code>/skills</code>, <code>/skill-doctor</code>, <code>/reload-skills</code></td></tr>
+    <tr><td>סגנון וזיכרון</td><td><code>/output-style</code>, <code>/memory</code>, <code>/init</code></td></tr>
+    <tr><td>הגדרות</td><td><code>/config</code>, <code>/permissions</code>, <code>/hooks</code>, <code>/sandbox</code>, <code>/theme</code>, <code>/keybindings</code>, <code>/terminal-setup</code></td></tr>
+    <tr><td>עלות</td><td><code>/usage</code>, <code>/usage-credits</code>, <code>/insights</code></td></tr>
+    <tr><td>הכתבה</td><td><code>/voice [hold|tap|off]</code> (ב-CLI)</td></tr>
+    <tr><td>שלט מרחוק</td><td><code>/remote-control</code></td></tr>
+    <tr><td>ענן</td><td><code>/teleport</code> (או <code>/tp</code>), <code>/autofix-pr</code></td></tr>
+    <tr><td>אחר</td><td><code>/btw</code>, <code>/copy</code>, <code>/bookmarks</code>, <code>/recap</code>, <code>/fast</code>, <code>/add-dir</code>, <code>/bug</code>, <code>/feedback</code>, <code>/logout</code></td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<section id="a11y">
+<h2>16. נגישות</h2>
+<ul>
+  <li>הכרזות לקורא מסך על תשובות, בקשות הרשאה, שינויי סטטוס, הודעות בתור ושגיאות.</li>
+  <li>ניווט לפי כותרות בין תורות, ותוויות דוברים ("You", "Claude").</li>
+  <li>בהרשאות: חצים שמאלה וימינה משנים את יעד השמירה.</li>
+  <li>מצב קורא מסך מלא קיים ב-CLI בלבד (<code>--ax-screen-reader</code>), ובתוסף ההכרזות פעילות אוטומטית.</li>
+  <li>הגדרות נוספות: <code>CLAUDE_CODE_ACCESSIBILITY=1</code> לסמן נראה לזכוכית מגדלת, <code>prefersReducedMotion</code>, וערכות צבע <span class="ltr">dark-daltonized</span> ו-<span class="ltr">light-daltonized</span>.</li>
+</ul>
+</section>
+
+<section id="voice">
+<h2>17. הכתבה קולית</h2>
+<ul>
+  <li>דורשת התחברות ל-claude.ai. לא זמינה עם מפתח API או ספק צד שלישי, ולא בסשנים מרוחקים (SSH, Dev Container, Codespaces).</li>
+  <li>התמלול אינו צורך הודעות או טוקנים.</li>
+  <li><strong>Hold</strong> (ברירת מחדל): מחזיקים רווח כדי להקליט. <strong>Tap</strong>: לחיצה להתחלה ולחיצה לשליחה. בתצורת Tap השליחה אוטומטית משלוש מילים ומעלה.</li>
+  <li><code>autoSubmit</code> שולח בעת שחרור המקש. <kbd>Esc</kbd> או <kbd>Ctrl</kbd>+<kbd>C</kbd> מבטלים הקלטה.</li>
+  <li>שפה לפי הגדרת <code>language</code>, או לפי <span class="ltr">accessibility.voice.speechLanguage</span> של VS Code. ברירת מחדל: אנגלית.</li>
+  <li>ההקלטה נעצרת אחרי 15 שניות של שקט או אחרי שתי דקות.</li>
+</ul>
+</section>
+
+<section id="settings">
+<h2>18. הגדרות התוסף</h2>
+<p class="lead">נתיב: Extensions ← Claude Code</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>הגדרה</th><th>ברירת מחדל</th><th>תפקיד</th></tr></thead>
+  <tbody>
+    <tr><td><code>useTerminal</code></td><td>false</td><td>מצב טרמינל</td></tr>
+    <tr><td><code>initialPermissionMode</code></td><td>default</td><td>מצב הרשאות התחלתי</td></tr>
+    <tr><td><code>preferredLocation</code></td><td>panel</td><td>סרגל צד או פאנל</td></tr>
+    <tr><td><code>lockEditorGroups</code></td><td>true</td><td>נעילת קבוצות עורך</td></tr>
+    <tr><td><code>autosave</code></td><td>true</td><td>שמירה אוטומטית</td></tr>
+    <tr><td><code>attachOpenFile</code> / <code>attachSelection</code></td><td>true</td><td>שליחת הקובץ הפתוח והבחירה כהקשר</td></tr>
+    <tr><td><code>useCtrlEnterToSend</code></td><td>false</td><td>שליחה עם Ctrl/Cmd+Enter</td></tr>
+    <tr><td><code>scrollToBottomOnSend</code></td><td>true</td><td>גלילה לתחתית בשליחה</td></tr>
+    <tr><td><code>showMessageTimestamps</code></td><td>true</td><td>הצגת חותמות זמן</td></tr>
+    <tr><td><code>spinnerVerbs</code></td><td>ריק</td><td>מילות ספינר מותאמות</td></tr>
+    <tr><td><code>enableNewConversationShortcut</code></td><td>false</td><td>קיצור לשיחה חדשה</td></tr>
+    <tr><td><code>enableReopenClosedSessionShortcut</code></td><td>true</td><td>פתיחה מחדש של סשן שנסגר</td></tr>
+    <tr><td><code>archiveInactiveSessions</code></td><td>14 ימים</td><td>ארכוב אוטומטי (0 מכבה)</td></tr>
+    <tr><td><code>continueAfterReload</code></td><td>true</td><td>המשך שלב שנקטע</td></tr>
+    <tr><td><code>hideOnboarding</code></td><td>false</td><td>הסתרת צ'קליסט ההיכרות</td></tr>
+    <tr><td><code>focusView</code></td><td>false</td><td>מצב Focus view</td></tr>
+    <tr><td><code>respectGitIgnore</code></td><td>true</td><td>כיבוד קבצי .gitignore</td></tr>
+    <tr><td><code>usePythonEnvironment</code></td><td>true</td><td>שימוש בסביבת Python</td></tr>
+    <tr><td><code>environmentVariables</code></td><td>[]</td><td>משתני סביבה נוספים</td></tr>
+    <tr><td><code>disableLoginPrompt</code></td><td>false</td><td>הסתרת בקשת ההתחברות</td></tr>
+    <tr><td><code>allowDangerouslySkipPermissions</code></td><td>false</td><td>מוסיף Bypass permissions לבורר המצבים</td></tr>
+    <tr><td><code>claudeProcessWrapper</code></td><td>ריק</td><td>קובץ הרצה מותאם לתהליך Claude</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<section id="keys">
+<h2>19. קיצורי מקלדת</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>פעולה</th><th>Mac</th><th>Windows / Linux</th></tr></thead>
+  <tbody>
+    <tr><td>מעבר בין עורך לצ'אט</td><td>Cmd+Esc</td><td>Ctrl+Esc</td></tr>
+    <tr><td>פתיחה בלשונית חדשה</td><td>Cmd+Shift+Esc</td><td>Ctrl+Shift+Esc</td></tr>
+    <tr><td>שיחה חדשה (אופציונלי)</td><td>Cmd+N</td><td>Ctrl+N</td></tr>
+    <tr><td>פתיחה מחדש של סשן שנסגר</td><td>Cmd+Shift+T</td><td>Ctrl+Shift+T</td></tr>
+    <tr><td>הוספת הפניה @</td><td>Option+K</td><td>Alt+K</td></tr>
+    <tr><td>Focus view</td><td>Ctrl+Option+F</td><td>Ctrl+Alt+F</td></tr>
+    <tr><td>שליחה (כשמוגדר Ctrl/Cmd+Enter)</td><td>Cmd+Enter</td><td>Ctrl+Enter</td></tr>
+    <tr><td>שורה חדשה</td><td>Shift+Enter</td><td>Shift+Enter</td></tr>
+  </tbody>
+</table>
+</div>
+<p>קיצורים נוספים במצב האינטראקטיבי: <kbd>Ctrl</kbd>+<kbd>O</kbd> תצוגה מפורטת, <kbd>Ctrl</kbd>+<kbd>R</kbd> חיפוש בהיסטוריה, <kbd>Ctrl</kbd>+<kbd>B</kbd> העברה לרקע, <kbd>Ctrl</kbd>+<kbd>X</kbd> <kbd>Ctrl</kbd>+<kbd>K</kbd> עצירת תתי-סוכנים, <kbd>Esc</kbd> <kbd>Esc</kbd> חזרה לאחור. כל המקשים ניתנים לשינוי ב-<span class="ltr">~/.claude/keybindings.json</span>. מקשים שמורים: Ctrl+C, Ctrl+D, Ctrl+M, Ctrl+[, Ctrl+I, Ctrl+H ו-Caps Lock.</p>
+</section>
+
+<section id="interactive">
+<h2>20. מצב אינטראקטיבי</h2>
+<h3>עריכה והיסטוריה</h3>
+<ul>
+  <li>עריכת טקסט: <kbd>Ctrl</kbd>+<kbd>A</kbd>/<kbd>E</kbd> לתחילת שורה וסופה, <kbd>Ctrl</kbd>+<kbd>K</kbd> ו-<kbd>Ctrl</kbd>+<kbd>U</kbd> למחיקה, <kbd>Ctrl</kbd>+<kbd>W</kbd> למחיקת מילה, <kbd>Ctrl</kbd>+<kbd>Y</kbd> להדבקה, ו-<kbd>Ctrl</kbd>+<kbd>_</kbd> לביטול.</li>
+  <li>היסטוריה לפי תיקיית עבודה. חזרה להודעה שנוקתה בלחיצה על <kbd>Up</kbd>.</li>
+</ul>
+<h3>תור הודעות</h3>
+<ul>
+  <li>הודעה שנשלחת בזמן ש-Claude עובד נכנסת לתור ולא עוצרת את התור.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>Enter</kbd> (או <kbd>Ctrl</kbd>+<kbd>X</kbd> <kbd>Ctrl</kbd>+<kbd>S</kbd>) שולח את התור מיד. <kbd>Up</kbd> מחזיר הודעות מהתור לעריכה.</li>
+  <li><code>/model</code>, <code>/effort</code> ו-<code>/fast</code> פועלים מיד גם באמצע עבודה.</li>
+</ul>
+<h3>הרצה ברקע וכתיבה ישירה</h3>
+<ul>
+  <li><kbd>Ctrl</kbd>+<kbd>B</kbd> מעביר פקודת Bash לרקע. פקודה שחורגת מהזמן המוגדר עוברת לרקע אוטומטית.</li>
+  <li>מצב Shell עם <code>!</code> מריץ פקודה ישירות, והפלט נכנס לשיחה.</li>
+</ul>
+<h3>הצעות ותובנות</h3>
+<ul>
+  <li><strong>הצעת הפרומפט הבא</strong> מופיעה באפור. <kbd>Tab</kbd> או חץ ימינה מקבלים אותה. כיבוי: <code>promptSuggestionEnabled: false</code>.</li>
+  <li><strong>You should know</strong> (מוד מובנה, כבוי כברירת מחדל): הערה על דבר שכדאי לשים אליו לב. מופעל עם <code>/plugin enable cc-plugin-you-should-know@builtin</code>.</li>
+  <li>השלמת אימוג'י בקודי <code>:heart:</code>, ובדיקת איות אופציונלית.</li>
+</ul>
+<h3>diff ו-/btw</h3>
+<ul>
+  <li><code>/diff</code> פותח פאנל הבדלים לצד השיחה במצב fullscreen, או דיאלוג מעל הפרומפט במצב הרגיל. בפאנל אפשר לשאול על קובץ (<strong>ask</strong>), לבחור תור (T1, T2 ...), ולשנות את בסיס ההשוואה עם <kbd>Ctrl</kbd>+<kbd>X</kbd> <kbd>B</kbd>.</li>
+  <li><code>/btw</code> שואל שאלת צד בלי כלים ובלי להוסיף להיסטוריה. מתוך השכבה אפשר להעתיק (<kbd>c</kbd>) או להפוך לתת-סוכן עם כלים (<kbd>f</kbd>).</li>
+</ul>
+<h3>רשימת משימות, סיכום והמתנה למגבלה</h3>
+<ul>
+  <li>רשימת המשימות של Claude מוצגת עם <kbd>Ctrl</kbd>+<kbd>T</kbd>, ונפרדת מ-<code>/tasks</code>.</li>
+  <li><code>/recap</code> מציג סיכום קצר. סיכום אוטומטי מופיע אחרי שלוש דקות בהיעדרות.</li>
+  <li>כשמגבלת שימוש של claude.ai עוצרת משימה, Claude ממתין ומתחיל מחדש לאחר האיפוס. <kbd>Esc</kbd> מבטל את ההמתנה. כיבוי: <code>autoContinueAtUsageLimit: false</code>.</li>
+</ul>
+<h3>סטטוס PR</h3>
+<p>בתחתית מוצג קישור PR עם צבע לפי סטטוס הבדיקה: ירוק לאישור, צהוב לממתין, אדום לבקשת שינויים, אפור לטיוטה.</p>
+</section>
+
+<section id="remote">
+<h2>21. Remote Control</h2>
+<ul>
+  <li>הפעלה בפקודה <code>/remote-control</code> (או <code>/rc</code>) בתיבת הפרומפט. אחרי הפעלה מופיע מחוון Remote Control בתחתית, וה-URL של הסשן נשלח לשיחה. הפקודה שוב מנתקת.</li>
+  <li>החיבור מאפשר להמשיך את הסשן מהטלפון או מדפדפן דרך claude.ai/code או אפליקציית Claude. הקוד ממשיך לרוץ במחשב שלך.</li>
+  <li>מכשיר מחובר רואה את השיחה, תתי-סוכנים ודיף. אפשר לשלוח תמונות וקבצים.</li>
+  <li>ההפעלה האוטומטית לכל הסשנים: מתג בתפריט הפקודות, או <code>remoteControlAtStartup</code>.</li>
+  <li>בטרמינל: <code>claude remote-control</code> מפעיל שרת לכמה סשנים, ו-<code>claude --remote-control</code> פותח סשן רגיל עם שליטה מרחוק.</li>
+</ul>
+</section>
+
+<section id="hooks">
+<h2>22. Hooks</h2>
+<ul>
+  <li>Hooks הם פקודות שמוגדרות בקובץ <code>settings.json</code> ורצות בנקודות קבועות במחזור החיים. <code>/hooks</code> מציג את כל ה-hooks הרשומים.</li>
+  <li>דוגמאות נפוצות: התראת שולחן עבודה כש-Claude מחכה לקלט, עיצוב אוטומטי אחרי עריכה, חסימת עריכה בקבצים מוגנים, ואישור אוטומטי של בקשות מסוימות.</li>
+  <li>סוגי hooks: פקודה (command), מבוסס פרומפט, מבוסס סוכן, ו-HTTP.</li>
+  <li>התראות נתמכות לפי matcher, למשל <code>permission_prompt</code>, <code>idle_prompt</code> ו-<code>agent_completed</code>. matcher ריק מתאים לכולן.</li>
+</ul>
+</section>
+
+<section id="managed">
+<h2>23. הגדרות מנוהלות</h2>
+<ul>
+  <li>הגדרות שהארגון מפיץ גוברות על הגדרות המשתמש, הפרויקט והמקומי. יש כמה חריגים מצומצמים.</li>
+  <li>מה שאפשר לשנות גם כשהארגון קבע ברירת מחדל: מודל לסשן (<code>--model</code>) וחלון הדחיסה (<code>--autocompact</code>).</li>
+  <li>בדיקה: <code>/status</code> מציג בשורה <strong>Setting sources</strong> איזה מקור מנוהל פעיל. שורה <strong>Skipped sources</strong> מציגה מקורות שנמצאו אבל נעקפו.</li>
+  <li><code>claude doctor</code> מציג ערכים שנפסלו בבדיקת הסכמה.</li>
+</ul>
+</section>
+
+<section id="schedule">
+<h2>24. משימות מתוזמנות ו-/loop</h2>
+<ul>
+  <li><code>/loop</code> מריץ פרומפט במרווחי זמן (למשל <span class="ltr">5m</span> או ביטוי cron), או בקצב שClaude בוחר. עוצרים ב-<kbd>Esc</kbd> או בבקשה ל-Claude. משימות בסשן פגות אחרי 7 ימים.</li>
+  <li>משימות ענן (לשעבר routines) רצות בתשתית של Anthropic גם כשהמחשב כבוי. הפעלה לפי תזמון, קריאת API, או אירועי GitHub. זמין בתוכניות Pro, Max, Team ו-Enterprise. יוצרים ב-claude.ai/code/routines או עם <code>/schedule</code>.</li>
+</ul>
+</section>
+
+<section id="notes">
+<h2>הערות על המקור</h2>
+<p>המסמך מבוסס על עמודי התיעוד הרשמיים של Claude Code. חלק מהעמודים נקראו דרך כלי סיכום, ולכן הניסוח עשוי להיות שונה מהמקור. שמות מדויקים, מקשים וגרסאות כדאי לבדוק מול התיעוד לפני שימוש רשמי. תיאור ההתקנה לפי מערכת הפעלה, ספקי הענן וה-gateways לא נכלל, לפי הבקשה.</p>
+</section>
+</div>
