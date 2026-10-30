@@ -16,8 +16,8 @@
 | 4 | סשנים, היסטוריה, Checkpoints, רקע | 5, 6, 7 | הוחלט |
 | 5 | שילוב סביבה: IDE, MCP, תוספים, Git, שימוש | 8, 10, 12, 13, 14 | הוחלט |
 | 6 | תצוגה, נגישות, הגדרות, קיצורים | 9, 16, 18, 19 | הוחלט |
-| 7 | פיצ'רי ענן/רשת: Chrome, Remote Control, הכתבה, תזמון | 11, 17, 21, 24 | בתהליך |
-| 8 | פקודות משותפות, מצב אינטראקטיבי, Hooks, הגדרות מנוהלות | 15, 20, 22, 23 | לא התחיל |
+| 7 | פיצ'רי ענן/רשת: Chrome, Remote Control, הכתבה, תזמון | 11, 17, 21, 24 | הוחלט |
+| 8 | פקודות משותפות, מצב אינטראקטיבי, Hooks, הגדרות מנוהלות | 15, 20, 22, 23 | בתהליך |
 
 ## החלטות
 מתעדכן אחרי כל שלב.
@@ -81,3 +81,12 @@
 - הגדרות נוספות: **`enableNewConversationShortcut` (Ctrl+N)**, **`environmentVariables`**. **לא**: `claudeProcessWrapper` (כרגע; אפשר להוסיף בעתיד), `usePythonEnvironment`, `enableReopenClosedSessionShortcut` (הקיצור Ctrl+Shift+T כבר הוחלט בשלב 4), `disableLoginPrompt`.
 - קיצורים: **Ctrl+Esc** (מעבר עורך↔צ'אט); **Ctrl+Alt+C** כקיצור חלופי לפתיחה בלשונית חדשה (במקום Ctrl+Shift+Esc שנתפס ע"י Windows; Ctrl+Shift+Esc נשאר מוגדר).
   - **דרישה: כל הקיצורים ניתנים לשינוי ע"י המשתמש.** כל קיצור מוגדר כ-`contributes.keybindings` של פקודה עם שם, כך ש-VS Code Keyboard Shortcuts (Ctrl+K Ctrl+S) מאפשר לשנות כל אחד. להוסיף פקודה "Claude Code Local: Keyboard Shortcuts" שפותחת את מסך הקיצורים מסונן ל-`claude-local` (`workbench.action.openGlobalKeybindings`), וקיצורים בתוך ה-webview (Enter, Shift+Enter, Esc Esc) מוגדרים כהגדרות `claudeLocal.keybindings.*` או קריאה מ-keybindings.json של VS Code – להחליט בעת היישום (מגבלה: webview לא רואה את keybindings של VS Code אוטומטית).
+
+### שלב 7 – פיצ'רי ענן/רשת (הוחלט)
+- דפדפן (Chrome): **פיתוח עתידי** – המשתמש צפוי לבנות בעצמו שירות אוטומציית דפדפן (כנראה שרת MCP). בשלב זה אין תמיכה ב-Chrome. **להשאיר מקום בארכיטקטורה**: שרת כזה יתחבר דרך מנהל ה-MCP משלב 5, ואפשר יהיה להוסיף אז `@browser` / תפריט כלי דפדפן. לא ליישם כלום עכשיו.
+- Remote Control: **לדלג**.
+- הכתבה קולית: **לדלג**.
+- /loop: **מחוון בצ'אט** ללא שמירה (מרווח, הרצה הבאה, כפתור עצירה). **בדיקה נדרשת**: אילו אירועים ה-CLI שולח כש-/loop פעיל. משימות ענן – לא.
+
+#### בדיקה נוספת מול ה-CLI האמיתי
+10. אילו אירועי loop נשלחים ב-stream-json (שלב 7).
