@@ -15,8 +15,8 @@
 | 3 | הקשר מהעורך ובדיקת שינויים (diff) | 3, 4 | הוחלט |
 | 4 | סשנים, היסטוריה, Checkpoints, רקע | 5, 6, 7 | הוחלט |
 | 5 | שילוב סביבה: IDE, MCP, תוספים, Git, שימוש | 8, 10, 12, 13, 14 | הוחלט |
-| 6 | תצוגה, נגישות, הגדרות, קיצורים | 9, 16, 18, 19 | בתהליך |
-| 7 | פיצ'רי ענן/רשת: Chrome, Remote Control, הכתבה, תזמון | 11, 17, 21, 24 | לא התחיל |
+| 6 | תצוגה, נגישות, הגדרות, קיצורים | 9, 16, 18, 19 | הוחלט |
+| 7 | פיצ'רי ענן/רשת: Chrome, Remote Control, הכתבה, תזמון | 11, 17, 21, 24 | בתהליך |
 | 8 | פקודות משותפות, מצב אינטראקטיבי, Hooks, הגדרות מנוהלות | 15, 20, 22, 23 | לא התחיל |
 
 ## החלטות
@@ -74,3 +74,10 @@
 #### בדיקות נוספות מול ה-CLI האמיתי
 8. היתכנות שרת IDE (WebSocket + lock file) – חוסם את שלבים 3 ו-5.
 9. דרך כתיבה בטוחה להוספת/הסרת שרתי MCP (`claude mcp add/remove` מול עריכת settings).
+
+### שלב 6 – תצוגה, נגישות, הגדרות, קיצורים (הוחלט)
+- תצוגה: **Focus view** (מתג + הגדרה `focusView`), **חותמות זמן** (`showMessageTimestamps`), **spinnerVerbs**, **scrollToBottomOnSend**.
+- טרמינל ונגישות: **הגדרת `useTerminal`** (הכפתור הראשי פותח טרמינל במקום צ'אט; משתמש בפקודת Open in Terminal משלב 1), **הגדרות נגישות וצבע** (`prefersReducedMotion`, תמיכה בערכות daltonized), **הכרזות לקורא מסך + תוויות דובר ("אתה"/"Claude") + ניווט לפי כותרות** (דורש בדיקה עם קורא מסך אמיתי).
+- הגדרות נוספות: **`enableNewConversationShortcut` (Ctrl+N)**, **`environmentVariables`**. **לא**: `claudeProcessWrapper` (כרגע; אפשר להוסיף בעתיד), `usePythonEnvironment`, `enableReopenClosedSessionShortcut` (הקיצור Ctrl+Shift+T כבר הוחלט בשלב 4), `disableLoginPrompt`.
+- קיצורים: **Ctrl+Esc** (מעבר עורך↔צ'אט); **Ctrl+Alt+C** כקיצור חלופי לפתיחה בלשונית חדשה (במקום Ctrl+Shift+Esc שנתפס ע"י Windows; Ctrl+Shift+Esc נשאר מוגדר).
+  - **דרישה: כל הקיצורים ניתנים לשינוי ע"י המשתמש.** כל קיצור מוגדר כ-`contributes.keybindings` של פקודה עם שם, כך ש-VS Code Keyboard Shortcuts (Ctrl+K Ctrl+S) מאפשר לשנות כל אחד. להוסיף פקודה "Claude Code Local: Keyboard Shortcuts" שפותחת את מסך הקיצורים מסונן ל-`claude-local` (`workbench.action.openGlobalKeybindings`), וקיצורים בתוך ה-webview (Enter, Shift+Enter, Esc Esc) מוגדרים כהגדרות `claudeLocal.keybindings.*` או קריאה מ-keybindings.json של VS Code – להחליט בעת היישום (מגבלה: webview לא רואה את keybindings של VS Code אוטומטית).
