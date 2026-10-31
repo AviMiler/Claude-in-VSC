@@ -1,0 +1,74 @@
+# בדיקות היתכנות מול ה-CLI האמיתי – רשימת פקודות
+
+להרצה במחשב שבו ה-CLI מותקן ומחובר למודל המקומי. PowerShell. הנתיבים לפי `SETUP.md`; שנה אם אצלך שונה.
+כל הבדיקות רצות בתיקיית temp זמנית ולא נוגעות בפרויקטים שלך. אפשר להריץ כל שלב בנפרד.
+
+## שלב 0 – הכנה
+```powershell
+cd <תיקיית הריפו>
+git checkout develop
+git pull origin develop
+node -v                      # צריך 22 ומעלה
+claude --version             # הערך שנרשם ב-spec: 2.1.181
+claude -p "Reply with the single word OK"    # חייב להחזיר תשובה מהמודל המקומי
+```
+אם השורה האחרונה נכשלת – לעצור ולתקן קודם את `~/.claude/settings.json` (ראה `SETUP.md`). בלי זה שאר הבדיקות חסרות ערך.
+
+## שלב 1 – סקריפט הבדיקה (מכסה בדיקות 1, 2, 4, 5, 6, 7, 10, 11, 12)
+```powershell
+node dev/probe-cli.js --claude "C:\Users\User\.local\bin\claude.exe" --out probe-report.json
+```
+- אורך: בין 10 ל-30 דקות עם מודל מקומי (כל פקודה ממתינה עד 3 דקות לתשובה). אפשר להאריך עם `--turn-timeout 300`.
+- להרצה חלקית: `--only p1,p2` (שמות: `p1` initialize, `p2` בקשות בקרה, `p3` תור רגיל, `p4` הודעה באמצע תור, `p5` פקודות slash ו-/rename, `p6` updatedInput, `p7` TodoWrite/`!`/רקע, `p8` /loop).
+- הסקריפט מאשר אוטומטית רק פקודות `ping`/`sleep`/`echo` ב-Bash, ומסרב לכל כלי אחר. עריכה מתבצעת רק על קובץ בתיקיית ה-temp.
+- הדוח לא מכיל את פרטי החשבון (רק שמות שדות). לפני שליחה עבור עליו בכל זאת.
+
+## שלב 2 – בדיקות ידניות
+**בדיקה 1 (תמיכת המודל בראייה/חשיבה/כלים):**
+```powershell
+Invoke-RestMethod -Method Post -Uri http://172.27.5.5:11436/api/show -ContentType application/json -Body '{"model":"qwen3.8:27b"}' | Select-Object -ExpandProperty capabilities
+```
+(אם `ollama` מותקן אצלך גם: `ollama show qwen3.8:27b`.) התשובה מפרטת למשל `completion`, `vision`, `tools`, `thinking`. זה קובע אם מציגים הדבקת תמונות ומתג Thinking.
+
+**בדיקות 3 ו-8 (שרת IDE):**
+```powershell
+claude --help | Select-String -Pattern "ide"
+Get-ChildItem "$env:USERPROFILE\.claude\ide" -ErrorAction SilentlyContinue
+```
+ואז בטרמינל המשולב של VS Code: להריץ `claude` ובתוכו `/ide`, ולהעתיק לי את הפלט. זה רק מראה אם ה-CLI תומך בחיבור IDE ומה הוא מצפה לו. היתכנות מלאה תיבדק עם אב-טיפוס שאבנה אחרי שאקבל את התוצאות.
+
+**בדיקה 9 (הוספה והסרה של שרת MCP):**
+```powershell
+claude mcp --help
+claude mcp add --help
+claude mcp add probe-test -- node -e "setInterval(()=>{},1000)"
+claude mcp list
+Get-Item "$env:USERPROFILE\.claude.json" | Select-Object LastWriteTime     # לראות איזה קובץ עודכן
+claude mcp remove probe-test
+claude mcp list
+```
+
+**בדיקה 6 (rewind/fork בשורת הפקודה):**
+```powershell
+claude --help | Select-String -Pattern "fork|resume|rewind|continue"
+```
+
+## מה לשלוח
+1. הקובץ `probe-report.json` (להדביק כאן או להוסיף ל-develop אחרי עיון).
+2. הפלט של שלב 0 ושל כל הפקודות בשלב 2.
+3. כל שגיאה שהופיעה.
+
+## מיפוי בדיקות (מתוך `docs/features-plan.md`)
+| # | בדיקה | איפה |
+|---|---|---|
+| 1 | שדות model/תמיכה | p1 + `api/show` |
+| 2 | שדות commands (skills מול מובנות) | p1 |
+| 3, 8 | שרת IDE | שלב 2 + אב-טיפוס |
+| 4 | updatedInput בעריכה | p6 |
+| 5 | /rename נכתב ל-jsonl | p5 |
+| 6 | rewind | p2 + `--help` |
+| 7 | אירועי רקע/משימות | p7, p2 |
+| 9 | MCP add/remove | שלב 2 |
+| 10 | אירועי /loop | p8 |
+| 11 | פקודות slash ב-stream-json | p5 |
+| 12 | הודעה באמצע תור, `!`, TodoWrite | p4, p7 |
