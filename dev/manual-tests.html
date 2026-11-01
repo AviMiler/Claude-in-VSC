@@ -20,6 +20,9 @@
   .bar { position:sticky; top:0; background:var(--bg); padding:8px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--line); z-index:2; }
   details { margin:6px 0; } summary { cursor:pointer; color:var(--muted); }
   .warn { background:var(--card); border:1px dashed var(--bad); padding:8px 12px; border-radius:6px; }
+  .where { background:var(--card); border:1px solid var(--accent); padding:8px 14px; border-radius:6px; margin:10px 0; } .where li { margin:4px 0; }
+  .chip { display:inline-block; font-size:12px; font-weight:600; border:1px solid var(--accent); color:var(--accent); border-radius:10px; padding:0 8px; margin-inline-end:6px; white-space:nowrap; }
+  .chip.ps { border-color:var(--bad); color:var(--bad); }
 </style>
 </head>
 <body>
@@ -30,6 +33,19 @@
   <span id="count" class="lbl"></span> <span id="msg" class="lbl"></span>
 </div>
 <div class="warn">הלוג נמצא ב-Output &gt; "Claude Code Local" (או הפקודה "Claude Code Local: Show Log"). להעתקה: "Claude Code Local: Copy Log". לפירוט מלא הגדירו <code>claudeLocal.logLevel</code> = <code>debug</code>. שורה בלוג: <code>HH:MM:SS.mmm [תגית] טקסט</code>; אזהרות מסומנות <code>WARN</code>. הלוג לא מכיל טקסט הודעות, תוכן קבצים או ערכי משתני סביבה - רק אורכים, שמות ומזהים.</div>
+<div class="where">
+  <b>איפה עושים מה</b> (לפני שמתחילים). בכל בדיקה, לצד הצעד מופיעה תווית שאומרת איפה לבצע אותו:
+  <ul>
+    <li><span class="chip ps">PowerShell</span> חלון PowerShell <b>רגיל של Windows, מחוץ ל-VS Code</b> (תפריט התחל &larr; "PowerShell"). שם מריצים רק את פקודת ההפעלה <code>code --extensionDevelopmentPath=...</code> ופקודות <code>node</code>/<code>where.exe</code>. הנתיב עם רווחים חייב להיות במרכאות.</li>
+    <li><b>חלון הפיתוח (Extension Development Host)</b>: חלון VS Code חדש שנפתח אחרי פקודת ההפעלה, ובכותרתו כתוב <code>[Extension Development Host]</code>. <b>כל הבדיקות מתבצעות בו</b>, לא בחלון VS Code הרגיל שלכם. פתחו בו תיקיית עבודה כלשהי (File &larr; Open Folder).</li>
+    <li><span class="chip">Command Palette</span> בתוך חלון הפיתוח: <code>Ctrl+Shift+P</code>, מקלידים את שם הפקודה (למשל <code>Claude Code Local: Show Log</code>), בוחרים ו-Enter.</li>
+    <li><span class="chip">הגדרות</span> בתוך חלון הפיתוח: <code>Ctrl+,</code> ובשורת החיפוש <code>claudeLocal</code>. לעריכה כקובץ: Command Palette &larr; <code>Preferences: Open User Settings (JSON)</code>.</li>
+    <li><span class="chip">צ'אט</span> הצ'אט של התוסף: כפתור הניצוץ בסרגל הכלים של העורך, או <code>Ctrl+Shift+Esc</code>. כותבים בתיבת ההודעה שלמטה ו-Enter.</li>
+    <li><span class="chip">Output</span> הלוג: בתוך חלון הפיתוח, תפריט View &larr; Output, ובתיבת הבחירה שבראש הפאנל בוחרים <code>Claude Code Local</code>. או הפקודה <code>Claude Code Local: Show Log</code>.</li>
+    <li><span class="chip">דפדפן</span> הדף הזה. שם מסמנים עבר/נכשל ולוחצים "העתקת תוצאות".</li>
+  </ul>
+  צעד בלי תווית מתבצע בחלון הפיתוח (בצ'אט או בעורך), לפי מה שכתוב בו.
+</div>
 <div id="root"></div>
 
 <h2>לא נבנה (אל תחפשו)</h2>
@@ -194,13 +210,22 @@ try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { S = {}; }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const root = document.getElementById('root');
 let cur = '';
+// A location chip is added only when the step text clearly says where it is done.
+function where(step) {
+  if (/code --extensionDevelopmentPath|where\.exe|(^|>)\s*node |PowerShell|(^|>)בטרמינל:/i.test(step)) return '<span class="chip ps">PowerShell (מחוץ ל-VS Code)</span>';
+  if (/הפקודה\s*(&quot;|")|Command Palette|Ctrl\+Shift\+P|Preferences:/i.test(step)) return '<span class="chip">Command Palette (Ctrl+Shift+P)</span>';
+  if (/Settings|הגדרות|claudeLocal\.[A-Za-z.]+|\b(preferredLocation|useTerminal|logLevel|lockEditorGroups|enableNewConversationShortcut|environmentVariables|claudePath|gatewayUrl|modelDenylist|focusView|showMessageTimestamps|prefersReducedMotion|colorMode|respectGitIgnore|spinnerVerbs|scrollToBottomOnSend|useCtrlEnterToSend)\b/.test(step) && /שנו|הגדירו|הגדרה|Settings|כבו|הדליקו|הפעילו|ערכו/.test(step)) return '<span class="chip">הגדרות (Ctrl+,)</span>';
+  if (/Output|בלוג|בפלט/.test(step)) return '<span class="chip">Output</span>';
+  return '';
+}
+const steps = (a) => a.length ? `<ol>${a.map((x) => `<li>${where(x)}${x}</li>`).join('')}</ol>` : '<div><i>אין שורה ייעודית</i></div>';
 const list = (a, tag) => a.length ? `<${tag}>${a.map((x) => `<li>${x}</li>`).join('')}</${tag}>` : '<div><i>אין שורה ייעודית</i></div>';
 for (const x of T) {
   if (x.g !== cur) { cur = x.g; const h = document.createElement('h2'); h.textContent = cur; root.appendChild(h); }
   const d = document.createElement('div'); d.className = 'test'; d.id = 't' + x.id;
   d.innerHTML = `<div class="head"><b>${x.id} ${x.title}</b>
     <label><input type="checkbox" data-k="pass"> עבר</label> <label><input type="checkbox" data-k="fail"> נכשל</label></div>
-    <div class="lbl">צעדים</div>${list(x.steps, 'ol')}
+    <div class="lbl">צעדים</div>${steps(x.steps)}
     <div class="lbl">תוצאה צפויה</div><div>${x.expect}</div>
     <div class="lbl">שורות לוג צפויות (Output &gt; Claude Code Local)</div>${list(x.log, 'ul')}
     <div class="lbl">אם נכשל, הדביקו בשיחה</div><div>${x.paste}</div>
