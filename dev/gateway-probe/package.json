@@ -1,0 +1,23 @@
+{
+  "name": "gateway-probe",
+  "displayName": "Gateway Probe",
+  "description": "Dev-only check that the extension host can reach the local model gateway.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": { "vscode": "^1.91.0" },
+  "main": "./extension.js",
+  "activationEvents": ["onCommand:gatewayProbe.run"],
+  "contributes": {
+    "commands": [
+      { "command": "gatewayProbe.run", "title": "Gateway Probe: Run" }
+    ],
+    "configuration": {
+      "title": "Gateway Probe",
+      "properties": {
+        "gatewayProbe.baseUrl": { "type": "string", "default": "http://172.27.5.5:11436", "description": "Gateway base URL" },
+        "gatewayProbe.apiKey": { "type": "string", "default": "ollama", "description": "Bearer key sent to the gateway" },
+        "gatewayProbe.model": { "type": "string", "default": "qwen3.8:27b", "description": "Model used for the per-model checks" }
+      }
+    }
+  }
+}
