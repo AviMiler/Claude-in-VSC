@@ -117,8 +117,34 @@
 | 5 | **`claudePath` = `claude-bin.exe` + משתני סביבה מהתוסף** (`API_TIMEOUT_MS=1200000`, `CLAUDE_ENABLE_STREAM_WATCHDOG=0`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`, בהגדרה `claudeLocal.environmentVariables` שאפשר לערוך) | העטיפה `claude.cmd` שואלת "Select model number" לפני כל הרצה ותתקע את התוסף; ה-timeout הארוך הכרחי בגלל הטעינה הקרה; חלון ההקשר נמדד |
 | 6 | **סינון מודלים:** הסתרה אוטומטית של מודלים עם `extra_body.output_config.format` (`qwen2.5-coder:7b`, `gemma4:31b`) + `claudeLocal.modelDenylist` (ברירת מחדל `gemma3:27b`) + הודעה בעברית וחזרה למודל הקודם בשגיאת "does not support tools" | נתוני היכולות בשער לא אמינים; שני מודלים מוגדרים לפלט JSON של כותרת בלבד; `gemma3:27b` נכשל עם "does not support tools"; שאר המודלים לא נבדקו עם הכלים |
 
-## 4. הגדרות חדשות בתוסף
-`preferredLocation`, `lockEditorGroups`, `attachSelection`, `attachOpenFile`, `respectGitIgnore`, `autosave`, `focusView`, `showMessageTimestamps`, `spinnerVerbs`, `scrollToBottomOnSend`, `useTerminal`, `enableNewConversationShortcut`, `environmentVariables`, `gatewayUrl`, `modelDenylist`, הגדרות נגישות וצבע, והגדרת הקיצורים (פקודות עם `keybindings` ניתנים לשינוי).
+## 4. הגדרות בתוסף (קידומת `claudeLocal.`)
+מקור הערכים: 👤 ערך שהוחלט · ⚠️ הצעה שלי לברירת מחדל, לא נשאלה במפורש (לאישור לפני חבילה A). **קיימות היום ב-`package.json`:** `claudePath`, `allowDangerouslySkipPermissions`, `useCtrlEnterToSend`. כל השאר חדשות ויתווספו בחבילות המצוינות.
+
+| הגדרה | סוג | ברירת מחדל | משמעות | חבילה | מקור |
+|---|---|---|---|---|---|
+| `claudePath` | string | `claude` (במחשב הזה מגדירים במפורש נתיב ל-`claude-bin.exe`, ראה `SETUP.md` §2) | קובץ ההפעלה של ה-CLI | A | 👤 |
+| `allowDangerouslySkipPermissions` | boolean | `false` | מציג את מצב "ללא הרשאות" | קיימת | 👤 |
+| `useCtrlEnterToSend` | boolean | `false` | Ctrl+Enter שולח, Enter יורד שורה | קיימת | 👤 |
+| `environmentVariables` | object (שם→מחרוזת) | `{"API_TIMEOUT_MS":"1200000","CLAUDE_ENABLE_STREAM_WATCHDOG":"0","CLAUDE_CODE_MAX_CONTEXT_TOKENS":"64000"}` | משתני סביבה לתהליך ה-CLI; מתמזגים מעל הסביבה, ומשתני החיבור נשארים ב-`settings.json` של ה-CLI | A | 👤 |
+| `preferredLocation` | enum `panel` / `sidebar` | `panel` | איפה נפתח הצ'אט מהכפתור הראשי | A | 👤 (הערך ⚠️) |
+| `lockEditorGroups` | boolean | `false` | נעילת קבוצת העורך של הלשונית | A | 👤 (הערך ⚠️) |
+| `useTerminal` | boolean | `false` | הכפתור הראשי פותח את ה-CLI בטרמינל במקום בצ'אט | A | 👤 (הערך ⚠️) |
+| `enableNewConversationShortcut` | boolean | `false` | Ctrl+N לשיחה חדשה | A | 👤 (הערך ⚠️) |
+| `gatewayUrl` | string | ריק (נלקח מ-`ANTHROPIC_BASE_URL`) | כתובת השער לשליפת `/v1/models` | D | 👤 |
+| `modelDenylist` | string[] | `["gemma3:27b"]` | מודלים להסתרה מהבורר | D | 👤 |
+| `attachSelection` | boolean | `true` | צירוף הבחירה בעורך להקשר | F | 👤 |
+| `attachOpenFile` | boolean | `true` | צירוף הקובץ הפתוח להקשר | F | 👤 |
+| `respectGitIgnore` | boolean | `true` | התעלמות מקבצי `.gitignore` בהשלמת @ | C | 👤 (הערך ⚠️) |
+| `autosave` | boolean | `true` | שמירת העורך אחרי עריכה של Claude | F | 👤 |
+| `focusView` | boolean | `false` | מצב מיקוד בצ'אט | G | 👤 (הערך ⚠️) |
+| `showMessageTimestamps` | boolean | `false` | חותמות זמן להודעות | G | 👤 (הערך ⚠️) |
+| `spinnerVerbs` | string[] | ריק (ברירת המחדל של התוסף) | מילות המתנה במחוון העבודה | G | 👤 (הערך ⚠️) |
+| `scrollToBottomOnSend` | boolean | `true` | גלילה לתחתית בשליחה | G | 👤 (הערך ⚠️) |
+| `prefersReducedMotion` | boolean | `false` | ביטול אנימציות | G | 👤 (הערך ⚠️) |
+| `colorMode` | enum `default` / `daltonized` | `default` | ערכת צבעים לעיוורי צבעים | G | 👤 (השם והערך ⚠️) |
+| `keybindings.*` | string | לפי הקיצור | קיצורים בתוך ה-webview; **עדיין לא הוחלט** אם כהגדרות או מ-keybindings.json (ראה שלב 6) | A | 👤 (פתוח) |
+
+**קיצורי מקלדת ברמת VS Code** אינם הגדרות אלא `contributes.keybindings`: Ctrl+Shift+Esc ו-Ctrl+Alt+C (קיימים), Ctrl+Esc, Ctrl+Shift+T, Alt+K ועוד.
 
 ## 5. סדר בנייה
 | חבילה | תוכן | תלוי ב |
@@ -138,3 +164,4 @@
 4. בדיקת הגרסאות הבאות בתוך VS Code 1.91.1 אחרי כל חבילה, ועדכון `spec.md`, `PROJECT_MAP.md`, `CHANGELOG.md`, `AGENT_CONTEXT.md` בסיום כל חבילה.
 5. בעת עדכון `spec.md` בסיום כל חבילה: לעדכן גם את הסעיפים "Out of scope" ו-"History" לפי מה שנבנה.
 6. שני דברים שהתאמתי בלי לשאול במפורש (⚠️): הסרת העלות משורת השימוש (נשארים טוקנים), וחסימת החלפת מודל באמצע תור פעיל. אם אתה לא מסכים, תגיד.
+7. ברירות המחדל המסומנות ⚠️ בטבלת ההגדרות (סעיף 4) הן הצעה שלי ודורשות אישור לפני חבילה A. הערכים ששייכים להחלטות מפורשות (`attachSelection`, `attachOpenFile`, `autosave`, `modelDenylist`, `environmentVariables`) לא נוגעים בזה.
