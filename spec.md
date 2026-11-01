@@ -18,13 +18,13 @@ Every section is "planned" until code ships; when it ships the section is update
 - Runs on Windows with VS Code, Node 22 and the real `claude` CLI installed (this machine has all three). Must eventually run on an offline machine: no network calls, CDNs, or remote fonts from the webviews; no network access at runtime from the extension itself.
 - Language: plain JavaScript only. CommonJS (`require`) in the extension host, plain `<script>` files in the webview. No TypeScript, no `npm install`, no build step, no bundler.
 - The only third-party code allowed is vendored, plain-JS, self-running files saved in the repo at a pinned version with their license files: `marked` (Markdown to HTML) and `highlight.js` (common-languages bundle) under `webview/vendor/`. Everything else is hand-written.
-- `engines.vscode`: `^1.94.0`. Secondary-sidebar placement needs a newer VS Code; older versions fall back to the activity bar (see "Placement").
+- `engines.vscode`: `^1.91.0` (lowered from ^1.94.0 on 2026-11-01: VS Code 1.91.1 on the user's machine did not load the extension; it now runs there). Secondary-sidebar placement needs a newer VS Code; older versions fall back to the activity bar (see "Placement").
 - The CLI is not bundled. It comes from `claudeLocal.claudePath` (default `claude`). Target CLI: 2.1.181 (verified on this machine) or newer. A bare name is resolved on PATH by scanning PATH x PATHEXT; a `.cmd`/`.bat` is run through `cmd.exe /d /s /c`.
 - `capabilities.untrustedWorkspaces.supported: false`: the extension does not run in Restricted Mode.
 - Ids are renamed so the extension installs side by side with the official one: commands `claude-local.*`, settings `claudeLocal.*`, views `claudeLocal*`, view containers `claude-local-*`, context keys `claude-local.*`.
 - Code is separated by feature: a folder per topic under `src/` and `webview/`, no cross-feature spaghetti.
 - Known limit: Ctrl+Shift+Esc is Windows' Task Manager shortcut, so it will probably never reach VS Code; kept as specified. The editor/title button, the status-bar item and the command palette are the working entry points.
-- Known limit: `engines.vscode` stays `^1.94.0`, but the `secondarySidebar` container is used from 1.106 (the official extension's threshold, `src/util/vscode-version.js`); older versions use the activity-bar fallback.
+- Known limit: `engines.vscode` is `^1.91.0`, and the `secondarySidebar` container is used from 1.106 (the official extension's threshold, `src/util/vscode-version.js`); older versions use the activity-bar fallback.
 - Code (as built): `package.json`, `extension.js`, `.vscodeignore`, `src/util/vscode-version.js`.
 
 ## Manifest & package layout
