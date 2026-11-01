@@ -5,6 +5,7 @@
 - `DECISIONS.md` — architecture-level decisions with alternatives and reasons.
 - `PLAN.md` — **the roadmap and the single source of truth for what to build next**: every feature decision with its reason, the settings table, the build order (packages A-G), open points.
 - `ARCHITECTURE.md`, `PROJECT_MAP.md` (one line per file), `DEPENDENCIES.md` — structure, files; vendored libraries and the measured findings about the CLI (2.1.246), the gateway, Ollama and VS Code, each with its evidence and what is still unknown.
+- `FIXES.md` — open problems reported by the user (fix list); read before changing conversation placement or the UI.
 - `git-instructions.md` — the git workflow (branches, commits, push rules).
 - `SETUP.md` — install and settings for the user's machine (Hebrew). `dev/README.md` — probes, fake CLI, browser preview. `CHANGELOG.md` — what changed and why.
 

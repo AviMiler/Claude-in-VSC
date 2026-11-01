@@ -15,6 +15,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `ARCHITECTURE.md` — structure and boundaries.
 - `DEPENDENCIES.md` — vendored libraries and the measured findings about the CLI, the gateway/Ollama and VS Code (with evidence and what is unknown).
 - `PLAN.md` — the roadmap: every feature decision with its reason, the settings table, build order (packages A-G), open points, IDE-server design notes.
+- `FIXES.md` — the user-reported fix list (conversation placement, new conversation while running, UI polish).
 - `git-instructions.md` — the git workflow.
 - `CHANGELOG.md` — what changed and why, newest first.
 - `SETUP.md` — install and settings for the user's machine (Hebrew).
