@@ -76,6 +76,11 @@
         "command": "claude-local.editor.open",
         "key": "ctrl+shift+escape",
         "mac": "cmd+shift+escape"
+      },
+      {
+        "command": "claude-local.editor.open",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
       }
     ],
     "menus": {

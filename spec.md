@@ -23,7 +23,7 @@ Every section is "planned" until code ships; when it ships the section is update
 - `capabilities.untrustedWorkspaces.supported: false`: the extension does not run in Restricted Mode.
 - Ids are renamed so the extension installs side by side with the official one: commands `claude-local.*`, settings `claudeLocal.*`, views `claudeLocal*`, view containers `claude-local-*`, context keys `claude-local.*`.
 - Code is separated by feature: a folder per topic under `src/` and `webview/`, no cross-feature spaghetti.
-- Known limit: Ctrl+Shift+Esc is Windows' Task Manager shortcut, so it will probably never reach VS Code; kept as specified. The editor/title button, the status-bar item and the command palette are the working entry points.
+- Known limit: Ctrl+Shift+Esc is Windows' Task Manager shortcut, so it will probably never reach VS Code; kept as specified. Ctrl+Alt+C was added on 2026-11-01 as a second binding for the same command (it works on Windows). The editor/title button, the status-bar item and the command palette are the working entry points.
 - Known limit: `engines.vscode` is `^1.91.0`, and the `secondarySidebar` container is used from 1.106 (the official extension's threshold, `src/util/vscode-version.js`); older versions use the activity-bar fallback.
 - Code (as built): `package.json`, `extension.js`, `.vscodeignore`, `src/util/vscode-version.js`.
 
@@ -52,7 +52,7 @@ Two places, each an independent conversation with its own CLI process (user deci
 
   | Id | Title | Key (Win) | Notes |
   |---|---|---|---|
-  | `claude-local.editor.open` | Open in New Tab | Ctrl+Shift+Esc | new conversation in an editor tab |
+  | `claude-local.editor.open` | Open in New Tab | Ctrl+Shift+Esc, Ctrl+Alt+C | new conversation in an editor tab |
   | `claude-local.editor.openLast` | Open | — | editor/title button and status-bar target; focuses the last tab or opens one; hidden from the palette |
   | `claude-local.sidebar.open` | Open in Side Bar | — | reveals the sidebar view |
   | `claude-local.newConversation` | New Conversation | — | clears the current panel and starts a fresh process (disabled while a turn runs); also the "+" in the chat header |
