@@ -29,13 +29,15 @@
 
 ## 2. הגדרת הנתיב ל-CLI בתוסף
 
-ב-VS Code: `Ctrl+,` ← חיפוש `claudeLocal.claudePath` ← הערך:
+ב-VS Code: `Ctrl+,` ← חיפוש `claudeLocal.claudePath` ← הערך הוא הקובץ האמיתי `claude-bin.exe`, לא העטיפה `claude.cmd` (הסיבה בסעיף 5.1). במחשב הזה:
 
 ```
-C:\Users\User\.local\bin\claude.exe
+C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 ```
 
-ההגדרה נשמרת ב-`C:\Users\User\AppData\Roaming\Code\User\settings.json`. ברירת המחדל של התוסף היא `claude` (שם בלבד, מחפש ב-PATH).
+ההגדרה נשמרת ב-`C:\Users\User\AppData\Roaming\Code\User\settings.json`. ברירת המחדל של התוסף היא `claude` (שם בלבד, מחפש ב-PATH) ואינה מתאימה כאן, ולכן חובה להגדיר נתיב מפורש.
+
+(הנתיב הקודם שהופיע כאן, `C:\Users\User\.local\bin\claude.exe`, שייך להתקנה אחרת ואינו תקף למחשב הזה.)
 
 ## 3. התקנת התוסף
 
@@ -61,7 +63,7 @@ C:\Users\User\.local\bin\claude.exe
 C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 ```
 
-(הנתיב בסעיף 2 למעלה, `C:\Users\User\.local\bin\claude.exe`, שייך להתקנה אחרת.)
+(זה אותו נתיב שמופיע בסעיף 2.)
 
 ### 5.2 משתני סביבה שהעטיפה מגדירה והתוסף לא
 
