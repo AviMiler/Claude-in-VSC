@@ -1,9 +1,10 @@
-// The panels feature: editor tabs, sidebar views, commands and the status-bar item.
+// The panels feature: the two places (sidebar view, editor tab), the placement rule, commands and
+// the status-bar item.
 const { registerCommands } = require('./commands');
 const { createPlanDocs } = require('./plan-doc');
 const { createDiffView } = require('../diff/diff-view');
-const { registerHistory } = require('./history-tree');
 const { registerSidebar } = require('./sidebar-view');
+const { createPlaces } = require('./places');
 const { registerStatusBar } = require('./status-bar');
 
 function register(context, services) {
@@ -11,9 +12,9 @@ function register(context, services) {
   context.subscriptions.push(services.planDocs);
   services.diffView = createDiffView(); // shared: /diff now, package F and openDiff later
   context.subscriptions.push(services.diffView);
-  registerCommands(context, services);
-  registerSidebar(context, services);
-  registerHistory(context, services);
+  const sidebarHost = registerSidebar(context, services);
+  services.places = createPlaces(services, sidebarHost);
+  services.openSession = registerCommands(context, services).openSession;
   registerStatusBar(context);
 }
 

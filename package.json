@@ -56,15 +56,15 @@
         "claudeLocal.preferredLocation": {
           "type": "string",
           "enum": [
-            "panel",
-            "sidebar"
+            "sidebar",
+            "panel"
           ],
-          "default": "panel",
+          "default": "sidebar",
           "enumDescriptions": [
-            "לשונית עורך",
-            "סרגל צד"
+            "סרגל הצד (ברירת מחדל)",
+            "לשונית עורך אחת"
           ],
-          "markdownDescription": "איפה נפתח הצ'אט מהכפתור הראשי: `panel` = לשונית עורך, `sidebar` = סרגל הצד."
+          "markdownDescription": "המקום היחיד שבו Claude נפתח מכל כפתור, קיצור וקישור: `sidebar` = סרגל הצד, `panel` = לשונית עורך אחת. כל השיחות נמצאות באותו מקום ועוברים ביניהן מרשימת השיחות (☰)."
         },
         "claudeLocal.lockEditorGroups": {
           "type": "boolean",
@@ -74,7 +74,7 @@
         "claudeLocal.useTerminal": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "הכפתור הראשי ו-`Ctrl+Shift+Esc` פותחים את ה-CLI בטרמינל במקום בצ'אט."
+          "markdownDescription": "פתיחת Claude (הכפתור, שורת המצב והקיצורים) פותחת את ה-CLI בטרמינל במקום בצ'אט."
         },
         "claudeLocal.respectGitIgnore": {
           "type": "boolean",
@@ -174,21 +174,10 @@
     },
     "commands": [
       {
-        "command": "claude-local.editor.open",
-        "title": "פתיחה בלשונית חדשה",
-        "category": "Claude Code Local",
-        "icon": "resources/claude-logo.svg"
-      },
-      {
-        "command": "claude-local.editor.openLast",
+        "command": "claude-local.open",
         "title": "פתיחת Claude",
         "category": "Claude Code Local",
-        "icon": "resources/claude-logo.svg"
-      },
-      {
-        "command": "claude-local.sidebar.open",
-        "title": "פתיחה בסרגל הצד",
-        "category": "Claude Code Local"
+        "icon": "resources/claude-mascot.svg"
       },
       {
         "command": "claude-local.newConversation",
@@ -234,39 +223,16 @@
         "command": "claude-local.continueLast",
         "title": "המשך את השיחה האחרונה",
         "category": "Claude Code Local"
-      },
-      {
-        "command": "claude-local.history.open",
-        "title": "פתיחת שיחה",
-        "category": "Claude Code Local"
-      },
-      {
-        "command": "claude-local.history.refresh",
-        "title": "רענון רשימת השיחות",
-        "category": "Claude Code Local",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "claude-local.history.filter",
-        "title": "סינון שיחות",
-        "category": "Claude Code Local",
-        "icon": "$(filter)"
-      },
-      {
-        "command": "claude-local.history.rename",
-        "title": "שינוי שם שיחה",
-        "category": "Claude Code Local",
-        "icon": "$(edit)"
       }
     ],
     "keybindings": [
       {
-        "command": "claude-local.editor.open",
+        "command": "claude-local.open",
         "key": "ctrl+shift+escape",
         "mac": "cmd+shift+escape"
       },
       {
-        "command": "claude-local.editor.open",
+        "command": "claude-local.open",
         "key": "ctrl+alt+c",
         "mac": "cmd+alt+c"
       },
@@ -297,41 +263,8 @@
     "menus": {
       "editor/title": [
         {
-          "command": "claude-local.editor.openLast",
+          "command": "claude-local.open",
           "group": "navigation"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "claude-local.editor.openLast",
-          "when": "false"
-        },
-        {
-          "command": "claude-local.history.open",
-          "when": "false"
-        },
-        {
-          "command": "claude-local.history.rename",
-          "when": "false"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "claude-local.history.filter",
-          "when": "view == claudeLocalHistory",
-          "group": "navigation@1"
-        },
-        {
-          "command": "claude-local.history.refresh",
-          "when": "view == claudeLocalHistory",
-          "group": "navigation@2"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "claude-local.history.rename",
-          "when": "view == claudeLocalHistory && viewItem == session",
-          "group": "inline"
         }
       ]
     },
@@ -340,31 +273,20 @@
         {
           "id": "claude-local-sidebar",
           "title": "Claude Code Local",
-          "icon": "resources/claude-logo.svg",
+          "icon": "resources/claude-mascot-mono.svg",
           "when": "claude-local:doesNotSupportSecondarySidebar"
-        },
-        {
-          "id": "claude-local-history",
-          "title": "שיחות Claude",
-          "icon": "resources/claude-logo.svg"
         }
       ],
       "secondarySidebar": [
         {
           "id": "claude-local-sidebar-secondary",
           "title": "Claude Code Local",
-          "icon": "resources/claude-logo.svg",
+          "icon": "resources/claude-mascot-mono.svg",
           "when": "!claude-local:doesNotSupportSecondarySidebar"
         }
       ]
     },
     "views": {
-      "claude-local-history": [
-        {
-          "id": "claudeLocalHistory",
-          "name": "שיחות קודמות"
-        }
-      ],
       "claude-local-sidebar": [
         {
           "type": "webview",

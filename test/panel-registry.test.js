@@ -18,15 +18,17 @@ test('closing a tab with a session adds it to the closed list; reopening pops it
   assert.strictEqual(r.popClosed(), null);
 });
 
-test('tabs without a session or messages, and sidebar views, are not remembered', () => {
+test('conversations without a session or messages are not remembered; any place counts', () => {
   const r = createRegistry();
   const none = entry(null);
   const empty = entry('e', { hasMessages: false });
-  const side = { ...entry('s'), isTab: false };
-  [none, empty, side].forEach((e) => { r.add(e); r.remove(e); });
+  [none, empty].forEach((e) => { r.add(e); r.remove(e); });
   assert.strictEqual(r.hasClosed(), false);
+  const side = { ...entry('s'), isTab: false };
+  r.add(side);
+  r.remove(side);
+  assert.strictEqual(r.popClosed(), 's');
 });
-
 test('popClosed skips a session that is open again', () => {
   const r = createRegistry();
   const a = entry('a');

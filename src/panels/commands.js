@@ -1,19 +1,13 @@
-// claude-local.* commands.
+// claude-local.* commands. Every way to open Claude is `claude-local.open` (places.js).
 const vscode = require('vscode');
-const { openChatPanel } = require('./chat-panel');
-const { VIEW_IDS } = require('./sidebar-view');
-const { supportsSecondarySidebar } = require('../util/vscode-version');
 const { mergeEnv } = require('../cli/env');
 const { terminalLaunch } = require('../cli/terminal');
 const { workspaceCwd } = require('../util/workspace');
+const transcripts = require('../history/transcripts');
 const { mentionText, toSlashes } = require('./mentions');
 
-function sidebarViewId() {
-  return supportsSecondarySidebar() ? VIEW_IDS[0] : VIEW_IDS[1];
-}
-
 function registerCommands(context, services) {
-  const { registry, logger, settings } = services;
+  const { registry, logger, settings, places } = services;
 
   // Remembered only to return to it from the chat (Ctrl+Esc); never stored.
   let lastTextEditor = vscode.window.activeTextEditor;
@@ -34,55 +28,72 @@ function registerCommands(context, services) {
     return terminal;
   }
 
-  function openSidebar() {
-    return vscode.commands.executeCommand(`${sidebarViewId()}.focus`);
+  // Open or focus Claude in the preferred place (terminal if useTerminal).
+  async function open() {
+    if (settings.get().useTerminal) return openTerminal();
+    const host = await places.main();
+    if (host.current) host.current.focusInput();
+    return host;
   }
 
-  // The main button: terminal if useTerminal, else the preferred location.
-  function openMain() {
-    const s = settings.get();
-    if (s.useTerminal) return openTerminal();
-    if (s.preferredLocation === 'sidebar') return openSidebar();
-    const last = registry.lastTab();
-    if (last) {
-      last.reveal();
-      last.conversation.focusInput();
-      return undefined;
+  // Past conversation by session id: focused where it is open, else opened in the preferred place.
+  async function openSession(id, rename) {
+    const existing = registry.findBySession(id);
+    if (existing) {
+      existing.reveal();
+      if (rename) existing.conversation.renameSession(rename);
+      return;
     }
-    return openChatPanel(services);
+    const host = await places.main();
+    host.openSession(id, { rename });
   }
 
-  function focusToggle() {
-    const last = registry.lastTab();
-    if (last && last.isActive && last.isActive()) {
-      if (lastTextEditor) return vscode.window.showTextDocument(lastTextEditor.document, lastTextEditor.viewColumn);
-      return vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
-    }
-    return openMain();
+  function setClosedContext() {
+    vscode.commands.executeCommand('setContext', 'claude-local:hasClosed', registry.hasClosed());
   }
+  context.subscriptions.push(registry.onChange(setClosedContext));
+  setClosedContext();
 
   const commands = {
-    'claude-local.editor.open': () => (settings.get().useTerminal ? openTerminal() : openChatPanel(services)),
-    'claude-local.editor.openLast': openMain,
-    'claude-local.sidebar.open': openSidebar,
-    'claude-local.newConversation': () => {
-      const last = registry.lastTab();
-      if (last) last.conversation.newConversation();
-      else openChatPanel(services);
+    'claude-local.open': open,
+    // Always a new conversation next to the others; a running one keeps running in the background.
+    'claude-local.newConversation': async () => {
+      const host = await places.main();
+      host.newConversation();
     },
     'claude-local.terminal.open': openTerminal,
-    'claude-local.focusToggle': focusToggle,
+    'claude-local.focusToggle': () => {
+      if (places.isFocused()) {
+        if (lastTextEditor) return vscode.window.showTextDocument(lastTextEditor.document, lastTextEditor.viewColumn);
+        return vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
+      }
+      return open();
+    },
     'claude-local.keyboardShortcuts': () => vscode.commands.executeCommand('workbench.action.openGlobalKeybindings', 'claude-local'),
     // Alt+K: put @path of the open file into the chat box (selected lines are package F).
-    'claude-local.insertAtMention': () => {
+    'claude-local.insertAtMention': async () => {
       const editor = vscode.window.activeTextEditor;
-      const last = registry.lastTab();
-      if (!editor || editor.document.uri.scheme !== 'file') return undefined;
-      if (!last) return openChatPanel(services);
+      if (!editor || editor.document.uri.scheme !== 'file') return;
       const rel = toSlashes(vscode.workspace.asRelativePath(editor.document.uri, false));
-      last.conversation.insertText(`${mentionText(rel)} `);
-      last.reveal();
-      return undefined;
+      const host = places.active() && places.active().current ? places.active() : await places.main();
+      host.revealPlace();
+      if (host.current) host.current.insertText(`${mentionText(rel)} `);
+    },
+    'claude-local.reopenClosed': () => {
+      const id = registry.popClosed();
+      setClosedContext();
+      if (id) return openSession(id);
+      return vscode.window.showInformationMessage('אין שיחה סגורה לפתיחה מחדש.');
+    },
+    'claude-local.continueLast': () => {
+      let first = null;
+      try {
+        first = transcripts.listSessions(workspaceCwd().cwd)[0];
+      } catch (err) {
+        logger.warn('history', `list failed: ${err.message}`);
+      }
+      if (first) return openSession(first.id);
+      return vscode.window.showInformationMessage('אין שיחות קודמות להמשך.');
     },
     'claude-local.showLogs': () => logger.show(),
     'claude-local.copyLogs': async () => {
@@ -93,6 +104,7 @@ function registerCommands(context, services) {
   for (const [id, fn] of Object.entries(commands)) {
     context.subscriptions.push(vscode.commands.registerCommand(id, fn));
   }
+  return { openSession };
 }
 
 module.exports = { registerCommands };

@@ -1,49 +1,40 @@
-// Pure logic for the sessions list and the tab markers. No vscode, no I/O.
-// Status of a listed session: "waiting" = an open conversation waits for a permission answer,
-// "active" = an open conversation is working, "finished" = everything else.
+// Pure logic for the conversations drawer, the place markers and the closed list. No vscode, no I/O.
+// Status of an open conversation: "waiting" = a permission or question waits for the user,
+// "running" = a turn is in progress, "unread" = a turn ended while it was not shown, "idle" = the rest.
 
-const FILTERS = ['all', 'active', 'waiting', 'finished'];
 const MARK_WAITING = '🔵';
 const MARK_FINISHED = '🟠';
 const CLOSED_MAX = 10;
+const TITLE_FALLBACK = 'שיחה חדשה';
 
-function statusOf(open) {
-  if (open && open.waiting) return 'waiting';
-  if (open && open.busy) return 'active';
-  return 'finished';
+function conversationStatus({ busy, waiting, unread }) {
+  if (waiting) return 'waiting';
+  if (busy) return 'running';
+  if (unread) return 'unread';
+  return 'idle';
 }
 
-// items: [{id, title, mtime}] from transcripts.listSessions; openById: Map id -> {busy, waiting}.
-function classify(items, openById) {
-  return items.map((item) => ({ ...item, status: statusOf(openById.get(item.id)), open: openById.has(item.id) }));
-}
-
-function filterItems(items, filter) {
-  if (!filter || filter === 'all') return items;
-  return items.filter((i) => i.status === filter);
-}
-
-// The suggestion row for "continue the last conversation": only when no open conversation
-// already shows a listed session, and there is something to continue.
-function continueSuggestion(items, openById) {
-  if (!items.length || openById.size > 0) return null;
-  return items[0];
-}
-
-// Tracks one tab: "finished" is set when a turn ends while the tab is not visible and is cleared
-// as soon as the tab is visible again. "waiting" always follows the live state.
-function createTabTracker() {
-  let wasBusy = false;
-  let finished = false;
+// c: {id, sessionId, title, busy, pending (Map), unread}. One row of the drawer's "open" section.
+function conversationRow(c, currentId) {
   return {
-    update({ busy, waiting, visible }) {
-      if (wasBusy && !busy && !visible) finished = true;
-      if (visible) finished = false;
-      wasBusy = busy;
-      if (waiting) return 'waiting';
-      return finished ? 'finished' : null;
-    },
+    id: c.id,
+    sessionId: c.sessionId || null,
+    title: c.title || TITLE_FALLBACK,
+    status: conversationStatus({ busy: c.busy, waiting: c.pending.size > 0, unread: c.unread }),
+    current: c.id === currentId,
   };
+}
+
+// The marker of a place (tab title emoji, view badge): only conversations the user cannot see count.
+function hiddenAttention(rows, shownId) {
+  let waiting = 0;
+  let unread = 0;
+  for (const r of rows) {
+    if (r.id === shownId) continue;
+    if (r.status === 'waiting') waiting += 1;
+    else if (r.status === 'unread') unread += 1;
+  }
+  return { waiting, unread, state: waiting ? 'waiting' : unread ? 'finished' : null };
 }
 
 function decorateTitle(base, state) {
@@ -61,6 +52,6 @@ function pushClosed(list, entry) {
 }
 
 module.exports = {
-  FILTERS, MARK_WAITING, MARK_FINISHED, CLOSED_MAX,
-  statusOf, classify, filterItems, continueSuggestion, createTabTracker, decorateTitle, pushClosed,
+  MARK_WAITING, MARK_FINISHED, CLOSED_MAX, TITLE_FALLBACK,
+  conversationStatus, conversationRow, hiddenAttention, decorateTitle, pushClosed,
 };

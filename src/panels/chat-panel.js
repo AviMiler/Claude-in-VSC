@@ -1,67 +1,42 @@
-// A conversation in an editor tab (WebviewPanel "claudeLocalPanel").
+// The editor-tab place (WebviewPanel "claudeLocalPanel"): one tab hosting several conversations,
+// like the sidebar. Closing the tab closes its conversations (they go to the closed list).
 const vscode = require('vscode');
-const { Conversation } = require('./conversation');
 const { chatHtml, webviewOptions } = require('./webview-html');
-const { createTabTracker, decorateTitle } = require('./session-model');
+const { ConversationHost } = require('./conversation-host');
+const { decorateTitle } = require('./session-model');
 
 const VIEW_TYPE = 'claudeLocalPanel';
 
-function openChatPanel(services, { resume } = {}) {
-  const { extensionUri, registry } = services;
+// The tab title carries the colour-dot marker of the hidden conversations (blue = waiting for
+// permission, orange = finished unread); VS Code has no colour API for tabs.
+function openChatPanel(services) {
+  const { extensionUri } = services;
   const panel = vscode.window.createWebviewPanel(
     VIEW_TYPE,
     'Claude',
     { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
     { ...webviewOptions(extensionUri), retainContextWhenHidden: true },
   );
-  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'claude-logo.svg');
-
-  // The tab title carries the colour-dot marker (blue = waiting for permission, orange = finished
-  // while the tab was hidden); VS Code has no colour API for tabs.
-  let entry = null;
-  const tracker = createTabTracker();
-  let baseTitle = 'Claude';
-  let state = null;
-  const applyTitle = () => { panel.title = decorateTitle(baseTitle, state); };
-  const refreshState = () => {
-    const c = entry.conversation;
-    const next = tracker.update({ busy: c.busy, waiting: c.pending.size > 0, visible: panel.visible });
-    if (next !== state) {
-      state = next;
-      applyTitle();
-    }
-    services.registry.changed();
-  };
-
-  const conversation = new Conversation({
-    webview: panel.webview,
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'claude-mascot.svg');
+  const host = new ConversationHost({
     services,
-    setTitle: (t) => { baseTitle = t || 'Claude'; applyTitle(); },
-    openInNewTab: (id) => openChatPanel(services, { resume: id }),
-    onActivity: () => { if (entry) refreshState(); },
+    kind: 'editor',
+    revealPlace: () => panel.reveal(undefined, false),
+    isVisible: () => panel.visible,
+    onState: ({ title, attention }) => { panel.title = decorateTitle(title || 'Claude', attention.state); },
   });
-  if (resume) conversation.pendingResume = resume;
-
-  entry = {
-    conversation,
-    isTab: true,
-    isActive: () => panel.active,
-    reveal: () => panel.reveal(undefined, false),
-  };
-  const reg = registry.add(entry);
-  panel.onDidChangeViewState(() => {
-    if (panel.active) registry.markActive(entry);
-    refreshState();
-  });
+  host.panel = panel;
+  host.bind(panel.webview);
+  panel.onDidChangeViewState(() => host.onVisibility());
   panel.onDidDispose(() => {
-    reg.dispose();
-    conversation.dispose();
+    host.dispose();
+    if (services.places) services.places.editorClosed(host);
   });
   panel.webview.html = chatHtml(panel.webview, extensionUri);
   if (services.settings.get().lockEditorGroups) {
     Promise.resolve(vscode.commands.executeCommand('workbench.action.lockEditorGroup')).catch(() => {});
   }
-  return entry;
+  return host;
 }
 
 module.exports = { openChatPanel, VIEW_TYPE };

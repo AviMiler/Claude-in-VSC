@@ -38,7 +38,7 @@ function stopLoop(conv, id) {
   if (!text || !conv.loop || !conv.loop.jobs.has(id)) return;
   if (conv.busy) return conv.post({ type: 'notice', text: 'אפשר לעצור את המשימה המתוזמנת כש-Claude לא עובד. נסו שוב בסיום התור.' });
   conv.services.logger.info(TAGS.LOOP, `stop requested for job ${id} (asks Claude to run CronDelete)`);
-  conv.send(text, []);
+  conv.send(text, [], { hidden: true });
   conv.post({ type: 'busy', value: true });
   return conv.post({ type: 'notice', text: 'ביקשתי מ-Claude לבטל את המשימה המתוזמנת.' });
 }
