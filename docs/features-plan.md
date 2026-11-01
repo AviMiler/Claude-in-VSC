@@ -117,3 +117,64 @@
 | F | תצוגה ונגישות | Focus view, חותמות זמן, spinnerVerbs, נגישות, פאנל /btw, Plan בעורך, KaTeX | – |
 
 דלגנו על: Open in New Window, ארכוב/קבוצות, לשונית Web, תוספים/Mods, Chrome (עתידי), Remote Control, הכתבה, Ultracode, שעון קאש, סימניות, claudeProcessWrapper (כרגע).
+
+---
+
+## ממצאי הבדיקות מול ה-CLI (1.11.2026) ושינויים בתוכנית
+
+מקור: דוחות `probe-report.json` ו-`probe2-report.json`, ופלט הפקודות הידניות.
+סביבת הבדיקה: Claude Code CLI **2.1.246**, VS Code **1.91.1**, מודל `qwen3.8:27b` דרך שער תואם OpenAI בכתובת `172.27.5.5:11436` (`/v1/models` מחזיר שמות מודלים בלבד, בלי יכולות).
+**כל פיצ'ר חדש חייב להתאים ל-VS Code 1.91.1** (למשל אין סרגל צד משני).
+
+### תוצאות לפי בדיקה
+
+| # | בדיקה | תוצאה | השפעה |
+|---|---|---|---|
+| 1 | שדות יכולות במודלים | `supportsEffort`, `supportedEffortLevels`, `supportsAdaptiveThinking`, `supportsAutoMode` לכל מודל, גנריים (גם ל-qwen). אין שדה ראייה. | אי אפשר לסמוך עליהם. נבדק בפועל (ראה 13) |
+| 2 | skills מול פקודות מובנות | הודעת `system/init` כוללת `skills` (19) לעומת `slash_commands` (46) ו-`terminal_slash_commands` (`doctor`, `color`) | תפריט `/` מקובץ אפשרי |
+| 3, 8 | שרת IDE | `/ide` מדווח "No available IDEs detected"; התיקייה `~/.claude/ide` לא קיימת; ל-CLI יש `--ide` והגדרה `autoConnectIde` | **פתוח**: דרוש אב-טיפוס |
+| 4 | `updatedInput` | **לא נקבע**: בדיקת p6 נכשלה, ובדיקת q2 נכשלה כי הסקריפט דחה את ה-Read. הסקריפט `probe3` (s2) בודק שוב | **פתוח** |
+| 5 | `/rename` | עובד; נכתבות שורות `custom-title` ו-`agent-name` ל-jsonl | שינוי שם סשן דרך ה-CLI אפשרי |
+| 6 | rewind | הבקשה `rewind_files` קיימת. עם `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` והדגל `--replay-user-messages` מתקבל `canRewind: true` ומזהה ההודעה (`uuid`, `isReplay`) מוחזר. **לא הוכח ששחזור קבצים עובד** (העריכה לא בוצעה בבדיקה). `--fork-session` קיים | fork אפשרי; rewind ממתין ל-`probe3` (s1a, s1b) |
+| 7 | אירועי רקע | `system/task_started` ו-`system/background_tasks_changed` (עם `task_id`, `description`, `task_type`); `stop_task` קיימת | מפת משימות אפשרית |
+| 9 | MCP | `mcp_status` (מצב pending ואחרי כ-15 שניות connected, כולל כלים), `mcp_reconnect`, `mcp_toggle` (disabled/connected) עובדים. `claude mcp add/remove/list` עובדים (`add` כותב ל-`~/.claude.json`, היקף local כברירת מחדל, ו-`-s user\|project`) | דיאלוג MCP מלא אפשרי |
+| 10 | `/loop` | skill שמשתמש ב-`CronCreate` (תוצאה: "Session-only, dies when Claude exits"). התור הבא רץ לבד אחרי דקה **בלי הודעת משתמש**, עם אירועי `command_lifecycle`, `system/init`, `result` | מחוון מבוסס `CronCreate`/`CronDelete`; הממשק חייב לטפל בתורים שמתחילים לבד |
+| 11 | פקודות `/` | `/context`, `/config` (בפורמט `key=value`), `/compact`, `/rename`, `/recap`, `/usage`, `/effort` עובדות. `/status`, `/theme`, `/hooks`, `/memory` מחזירות "isn't available in this environment" ואינן ברשימת הפקודות | רשימת הפקודות מ-initialize היא בדיוק מה שנתמך |
+| 12 | הודעה באמצע תור | מתקבלת ומטופלת אחרי הראשונה (שתי תוצאות). ב-`system/init` יש `capabilities`: `interrupt_receipt_v1`, `interrupt_cancel_queued_v1`, `msg_lifecycle_v1` | תור הודעות אפשרי, כולל ביטול הודעה בתור |
+| 13 | יכולות בפועל | **ראייה: עובדת** (תמונה אדומה/כחולה זוהתה נכון ב-`qwen3.8:27b`). **חשיבה: לא קיימת** (אין בלוקי thinking, 0 טוקני חשיבה). **Effort: לא חד-משמעי** (`/effort` מתקבל; הזמנים זהים, ומספר טוקני הפלט משתנה בהרצה בודדת) | ראה "שינויים בהחלטות" |
+| 14 | מצבי הרשאות | `acceptEdits`, `plan`, `default`, `auto`, `dontAsk` מתקבלים; `bypassPermissions` נדחה ללא דגל ההפעלה | מצב Auto אפשרי; פעולתו בפועל ב-`probe3` (s5) |
+| 15 | עצירה | `interrupt` מחזיר `{still_queued: []}`; תוצאה `error_during_execution` / `terminal_reason: aborted_streaming` תוך כחצי שנייה; התהליך חי וממשיך לענות | ההמתנה של 4 שניות נשארת רק כרשת ביטחון |
+| 16 | resume ו-fork | `--resume` שומר על הקשר ועל מזהה הסשן; `--resume --fork-session` יוצר מזהה חדש עם אותו הקשר | עובד |
+| 17 | `!` | אין מצב Shell מקומי. המודל מפרש את `!echo` בעצמו ומפעיל את Bash | מומלץ לוותר (ממתין להחלטה) |
+| 18 | בקשות הרשאה | ל-Read אין `permission_suggestions`. `echo` ב-Bash לא מבקש הרשאה בכלל (קריאה בלבד). `AskUserQuestion`: `questions[{question, header, options[{label, description}], multiSelect}]`, ותשובה דרך `updatedInput.answers` (לפי טקסט השאלה) **עובדת**. במצב תכנון המודל המקומי שאל דרך `AskUserQuestion` ולא קרא ל-`ExitPlanMode` | צורת Write/Bash/ExitPlanMode נבדקת ב-`probe3` (s3) |
+| 19 | שימוש ועלות | `total_cost_usd` הוא 0.13 לשיחה של מילה אחת, `costBasis: unknown`; כ-24,749 טוקני קלט להודעה פשוטה; זמן עד הטוקן הראשון כ-15 שניות | להציג טוקנים בלבד, בלי עלות |
+| 20 | חלון הקשר | ה-CLI לא מכיר את `qwen3.8:27b` ומניח 200 אלף (עם הסיומת `[1m]` מניח מיליון). `get_context_usage` מחזיר קטגוריות ו-`maxTokens` לפי ההנחה הזו | יש להגדיר `CLAUDE_CODE_MAX_CONTEXT_TOKENS` לערך האמיתי |
+
+### שינויים בהחלטות קודמות
+
+- **שלב 2, בורר מודל:** מתג **Thinking מוסר** (אין בלוקי thinking). שורת **Effort נדחית** עד שתהיה הוכחה שהיא משפיעה. Ultracode – כמו קודם, לא. שדות היכולות ב-initialize גנריים ולכן לא נשתמש בהם להחלטה.
+- **שלב 2, תמונות:** **מאושר** להציג הדבקת תמונות, אבל הראייה נבדקה רק על `qwen3.8:27b`. מודלים אחרים ברשימה לא נבדקו, ולכן בעת החלפת מודל יש לבדוק או להציג אזהרה.
+- **שלב 2, בורר מודל, רשימה:** רשימת המודלים שה-CLI מחזיר היא 4 כינויים שכולם מצביעים על `qwen3.8:27b`. כדי להציג את עשרת המודלים האמיתיים (`GET /v1/models`) צריך לשלוף אותם. **ממתין להחלטה**: האם התוסף יבצע את הבקשה בעצמו (סותר את "אין רשת מהתוסף") או שהרשימה תהיה הגדרה ידנית. הבחירה נשלחת כ-`--model <id>` בהפעלה או `set_model` בזמן ריצה (נבדק ב-`probe3` s4).
+- **שלב 2, מצבי הרשאות:** מצב **Auto נוסף** (מתקבל ב-`set_permission_mode`); יש לוודא ב-s5 שהוא באמת מחליט לבד. `/plan` ו-`/plan open` **אינם ברשימת הפקודות של ה-CLI**, ולכן מצב התכנון והמסמך יוטמעו בתוסף.
+- **שלב 2, מחוונים:** מד הקשר יתבסס על `get_context_usage`, אך רק אחרי שנגדיר את החלון האמיתי (`CLAUDE_CODE_MAX_CONTEXT_TOKENS`). בלי עלות. `/compact` עובד.
+- **שלב 2, תפריט `/`:** חלוקה לפי `skills` מול `slash_commands` מהודעת `init`, וסימון `terminal_slash_commands` כ"טרמינל בלבד". פקודות שאינן ברשימה (`/status`, `/theme`, `/hooks`, `/memory`, וגם `/resume`, `/rewind`, `/btw`, `/diff`) לא יופיעו ממילא. מה שהוחלט להטמיע מהן (rewind, btw, diff) ייבנה בתוסף.
+- **שלב 4, רשימת משימות של Claude:** הכלי הוא **`TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet`**, לא `TodoWrite`. הפיצ'ר יתבסס על אירועי השימוש בכלים האלה.
+- **שלב 4, עצירה:** התוצאה מגיעה תוך חצי שנייה, ולכן אפשר לשמור את ההמתנה של 4 שניות רק כגיבוי.
+- **שלב 4, Checkpoints:** fork אפשרי כבר עכשיו. rewind מלא תלוי ב-`probe3` (s1). נדרש להפעיל את המנגנון בהפעלת התהליך (משתנה סביבה + `--replay-user-messages`) או בהגדרה קבועה של ה-CLI.
+- **שלב 5, MCP:** דיאלוג ניהול מלא דרך בקשות הבקרה (`mcp_status`, `mcp_reconnect`, `mcp_toggle`); הוספה והסרה דרך `claude mcp add/remove` (לא עריכת JSON).
+- **שלב 6, `environmentVariables`:** **הופכת לקריטית.** העטיפה `claude.cmd` מגדירה בנוסף `API_TIMEOUT_MS=1200000` ו-`CLAUDE_ENABLE_STREAM_WATCHDOG=0`, והתוסף יפעיל את `claude-bin.exe` ישירות ולכן לא יקבל אותם. בלעדיהם תשובות איטיות עלולות להיכשל. יש להוסיף גם `CLAUDE_CODE_MAX_CONTEXT_TOKENS`.
+- **שלב 6, `claudePath`:** חייב להצביע על `claude-bin.exe` ולא על `claude.cmd` (העטיפה שואלת בחירת מודל לפני כל הרצה).
+- **שלב 7, `/loop`:** המחוון יתבסס על `CronCreate`/`CronDelete`, והממשק חייב לתמוך בתורים שמתחילים בלי הודעת משתמש (`command_lifecycle`).
+- **שלב 8, מצב `!`:** **מומלץ לוותר** (אין מצב מקומי ב-CLI). ממתין לאישור.
+
+### פעולות סביבה אצל המשתמש (לא קוד)
+1. ב-`C:\Users\206861775\.claude\settings.json` יש **שני בלוקי `"env"`**. ב-JSON הבלוק האחרון מנצח, ולכן `CLAUDE_CODE_MAX_OUTPUT_TOKENS: 64000` כנראה לא נקרא. לאחד לבלוק אחד.
+2. הורצה בטעות הפקודה `claude -p "/config checkpoints=true"`, והגדרה קבועה בוצעה. להחזרה: `claude -p "/config checkpoints=false"`, אלא אם מחליטים להשאיר אותה.
+3. למדוד את חלון ההקשר האמיתי (`num_ctx`): `ollama ps` על מחשב השרת, או בדיקת הפלאטו של `prompt_tokens` דרך השער. ללא זה מד ההקשר לא מדויק, ואם החלון קטן מכ-25 אלף טוקנים ההוראות נחתכות בשקט.
+
+### מה עדיין פתוח
+- תוצאות `probe3-standalone.js`: s1a/s1b (rewind), s2 (`updatedInput`), s3 (צורת Write/Bash/ExitPlanMode), s4 (`set_model` לשם שאינו כינוי), s5 (Auto).
+- `num_ctx` של המודל.
+- שרת IDE: אב-טיפוס (R14).
+- בדיקת התוסף בתוך VS Code 1.91.1 (M9).
+- החלטות המשתמש: שליפת `/v1/models` על ידי התוסף; ויתור על מצב `!`.
