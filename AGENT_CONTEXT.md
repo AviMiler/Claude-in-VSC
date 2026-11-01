@@ -1,11 +1,12 @@
 # Agent context — Claude Code Local
 
-Read first: `spec.md` (requirements, "as built"), `DECISIONS.md`, `ARCHITECTURE.md`, `PROJECT_MAP.md`.
+Read first: `spec.md` (requirements, "as built"), `DECISIONS.md`, `ARCHITECTURE.md`, `PROJECT_MAP.md`. Feature roadmap and CLI findings: `docs/features-plan.md`; the model gateway API: `docs/litellm-gateway.md`.
 
 ## What this is
 A VS Code extension (plain JS, no build, no npm) that is a Hebrew RTL front for the real `claude` CLI. The CLI is the only source of truth: the extension persists nothing (no globalState/workspaceState/own files) and reads history read-only from `~/.claude/projects/<encoded cwd>/*.jsonl`.
 
 ## Last Changes
+- 2026-11-01: Documented the relevant endpoints of the user's LiteLLM gateway (v1.80.0, `http://172.27.5.5:11436`) in `docs/litellm-gateway.md`: `/v1/models` (read, ids only), `/v1/model/info`, `/model_group/info`, `/public/model_hub`, `/utils/token_counter`, `/utils/supported_openai_params`, `/routes` (not yet called; may expose per-model capabilities and context window). Why: the CLI reports no capabilities for the local model, so the gateway may be the only source for the model picker and `CLAUDE_CODE_MAX_CONTEXT_TOKENS`. Auth is `Authorization: Bearer ollama`.
 - 2026-11-01: Feature roadmap for the extension decided in 8 stages (`docs/features-plan.md`) and the CLI probed on the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b` behind an OpenAI-compatible gateway) with `dev/probe-cli.js`, `dev/probe-standalone.js`, `dev/probe2-standalone.js`, `dev/probe3-standalone.js`. No extension code changed. Why: the user wants the official extension's features reviewed one by one before building; findings and plan changes are in `docs/features-plan.md` ("ממצאי הבדיקות"), setup changes in `SETUP.md` section 5.
 - 2026-10-30: basic version (v0.1.0) built and verified GO after one fix round: tab + sidebar chat, streaming Markdown/code, permission/plan/question cards, mode and model pickers, `/` menu, history list with `--resume`. Why: first milestone requested by the user.
 - Deviations from the first plan: real `AskUserQuestion` picker; `--allow-dangerously-skip-permissions` launch flag for bypass mode; stop shows "■ הופסק" and closes locally after 4 s without a `result`; extra "השבוע" history group; no package `icon`; `scripts/package.ps1` NOT built.

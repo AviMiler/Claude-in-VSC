@@ -178,3 +178,6 @@
 - שרת IDE: אב-טיפוס (R14).
 - בדיקת התוסף בתוך VS Code 1.91.1 (M9).
 - החלטות המשתמש: שליפת `/v1/models` על ידי התוסף; ויתור על מצב `!`.
+
+### שער LiteLLM (נוסף ב-1.11.2026)
+השרת ב-`172.27.5.5:11436` הוא **LiteLLM 1.80.0**. הפונקציות הרלוונטיות שבו (`/v1/model/info`, `/model_group/info`, `/public/model_hub`, `/utils/token_counter`, `/utils/supported_openai_params`, `/routes`) מתועדות ב-`docs/litellm-gateway.md`, יחד עם פקודות לבדיקתן. אם הן מחזירות יכולות וחלון הקשר לכל מודל, הן פותרות את הצורך בניחוש בבורר המודל ובהגדרת `CLAUDE_CODE_MAX_CONTEXT_TOKENS`. **לא אומת עדיין.**
