@@ -121,7 +121,11 @@ The CLI's transcripts are the only store; the extension reads them read-only (us
 ## Skills / commands menu
 - Typing `/` at the start of the composer opens a menu listing the CLI's commands from the `initialize` response (`name`, `description`, `argumentHint`), filtered as you type; arrows move, Enter/Tab/click insert `/<name> ` into the composer, Esc closes. The CLI executes it when the message is sent. This includes the user's skills, since the CLI lists them as commands. There is no separate skills button.
 - If the `initialize` response has not arrived yet or has no commands, typing `/` shows nothing.
-- No distinction between skills and built-in commands is made yet (the CLI's `system/init` message does separate `skills` from `slash_commands`; a grouped menu is planned).
+- The menu is grouped: commands, skills (names from `system/init` `skills`), and "בטרמינל בלבד" (from `terminal_slash_commands`, default `doctor`, `color`), the last greyed out. Choosing or typing a terminal-only command shows a Hebrew card with an open-in-terminal button and never sends it. `/plan` and `/plan open` are handled by the extension and never sent.
+- `@` opens a files-and-folders menu (host: `src/panels/mentions.js`, honours `.gitignore` through `git ls-files` when `respectGitIgnore`). Alt+K (`claude-local.insertAtMention`) inserts `@path` of the open file.
+- While a turn runs, new messages wait in memory as grey "ממתין" bubbles that can be cancelled and are sent one by one when the turn ends; the up arrow browses this conversation's sent messages; each answer has a copy button; pasted or dropped images are attached (any model) and sent as image blocks; files dragged in become `@path`.
+- The plan (assistant text before `ExitPlanMode`) opens as a read-only virtual Markdown document (`src/panels/plan-doc.js`).
+- Auto mode is in the mode picker with a Hebrew warning.
 - Code: `webview/chat/slash-menu.js` (shared list behaviour in `webview/chat/menu.js`).
 
 ## Permissions & modes
@@ -158,10 +162,11 @@ VS Code settings are user configuration, not conversation data, so they do not c
 
 ## Verification status (2026-11-01)
 - **Verified:**
-  - Unit tests: 32/32 pass (after package A; verify-agent GO, no defects). Package A (environment merge, key parsing/matching, process env) is covered by unit tests only.
+  - Unit tests: 46/46 pass (after package C part 1-3). Package C logic (grouping, queue, history, mention ranking, image check) is covered by unit tests only. Package A (environment merge, key parsing/matching, process env) is covered by unit tests only.
   - The webview in a browser preview (dark and light themes): streaming Markdown, tables, highlighted code, tool rows with an Edit diff, permission approve, the `/` menu, the mode menu, the history panel, loading a past session.
   - On the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b`): the extension loads, runs and answers; against the real CLI (`DEPENDENCIES.md`): `interrupt` (the `result` arrives in about 0.5 s, the process stays alive), `--resume` and `--fork-session`, `AskUserQuestion` answers through `updatedInput.answers`, queued messages, MCP control requests, `get_context_usage`, file rewind, `updatedInput` on Edit, auto mode, `--model` at launch.
 - **Not verified:**
+  - Package C inside real VS Code and against the real CLI: Auto mode picker, the grouped menu with real `system/init` data, queue/history behaviour, `@` completion, Alt+K, `/plan open` document, image paste and drag/drop, whether the CLI expands `@path` in stream-json. Not built: `/btw`, LaTeX.
   - Package A inside real VS Code: all the new `vscode`-API commands (terminal, `lockEditorGroup`, `focusToggle`, `keyboardShortcuts`), the Ctrl+N `when` clause (`activeWebviewPanelId` / `focusedView`), forwarding of webview keys, and the Ctrl+Esc conflict with the Windows Start menu (a user item: `SETUP.md` section 7).
   - Inside VS Code: the full manual checklist above; the CSP and `localResourceRoots` in a real webview; the high-contrast theme; Hebrew/English mixed text; what happens to a chat tab after Reload Window (no serializer); the sidebar view and status-bar item in every case.
   - Against the real CLI: the exact `can_use_tool` shapes and response fields for Write/Bash/`ExitPlanMode` as the extension handles them (probes saw the shapes; the extension's cards were exercised only with the fake CLI and the preview); the plan-approval buttons do not appear in VS Code (low priority, check last).

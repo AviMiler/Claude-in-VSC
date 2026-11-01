@@ -73,7 +73,10 @@
     mode: (m) => CL.composer.setMode(m.value),
     model: (m) => CL.composer.setModel(m.value),
     events: (m) => onEvents(m.events),
-    busy: (m) => setBusy(m.value),
+    busy(m) {
+      setBusy(m.value);
+      if (!m.value) CL.composer.sendNextQueued();
+    },
     permission: (m) => CL.cards.show(m),
     permissionCancelled: (m) => CL.cards.cancel(m.requestId),
     history: (m) => CL.history.show(m.items, m.currentId),

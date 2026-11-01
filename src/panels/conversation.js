@@ -173,8 +173,9 @@ class Conversation {
     if (info.error) text = spawnErrorText(info.error, claudePath);
     else if (info.code !== 0 && info.code !== null) text = exitErrorText(info);
     else if (wasBusy) text = 'Claude Code נסגר באמצע תשובה.';
+    // The error result already ends the turn in the webview; a second `busy:false` would race with a queued send.
     if (text) this.post({ type: 'events', events: [{ kind: 'result', isError: true, errorText: text }] });
-    this.post({ type: 'busy', value: false });
+    else this.post({ type: 'busy', value: false });
   }
 
   killProcess() {
