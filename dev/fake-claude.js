@@ -3,6 +3,9 @@
 // the UI without a model (set claudeLocal.claudePath to dev/fake-claude.cmd).
 // Keywords in the user message pick a scenario:
 //   "tool"   -> a Bash tool call that asks permission
+//   "edit"   -> fake Edit + Write calls (for /diff; nothing is written)
+//   "tasks"  -> TaskCreate / TaskUpdate calls (Claude's pinned task list)
+//   "background" -> a background Bash task (task_started / background_tasks_changed) until stop_task
 //   "שאלה"   -> an AskUserQuestion card
 //   "slow"   -> a long, slow reply (to try the stop button)
 //   otherwise a Markdown reply (headings, list, table, code).
@@ -79,7 +82,8 @@ async function streamText(text, delay) {
   out({ type: 'assistant', message: { id, role: 'assistant', model: 'fake', content: [{ type: 'text', text }] }, parent_tool_use_id: null, session_id: SESSION });
 }
 
-async function toolCall(name, input) {
+// `reply` (optional) overrides the success result: { text, toolUseResult } as the real CLI sends.
+async function toolCall(name, input, reply) {
   const id = `msg_fake_${++msgSeq}`;
   const toolUseId = `toolu_fake_${msgSeq}`;
   out({ type: 'stream_event', event: { type: 'message_start', message: { id } }, session_id: SESSION });
@@ -95,8 +99,9 @@ async function toolCall(name, input) {
     });
   }
   const ok = decision.behavior === 'allow';
-  const text = ok ? (name === 'AskUserQuestion' ? `answers: ${JSON.stringify(decision.updatedInput.answers)}` : 'hi') : decision.message || 'denied';
-  out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: text, is_error: !ok }] }, parent_tool_use_id: null, session_id: SESSION });
+  let text = ok ? (name === 'AskUserQuestion' ? `answers: ${JSON.stringify(decision.updatedInput.answers)}` : 'hi') : decision.message || 'denied';
+  if (ok && reply) text = reply.text;
+  out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: text, is_error: !ok }] }, tool_use_result: ok && reply ? reply.toolUseResult : undefined, parent_tool_use_id: null, session_id: SESSION });
   return decision;
 }
 
@@ -111,6 +116,27 @@ async function turn(text) {
     await streamText('אריץ פקודה קצרה.', 5);
     await toolCall('Bash', { command: 'echo hi', description: 'Print hi' });
     await streamText('הפקודה הסתיימה.', 5);
+  } else if (/background/.test(text)) {
+    // A background Bash task as probe4 captured it; it keeps "running" until stop_task.
+    const task = { task_id: 'bg_fake_1', task_type: 'local_bash', description: 'ping ארוך' };
+    out({ type: 'system', subtype: 'task_started', ...task, tool_use_id: 'toolu_fake_bg', is_backgrounded: true, session_id: SESSION });
+    out({ type: 'system', subtype: 'background_tasks_changed', tasks: [task], session_id: SESSION });
+    await streamText('הפקודה רצה ברקע.', 5);
+  } else if (/tasks/.test(text)) {
+    // Claude's own task list, in the probe4 shapes.
+    const create = (id, subject) => toolCall('TaskCreate', { subject, description: subject }, { text: `Task #${id} created successfully: ${subject}`, toolUseResult: { task: { id, subject } } });
+    const update = (id, from, to) => toolCall('TaskUpdate', { taskId: id, status: to }, { text: `Updated task #${id} status`, toolUseResult: { success: true, taskId: id, updatedFields: ['status'], statusChange: { from, to } } });
+    await create('1', 'לקרוא את הקוד');
+    await create('2', 'לכתוב בדיקות');
+    await update('1', 'pending', 'in_progress');
+    await update('1', 'in_progress', 'completed');
+    await update('2', 'pending', 'in_progress');
+    await streamText('עבדתי לפי רשימת משימות.', 5);
+  } else if (/edit/.test(text)) {
+    // Fake Edit/Write calls for /diff (nothing is written to disk).
+    await toolCall('Edit', { file_path: `${process.cwd()}/demo.js`, old_string: 'const a = 1;', new_string: 'const a = 2;' });
+    await toolCall('Write', { file_path: `${process.cwd()}/notes.md`, content: '# הערות\n' });
+    await streamText('שיניתי שני קבצים.', 5);
   } else if (/שאלה/.test(text)) {
     await toolCall('AskUserQuestion', {
       questions: [{ question: 'איזה צבע?', header: 'צבע', multiSelect: false, options: [{ label: 'כחול', description: 'צבע קר' }, { label: 'אדום', description: 'צבע חם' }] }],
@@ -155,6 +181,18 @@ function onControlRequest(msg) {
     reply({});
   } else if (subtype === 'get_context_usage') {
     reply({ categories: [], totalTokens: 23400, maxTokens: Number(process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS) || 200000 });
+  } else if (subtype === 'stop_task') {
+    // The sequence probe4 captured after a stop.
+    const id = msg.request.task_id;
+    reply({});
+    out({ type: 'system', subtype: 'background_tasks_changed', tasks: [], session_id: SESSION });
+    out({ type: 'system', subtype: 'task_updated', task_id: id, patch: { status: 'killed', end_time: Date.now() }, session_id: SESSION });
+    out({ type: 'system', subtype: 'task_notification', task_id: id, tool_use_id: 'toolu_fake_bg', status: 'stopped', output_file: '', summary: 'נעצר', session_id: SESSION });
+  } else if (subtype === 'rewind_files') {
+    // Mirrors the real CLI's gate (DEPENDENCIES.md finding 23); nothing is written.
+    if (process.env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING !== '1') {
+      out({ type: 'control_response', response: { subtype: 'error', request_id: msg.request_id, error: 'File rewinding is not enabled' } });
+    } else reply(msg.request.dry_run ? { filesChanged: ['demo.js'] } : {});
   } else {
     out({ type: 'control_response', response: { subtype: 'error', request_id: msg.request_id, error: `unknown ${subtype}` } });
   }
@@ -173,6 +211,8 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   }
   if (msg.type === 'user') {
     const text = msg.message.content.map((b) => b.text || '').join('');
+    // --replay-user-messages echoes the prompt with the uuid that rewind_files takes.
+    if (process.argv.includes('--replay-user-messages')) out({ ...msg, uuid: `fake-uuid-${++msgSeq}`, session_id: SESSION });
     queue = queue.then(() => turn(text));
   }
 }).on('close', () => process.exit(0));

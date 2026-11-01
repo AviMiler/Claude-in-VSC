@@ -43,6 +43,8 @@
     </main>
 
     <footer class="composer-wrap">
+      <div id="claude-tasks" class="claude-tasks" hidden></div>
+      <div id="bg-tasks" class="bg-tasks" hidden></div>
       <div id="notice" class="notice" hidden></div>
       <div id="mention-menu" class="popover slash-menu" hidden role="listbox"></div>
       <div id="slash-menu" class="popover slash-menu" hidden role="listbox"></div>
@@ -86,6 +88,8 @@
   <script nonce="{{nonce}}" src="{{chat}}/display-logic.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/display.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/a11y.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/tasks-bar.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/tasks.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/app.js"></script>
 </body>
 </html>

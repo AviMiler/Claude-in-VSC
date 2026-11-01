@@ -62,6 +62,20 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `gateway.js` — `resolveGatewayUrl`, `fetchModels` (`/v1/models` + `/v1/model/info`, 5 s, in memory).
 - `filter.js` (pure) — hides `output_config.format` models and `modelDenylist`; `isNoToolsError`.
 - `launch.js` (pure) — `modelEnv`: the three `ANTHROPIC_DEFAULT_*_MODEL`.
+## src/background/ — background task map
+- `task-map.js` — pure map from `task_started` / `background_tasks_changed` / `task_updated` / `task_notification`. Test: `test/task-map.test.js`. UI: `webview/chat/tasks-bar.js` (`#bg-tasks` bar with stop).
+
+## src/tasks/ — Claude's task list
+- `claude-tasks.js` — pure: `TaskCreate`/`TaskUpdate`/`TaskList` results to a task list. Test: `test/claude-tasks.test.js`. UI: `webview/chat/tasks.js` (collapsible checklist).
+
+## src/checkpoints/ — rewind code and fork
+- `checkpoints.js` — pure: `CHECKPOINT_ENV`, `checkpointArgs({fork})`, `checkpointFrom`/`addCheckpoint` from replayed user lines, `filesChangedCount`. Test: `test/checkpoints.test.js`.
+- `rewind-menu.js` — Esc Esc QuickPick of this process's prompts, then rewind code (dry run, confirm, real) or fork.
+
+## src/diff/ — shared diff view and `/diff`
+- `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; reused by package F and `openDiff`.
+- `diff-command.js` — `/diff` QuickPick to diff.
 
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
@@ -86,14 +100,17 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`).
 - `check-context-window.txt` — Hebrew `/api/ps` check of the 64,000 window, for the user.
+- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`).
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host.
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
+- `probe4-standalone.js` — self-contained probe: background tasks, Task tools, sub-agents, cron tools.
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `display.test.js`.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `models.test.js`.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario).
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

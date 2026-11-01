@@ -156,6 +156,10 @@
       post({ type: 'planCommand', open: Boolean(plan[1]) });
       return clearInput();
     }
+    if (/^\/diff\s*$/i.test(text.trim())) {
+      post({ type: 'diffCommand' });
+      return clearInput();
+    }
     clearInput();
     if (state.busy) enqueue(text);
     else {

@@ -15,6 +15,12 @@ const { buildErrorCard } = require('./error-card');
 const { modelEnv } = require('../models/launch');
 const { ModelSwitcher } = require('./model-switch');
 const { refreshContextMeter } = require('./context-meter');
+const editLog = require('../diff/edit-log');
+const { runDiffCommand } = require('../diff/diff-command');
+const checkpoints = require('../checkpoints/checkpoints');
+const { runRewindMenu } = require('../checkpoints/rewind-menu');
+const taskMap = require('../background/task-map');
+const claudeTasks = require('../tasks/claude-tasks');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -57,6 +63,9 @@ class Conversation {
     this.disposed = false;
     this.planText = '';
     this.turnTexts = new Map();
+    this.edits = editLog.createEditLog(); // this session's Edit/Write tool calls, for /diff
+    this.checkpoints = checkpoints.createCheckpointList(); // prompts sent in this process, for rewind
+    this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
     this.entries = null;
     this.models = new ModelSwitcher(this);
     this.subs = [
@@ -114,27 +123,34 @@ class Conversation {
     this.flushPrefill();
   }
 
-  startProcess({ resume } = {}) {
+  startProcess({ resume, fork = false } = {}) {
     const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
     const args = buildArgs({
       permissionMode: this.permissionMode,
       resume,
       model: this.model !== 'default' ? this.model : undefined,
       allowBypass: allowDangerouslySkipPermissions,
-    });
+    }).concat(checkpoints.checkpointArgs({ fork: fork && Boolean(resume) }));
     this.services.logger.info(`spawn ${claudePath} ${args.join(' ')} (cwd ${this.cwd})`);
     const proc = new CliProcess({
       claudePath,
       args,
       cwd: this.cwd,
-      env: mergeEnv(process.env, { ...environmentVariables, ...modelEnv(this.model) }),
+      env: { ...mergeEnv(process.env, { ...environmentVariables, ...modelEnv(this.model) }), ...checkpoints.CHECKPOINT_ENV },
       log: (t) => this.log(t),
     });
     const translate = createStreamTranslator();
     this.proc = proc;
+    // Background tasks live in the CLI process; a new process starts with none.
+    const hadTasks = this.tasks && this.tasks.tasks.size > 0;
+    this.tasks = taskMap.createTaskMap();
+    if (hadTasks) this.post({ type: 'backgroundTasks', tasks: [] });
 
     proc.on('message', (msg) => {
       if (proc !== this.proc) return;
+      checkpoints.addCheckpoint(this.checkpoints, msg);
+      if (taskMap.applyMessage(this.tasks, msg)) this.post({ type: 'backgroundTasks', tasks: taskMap.backgroundTasks(this.tasks) });
+      if (claudeTasks.applyMessage(this.claudeTasks, msg)) this.post({ type: 'claudeTasks', tasks: claudeTasks.listTasks(this.claudeTasks) });
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
         if (ev.kind === 'session') {
@@ -143,6 +159,7 @@ class Conversation {
         }
       }
       this.trackPlan(events);
+      for (const ev of events) editLog.addEvent(this.edits, ev);
       if (events.length) this.post({ type: 'events', events });
     });
     proc.on('controlRequest', (id, req) => this.onControlRequest(proc, id, req));
@@ -342,6 +359,10 @@ class Conversation {
     this.killProcess();
     this.sessionId = id;
     this.hasMessages = events.length > 0;
+    this.edits = editLog.createEditLog();
+    for (const ev of events) editLog.addEvent(this.edits, ev);
+    this.checkpoints = checkpoints.createCheckpointList();
+    this.claudeTasks = claudeTasks.createClaudeTasks();
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
@@ -374,6 +395,9 @@ class Conversation {
     this.killProcess();
     this.sessionId = null;
     this.hasMessages = false;
+    this.edits = editLog.createEditLog();
+    this.checkpoints = checkpoints.createCheckpointList();
+    this.claudeTasks = claudeTasks.createClaudeTasks();
     this.setTitle('Claude');
     this.post({ type: 'reset' });
     this.post({ type: 'context', used: null, max: null });
@@ -408,6 +432,35 @@ class Conversation {
     if (!open) return this.setMode('plan');
     if (!this.planText) return this.post({ type: 'notice', text: 'עדיין אין תוכנית לפתיחה. עברו למצב תכנון ובקשו מ-Claude תוכנית.' });
     return this.services.planDocs.open(this.planText);
+  }
+
+  // `/diff`: the files this session's Edit/Write tool calls changed (no git).
+  async diffCommand() {
+    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
+    if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
+  }
+
+  // The stop button of a background task: `stop_task {task_id}` (probe4); the CLI then reports
+  // the task as stopped through the usual system lines.
+  stopTask(id) {
+    if (!this.proc || !id) return;
+    this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
+  }
+
+  // Esc Esc / the rewind shortcut: the checkpoints menu (src/checkpoints/rewind-menu.js).
+  rewindMenu() {
+    return runRewindMenu(this);
+  }
+
+  // Fork: restart with --resume <id> --fork-session; the CLI gives a new session id with the same
+  // context and the original transcript stays as it was. The thread on screen is kept.
+  forkSession() {
+    if (!this.sessionId || this.busy) return this.post({ type: 'notice', text: 'אפשר לפצל רק שיחה קיימת, כש-Claude לא עובד.' });
+    this.killProcess();
+    // Whether the forked process accepts the old prompts' uuids is unverified, so they are dropped.
+    this.checkpoints = checkpoints.createCheckpointList();
+    this.startProcess({ resume: this.sessionId, fork: true });
+    return this.post({ type: 'notice', text: 'השיחה פוצלה: ההמשך נשמר כשיחה חדשה, והמקורית נשארת כמו שהיא.' });
   }
 
   async mentionSearch(query, seq) {

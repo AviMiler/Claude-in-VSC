@@ -1,6 +1,8 @@
 // Bootstraps the chat webview and dispatches host -> webview messages.
 (function () {
   const { post } = CL;
+  // Esc Esc (keybindings.rewind) opens the host's checkpoints menu.
+  CL.composer.onRewind = () => post({ type: 'rewindMenu' });
 
   const spinner = document.getElementById('spinner');
   const spinnerVerb = document.getElementById('spinner-verb');
@@ -95,6 +97,7 @@
     history: (m) => CL.history.show(m.items, m.currentId),
     sessionLoaded(m) {
       CL.thread.reset();
+      CL.claudeTasks.render([]); // the task list is live only, not rebuilt from transcripts
       CL.composer.resetConversation(m.events.filter((ev) => ev.kind === 'user').map((ev) => ev.text));
       CL.history.setCurrent(m.id);
       setTitle(m.title);
@@ -105,6 +108,7 @@
     },
     reset() {
       CL.thread.reset();
+      CL.claudeTasks.render([]);
       CL.composer.resetConversation([]);
       setTitle('');
       setBusy(false);
@@ -120,6 +124,8 @@
     mcpState: (m) => CL.mcp.setState(m),
     mcpResult: (m) => CL.mcp.setResult(m),
     errorCard: (m) => CL.errorCard.show(m.card),
+    backgroundTasks: (m) => CL.tasksBar.render(m.tasks),
+    claudeTasks: (m) => CL.claudeTasks.render(m.tasks),
   };
 
   window.addEventListener('message', (e) => {

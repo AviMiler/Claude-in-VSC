@@ -11,6 +11,7 @@ Each probe spawns the CLI the way the extension does (stream-json + control prot
 | `probe-cli.js` | `p1`-`p8`, first version | the repo (`require('../src/cli/...')`); superseded by `probe-standalone.js` |
 | `probe-standalone.js` | `p1_initialize`, `p2_control_requests`, `p3_plain_turn`, `p4_message_during_turn`, `p5_slash_commands`, `p6_updated_input`, `p7_todo_shell_background`, `p8_loop` | Node 18+ only; one self-contained file |
 | `probe2-standalone.js` | `q1_rewind`, `q2_updated_input`, `q3_permission_shapes`, `q4_modes`, `q5_vision`, `q6_thinking_effort`, `q7_mcp`, `q8_loop`, `q9_interrupt_resume`, `q10_bang_shell` | same |
+| `probe4-standalone.js` | background tasks and `stop_task`, unsupported background requests, Task tools, sub-agents (`Agent`), `/loop` cron tools | same (copied from the user's probe) |
 | `probe3-standalone.js` | `s1a_rewind_with_env`, `s1b_rewind_without_env`, `s2_updated_input`, `s3_permission_shapes`, `s4_set_model`, `s5_auto_mode` | same; `--alt-model` (default `gemma3:27b`) for `s4` |
 
 The standalone files do not need the repo, git or the network: copy one file to the machine that has the CLI and the local model.
@@ -57,7 +58,7 @@ Result (2026-11-01): all endpoints reachable from the extension host in 15-250 m
 
 ## Chat UI without VS Code
 
-- `fake-claude.js` / `fake-claude.cmd`: a fake stream-json CLI for tests and for trying the UI without a model (`claudeLocal.claudePath` = `dev/fake-claude.cmd`). Scenario by keyword in the message: `tool` (Bash permission), `שאלה` (AskUserQuestion), `slow` (long reply, for the stop button); otherwise a Markdown reply. `FAKE_CLAUDE_INTERRUPT=no-result|error` changes what follows an interrupt. It rejects `bypassPermissions` unless started with `--allow-dangerously-skip-permissions`, like the real CLI.
+- `fake-claude.js` / `fake-claude.cmd`: a fake stream-json CLI for tests and for trying the UI without a model (`claudeLocal.claudePath` = `dev/fake-claude.cmd`). Scenario by keyword in the message: `tool` (Bash permission), `שאלה` (AskUserQuestion), `slow` (long reply, for the stop button), `edit` (Edit and Write tool calls, for `/diff`), `background` (a background task and the `stop_task` sequence), `tasks` (TaskCreate/TaskUpdate calls for the pinned list); otherwise a Markdown reply. `FAKE_CLAUDE_INTERRUPT=no-result|error` changes what follows an interrupt. It rejects `bypassPermissions` unless started with `--allow-dangerously-skip-permissions`, like the real CLI.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css`: the chat webview in a normal browser with a simulated host and VS Code theme variables: `node dev/preview-server.js [port]` (default 5199), or the "chat-preview" entry in `.claude/launch.json`.
 
 ## Reference
