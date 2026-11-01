@@ -39,7 +39,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | Plan approval buttons | **Postponed to the end, not critical** (they do not appear now) | Check whether the CLI sends `ExitPlanMode`; the model once used `AskUserQuestion` | 👤 |
 | `/` menu | **Groups + a distinction between skills and built-in commands** | `system/init` has `skills` against `slash_commands` and `terminal_slash_commands` | 👤 + 🔧 |
 | @-mentions | **Files and folders only** | `@terminal` depends on a limited VS Code API; `@browser` needs Chrome and is irrelevant offline | 👤 |
-| Images and files | **Paste images, drag files (Shift), PDF and LaTeX** | Vision was verified only on `qwen3.8:27b` (it recognized an image); when switching model check or warn; PDF is read by the CLI (needs poppler); LaTeX needs a bundled KaTeX. Requirement: hide/disable images if the model does not support vision | 👤 + 🔧 |
+| Images and files | **Paste images, drag files (Shift), PDF and LaTeX.** **No control by model:** images are always accepted, with no `visionModels` setting, no warning and no blocking (decided 2026-11-01) | Vision was verified only on `qwen3.8:27b`; gateway capability flags are unreliable and `/api/show` is not exposed. The earlier requirement to hide/disable images for models without vision is **dropped**; PDF is read by the CLI (needs poppler); LaTeX needs a bundled KaTeX | 👤 + 🔧 |
 | Thinking | **Removed** | No thinking blocks and 0 thinking tokens | 🔧 |
 | Effort | **Removed** | `output_config.effort: high` is fixed in the gateway; the check showed no difference | 🔧 |
 | Ultracode, cache clock | **No** | Anthropic features, irrelevant to a local model | 👤 |
@@ -47,14 +47,14 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | `/btw` panel | **Yes** (a side question with no tools and no history) | Chosen by the user | 👤 |
 | Bookmarks | **No** | They need storage and contradict "no storage" | 👤 |
 | Context meter + `/compact` | **Yes**, by `get_context_usage` and `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`. No cost | The CLI assumes 200,000 for an unknown model; the cost it reports is meaningless | 👤 + 🔧 |
-| Agent map | **Yes** (depends on stage 4) | Chosen by the user | 👤 |
+| Agent map | **A collapsible card in the chat** per sub-agent call (state: running / finished; when opened, the tools it ran, grouped by `parent_tool_use_id`). No separate panel. Package B, which starts with a short check against the real CLI that the local model launches sub-agents at all; if it does not, postpone (decided 2026-11-01) | Sub-agent messages are filtered out today (`event-translator.js`); the data is available. The local model may rarely use sub-agents | 👤 |
 
 ### Stage 3: editor context and change review
 
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
 | Automatic context (selection and open file) | **First try through an IDE server; if it does not work, fall back to chips** above the box (`קובץ: app.ts`, `שורות 5–10`, removable) | The user wanted to try the official way first; the IDE server has not been tested yet (`/ide` does not detect, `~/.claude/ide` does not exist) | 👤 |
-| Alt+K | **Yes** (inserts `@path#lines`) | Depends on @-mentions | 👤 |
+| Alt+K | **Yes** (inserts `@path#lines`). **Split:** package C inserts `@path` of the open file; package F adds the selected lines (decided 2026-11-01) | Depends on @-mentions (C) and editor context (F) | 👤 |
 | Settings `attachSelection`, `attachOpenFile`, `respectGitIgnore` | **Yes**, on by default | Control over the automatic context | 👤 |
 | diff on edits | **Approve each change block separately** (CodeLens, returned to the CLI as `updatedInput`) | Verified: the CLI honoured our change (`PROBE_CHANGED` went into the file). The alternative (approve everything) is not needed | 👤 + 🔧 |
 | autosave | **Yes**, on by default | So Claude sees the current file on disk | 👤 |
@@ -91,7 +91,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | Accessibility | **Accessibility and colour settings** (`prefersReducedMotion`, daltonized) + **screen-reader announcements, speaker labels ("אתה"/"Claude") and navigation by headings** | Chosen; testing needs a real screen reader | 👤 |
 | More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
 | `claudeProcessWrapper`, `usePythonEnvironment`, `enableReopenClosedSessionShortcut`, `disableLoginPrompt` | **No** | Not needed (a wrapper is possible in the future; no login; Ctrl+Shift+T is already decided) | 👤 |
-| Shortcuts | **Ctrl+Esc** (editor↔chat) + **Ctrl+Alt+C** to open in a new tab (Ctrl+Shift+Esc stays) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
+| Shortcuts | **Ctrl+Esc** (editor↔chat) + **Ctrl+Alt+C** to open in a new tab (Ctrl+Shift+Esc stays). **Ctrl+Esc is kept, with a check on the user's machine in package A**: on Windows it normally opens the Start menu; if it does, replace it with another key (decided 2026-11-01) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
 | Rebindable shortcuts | **All shortcuts** (as `contributes.keybindings` with a command "Claude Code Local: Keyboard Shortcuts" that opens `workbench.action.openGlobalKeybindings` filtered to `claude-local`). **Shortcuts inside the webview** (Enter, Shift+Enter, Esc Esc): **settings `claudeLocal.keybindings.*`** (decided 2026-11-01); limitation: the webview does not see VS Code's keybindings automatically, so these are separate from the VS Code shortcuts editor | An explicit requirement | 👤 |
 
 ### Stage 7: cloud and network features
@@ -107,11 +107,11 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
-| Commands not supported in stream-json | **Detect and hide/explain** ("זמין בטרמינל בלבד" + an "open in terminal" button) | The `initialize` list holds only what is supported; `terminal_slash_commands` marks terminal commands | 👤 + 🔧 |
-| Message queue, Ctrl+Enter, prompt history (up arrow) | **Yes**, in memory only | Verified: a message mid-turn is accepted and handled after the first | 👤 + 🔧 |
-| Switching model/mode mid-work | Mode: yes. **Model: the picker is disabled during an active turn, with a "stop and switch" button** whose Hebrew text explains in detail what is lost: the partial answer, a running tool cut mid-way (a file may be left half-written), a pending permission request | The model is switched by a restart (see below). Decided by the user on 2026-11-01 | 👤 + 🔧 |
+| Commands not supported in stream-json | **Greyed out in the `/` menu, in a separate group labelled "בטרמינל בלבד"**; choosing one shows a Hebrew card ("זמינה רק בטרמינל") with an "open in terminal" button and is **never sent to the model**. Based on `terminal_slash_commands` (today `doctor`, `color`). Package C (decided 2026-11-01) | `/compact`, `/rename`, `/loop` are handled in stream-json and stay available | 👤 + 🔧 |
+| Message queue, Ctrl+Enter, prompt history (up arrow) | **Yes**, in memory only. **A visible queue** (grey bubbles marked "ממתין" with a cancel button, using `interrupt_cancel_queued_v1`) and **history per conversation** (up arrow browses that conversation's sent messages only). Package C (decided 2026-11-01) | Verified: a message mid-turn is accepted and handled after the first. Cancelling matters with a slow cold-loading model | 👤 + 🔧 |
+| Switching model/mode mid-work | **Mode: the permission-mode picker is also disabled during an active turn** (decided 2026-11-01, replaces the earlier "Mode: yes"; the safety rules for auto/no-permissions then only apply between turns). **Model: the picker is disabled during an active turn, with a "stop and switch" button** whose Hebrew text explains in detail what is lost: the partial answer, a running tool cut mid-way (a file may be left half-written), a pending permission request | The model is switched by a restart (see below). Decided by the user on 2026-11-01 | 👤 + 🔧 |
 | `/diff` panel | **Yes** | Chosen | 👤 |
-| Claude's task list | **Yes**, built on `TaskCreate`/`TaskUpdate` | There is no `TodoWrite` in this CLI | 👤 + 🔧 |
+| Claude's task list | **A checklist pinned above the prompt box** ("3/5 הושלמו", expandable, updated in place), built on `TaskCreate`/`TaskUpdate` calls collected into one in-memory list. Package B, which starts with a short check that the local model uses these tools; if it does not, postpone (decided 2026-11-01) | There is no `TodoWrite` in this CLI (the existing `TodoWrite` rendering in `webview/chat/tools.js` is never triggered) | 👤 + 🔧 |
 | Shell mode with `!` | **Cancelled** (see decision 2) | The CLI does not handle it; the model interprets it | 👤 |
 | Next-prompt suggestion, emoji, automatic `/recap` | **No** | Rejected | 👤 |
 | Hooks and managed settings | **No code in the extension** | Handled entirely in the CLI through `settings.json` | 👤 |
@@ -161,12 +161,12 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 
 | Package | Content | Depends on |
 |---|---|---|
-| **A** | Settings, rebindable shortcuts, Open in Terminal, `environmentVariables`, launching `claude-bin.exe` | – |
-| **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff`, `/loop` indicator | A |
-| **C** | Prompt box: Auto, grouped `/` menu, @-mentions, images, message queue, copy, `/btw`, plan in the editor | A |
+| **A** | Settings, rebindable shortcuts **(including Ctrl+Esc, tested on the user's machine for the Start-menu conflict)**, Open in Terminal, `environmentVariables`, launching `claude-bin.exe` | – |
+| **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff`, `/loop` indicator, **agent cards, Claude's pinned task list** (both start with a check that the local model uses sub-agents / `TaskCreate`) | A |
+| **C** | Prompt box: Auto, grouped `/` menu **(with terminal-only commands greyed out)**, @-mentions, **Alt+K (`@path`)**, images, message queue **(visible, cancellable)** **+ per-conversation prompt history**, copy, `/btw`, plan in the editor | A |
 | **D** | Model picker, context meter, filtering, restart with `--resume` | A, C |
 | **E** | MCP, usage line, sign-in error card, URI | A |
-| **F** | Editor context (chips or IDE server), per-block diff, autosave | A, IDE prototype |
+| **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff, autosave | A, IDE prototype |
 | **G** | Display and accessibility (Focus view, timestamps, screen reader) | – |
 
 ## 6. What is open
