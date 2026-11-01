@@ -24,16 +24,16 @@ node dev/probe-cli.js --claude "C:\Users\User\.local\bin\claude.exe" --out probe
 
 
 === שלב 2 – בדיקות ידניות ===
-**בדיקה 1 (תמיכת המודל בראייה/חשיבה/כלים):**
+בדיקה 1 (תמיכת המודל בראייה/חשיבה/כלים):
 Invoke-RestMethod -Method Post -Uri http://172.27.5.5:11436/api/show -ContentType application/json -Body '{"model":"qwen3.8:27b"}' | Select-Object -ExpandProperty capabilities
 (אם ollama מותקן אצלך גם: ollama show qwen3.8:27b.) התשובה מפרטת למשל completion, vision, tools, thinking. זה קובע אם מציגים הדבקת תמונות ומתג Thinking.
 
-**בדיקות 3 ו-8 (שרת IDE):**
+בדיקות 3 ו-8 (שרת IDE):
 claude --help | Select-String -Pattern "ide"
 Get-ChildItem "$env:USERPROFILE\.claude\ide" -ErrorAction SilentlyContinue
 ואז בטרמינל המשולב של VS Code: להריץ claude ובתוכו /ide, ולהעתיק לי את הפלט. זה רק מראה אם ה-CLI תומך בחיבור IDE ומה הוא מצפה לו. היתכנות מלאה תיבדק עם אב-טיפוס שאבנה אחרי שאקבל את התוצאות.
 
-**בדיקה 9 (הוספה והסרה של שרת MCP):**
+בדיקה 9 (הוספה והסרה של שרת MCP):
 claude mcp --help
 claude mcp add --help
 claude mcp add probe-test -- node -e "setInterval(()=>{},1000)"
@@ -42,7 +42,7 @@ Get-Item "$env:USERPROFILE\.claude.json" | Select-Object LastWriteTime     # ל�
 claude mcp remove probe-test
 claude mcp list
 
-**בדיקה 6 (rewind/fork בשורת הפקודה):**
+בדיקה 6 (rewind/fork בשורת הפקודה):
 claude --help | Select-String -Pattern "fork|resume|rewind|continue"
 
 
