@@ -58,7 +58,7 @@ claude --help | Select-String -Pattern "fork|resume|rewind|continue"
 2. הפלט של שלב 0 ושל כל הפקודות בשלב 2.
 3. כל שגיאה שהופיעה.
 
-## מיפוי בדיקות (מתוך `docs/features-plan.md`)
+## מיפוי בדיקות (מתוך `docs/conclusions.md`)
 | # | בדיקה | איפה |
 |---|---|---|
 | 1 | שדות model/תמיכה | p1 + `api/show` |

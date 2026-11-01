@@ -209,7 +209,7 @@ probe3-standalone.js בתיקייה (למשל C:\workingFolder\AI\claude check),
  s5        -> הוספת מצב Auto או לא.
  ג         -> מד הקשר והגדרת CLAUDE_CODE_MAX_CONTEXT_TOKENS.
  ה         -> תיקונים בתוסף לפי מה שיתגלה ב-VS Code.
- בסוף אעדכן את docs/features-plan.md ואת המסמכים הנלווים.
+ בסוף אעדכן את docs/conclusions.md ואת המסמכים הנלווים.
 
 
 חלק ט. הקוד המלא של הסקריפט השלישי

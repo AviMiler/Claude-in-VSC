@@ -51,7 +51,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 ## 5. שינויים נוספים שנדרשים (נמצאו בבדיקה מול ה-CLI ב-1.11.2026)
 
-הבדיקה בוצעה על CLI בגרסה 2.1.246 ו-VS Code 1.91.1. פירוט הממצאים: `docs/features-plan.md`.
+הבדיקה בוצעה על CLI בגרסה 2.1.246 ו-VS Code 1.91.1. פירוט הממצאים: `docs/conclusions.md`.
 
 ### 5.1 הנתיב ל-CLI חייב להיות הקובץ האמיתי, לא העטיפה
 
@@ -108,7 +108,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 ### 5.5 בחירת מודל
 
-העטיפה מגדירה את שלושת `ANTHROPIC_DEFAULT_*_MODEL` ואת `--model` לפי הבחירה. בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). להחלפת מודל בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר מודל בתוסף יצריך שליפה של הרשימה הזו (החלטה פתוחה, ראה `docs/features-plan.md`).
+העטיפה מגדירה את שלושת `ANTHROPIC_DEFAULT_*_MODEL` ואת `--model` לפי הבחירה. בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). להחלפת מודל בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר מודל בתוסף יצריך שליפה של הרשימה הזו (החלטה פתוחה, ראה `docs/final-plan.md`).
 
 ### 5.6 הגדרת checkpoints
 
