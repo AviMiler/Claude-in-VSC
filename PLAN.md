@@ -1,0 +1,189 @@
+# Plan: every decision and its reason
+
+Updated: 2026-11-01. This is the **single source of truth for what to build next**. The old historical log (`features-plan.md`) was merged into this file and `DEPENDENCIES.md` and deleted; `DECISIONS.md` holds the architecture-level decisions in full format (alternatives and reasons). What exists today is described in `spec.md`; the measured facts behind the decisions are in `DEPENDENCIES.md`.
+
+**Source of each decision:** 👤 the user decided (question and answer) · ✅ a recommendation the user approved · 🔧 derived from a check against the CLI/gateway (a factual reason) · ⚠️ my adjustment that was not asked explicitly (awaiting approval).
+
+## 1. Base facts that affect everything
+
+| Fact | Value | Source |
+|---|---|---|
+| Environment | A machine that will end up without internet; local model `qwen3.8:27b` through the LiteLLM 1.80.0 gateway (`172.27.5.5:11436`) over Ollama (`:11435`) | `SETUP.md`, checks |
+| The CLI | Claude Code 2.1.246 (`claude-bin.exe`) | checks |
+| VS Code | 1.91.1 (no secondary side bar; every API must fit) | checks |
+| Principles | The extension stores no data; the CLI is the source of truth; plain JS with no build and no npm; every user-facing string in Hebrew | `spec.md` |
+| Real context window | **64,000** (`/api/ps`; no plateau up to 50,000 in the test). The gateway setting (12,288) is not enforced | 🔧 |
+| Cold model load | 285 seconds; keep-alive about 5 minutes | 🔧 |
+
+## 2. Decisions by topic
+
+### Stage 1: opening, launching and placement
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Open in Terminal | **Yes** | Runs the CLI's original interface in VS Code's terminal; also a fallback for commands the chat does not support | 👤 |
+| Activity Bar icon for a session list | **Yes** (depends on stage 4) | A dedicated list of previous conversations instead of a button inside the chat | 👤 |
+| Open in New Window | **No** | Not chosen; low value when working in one window | 👤 |
+| Sign-in screen / onboarding checklist | **None.** Instead, a Hebrew card in the chat when the CLI fails (check `ANTHROPIC_BASE_URL`, that the server runs, `claudePath`, a button that opens `settings.json`) | Local model, no login; the helpful instructions are the connection settings | 👤 |
+| URI links | **Yes, with confirmation before sending** (`vscode://local.claude-local/open`, parameters `prompt`, `session`) | The text goes into the box and is not sent automatically, to prevent prompt injection from an external link | 👤 |
+| Panel placement | Settings `preferredLocation` (tab/sidebar) and `lockEditorGroups` | The user asked to offer both options as settings | 👤 |
+
+### Stage 2: the prompt box
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Auto mode | **Yes, with a Hebrew warning in the picker** ("ה-CLI מחליט לבד, המסווג עלול לטעות") | `set_permission_mode auto` was accepted and Write ran without a question; the classifier's behaviour with a local model on dangerous actions was not tested | 👤 + 🔧 |
+| `/plan`, `/plan open` | **Yes** (implemented in the extension, not in the CLI's command list) | Plan mode exists; the commands do not appear in `initialize` | 👤 + 🔧 |
+| Plan as a document | **Version B:** an "open in editor" button that opens a read-only virtual Markdown document (`TextDocumentContentProvider`, no file written). No inline comments | Keeps "no storage"; version C (inline comments) is very heavy (about 250 lines) | 👤 |
+| Source of the plan text | From the assistant's text messages before `ExitPlanMode` (not from `input.plan`, which arrives empty) | Observed in the checks | 🔧 |
+| Plan approval buttons | **Postponed to the end, not critical** (they do not appear now) | Check whether the CLI sends `ExitPlanMode`; the model once used `AskUserQuestion` | 👤 |
+| `/` menu | **Groups + a distinction between skills and built-in commands** | `system/init` has `skills` against `slash_commands` and `terminal_slash_commands` | 👤 + 🔧 |
+| @-mentions | **Files and folders only** | `@terminal` depends on a limited VS Code API; `@browser` needs Chrome and is irrelevant offline | 👤 |
+| Images and files | **Paste images, drag files (Shift), PDF and LaTeX** | Vision was verified only on `qwen3.8:27b` (it recognized an image); when switching model check or warn; PDF is read by the CLI (needs poppler); LaTeX needs a bundled KaTeX. Requirement: hide/disable images if the model does not support vision | 👤 + 🔧 |
+| Thinking | **Removed** | No thinking blocks and 0 thinking tokens | 🔧 |
+| Effort | **Removed** | `output_config.effort: high` is fixed in the gateway; the check showed no difference | 🔧 |
+| Ultracode, cache clock | **No** | Anthropic features, irrelevant to a local model | 👤 |
+| A copy button on every answer | **Yes** | Simple and useful | 👤 |
+| `/btw` panel | **Yes** (a side question with no tools and no history) | Chosen by the user | 👤 |
+| Bookmarks | **No** | They need storage and contradict "no storage" | 👤 |
+| Context meter + `/compact` | **Yes**, by `get_context_usage` and `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`. No cost | The CLI assumes 200,000 for an unknown model; the cost it reports is meaningless | 👤 + 🔧 |
+| Agent map | **Yes** (depends on stage 4) | Chosen by the user | 👤 |
+
+### Stage 3: editor context and change review
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Automatic context (selection and open file) | **First try through an IDE server; if it does not work, fall back to chips** above the box (`קובץ: app.ts`, `שורות 5–10`, removable) | The user wanted to try the official way first; the IDE server has not been tested yet (`/ide` does not detect, `~/.claude/ide` does not exist) | 👤 |
+| Alt+K | **Yes** (inserts `@path#lines`) | Depends on @-mentions | 👤 |
+| Settings `attachSelection`, `attachOpenFile`, `respectGitIgnore` | **Yes**, on by default | Control over the automatic context | 👤 |
+| diff on edits | **Approve each change block separately** (CodeLens, returned to the CLI as `updatedInput`) | Verified: the CLI honoured our change (`PROBE_CHANGED` went into the file). The alternative (approve everything) is not needed | 👤 + 🔧 |
+| autosave | **Yes**, on by default | So Claude sees the current file on disk | 👤 |
+
+### Stage 4: sessions, history, checkpoints, background
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Rename a session | **Yes, through the CLI's `/rename`** | Verified: `custom-title` is written to the jsonl | 👤 + 🔧 |
+| Filters (active / waiting / finished) | **Yes**, temporary, no storage | Chosen, and fits "no storage" | 👤 |
+| Archiving and session groups | **No** | The CLI does not archive, and adding it in the extension needs storage. The option was asked and the user chose "do not archive" | 👤 |
+| Reopen (Ctrl+Shift+T), colour dots on tabs | **Yes** (an in-memory list only; marked through name/icon because there is no colour API). Meaning of the colours: **blue = waiting for permission, orange = finished in a hidden tab** | Chosen | 👤 |
+| `continueAfterReload` | **As a suggestion only**: "continue the last conversation", read from the transcripts | Contradicts "no restore after refresh", so it is implemented with no stored state | 👤 + ⚠️ |
+| Web tab | **No** | Anthropic cloud infrastructure, no internal server | 👤 |
+| Checkpoints | **Full:** fork, rewind code, both, Esc Esc | Verified: rewind worked when the process was started with `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` and `--replay-user-messages` (the saved setting `checkpoints=true` is not enough); fork works | 👤 + 🔧 |
+| Background | **A "move to background" button + a task map with stop** | Verified: `task_started`, `background_tasks_changed`, `stop_task` | 👤 + 🔧 |
+
+### Stage 5: environment integration
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| IDE server | **A local WebSocket server + context + getDiagnostics.** `executeCode` (Jupyter): no. **A feasibility check first (my prototype)** | We need to know whether the CLI connects; if not, the chips fallback | 👤 |
+| MCP | **A full management dialog, including add and remove from the UI** (list + status, enable/disable, reconnect). OAuth: no | Verified: `mcp_status`, `mcp_reconnect`, `mcp_toggle` work, and so do `claude mcp add/remove` | 👤 + 🔧 |
+| Plugins and Mods | **Skip** | Marketplaces on GitHub, does not work offline | 👤 |
+| Git | **No change** (through Bash); no PR status | Already works, and the status needs GitHub | 👤 |
+| Session usage line | **Tokens only.** A full `/usage` dialog: no. Git status in the box line: no | The cost the CLI reports is meaningless (`costBasis: unknown`). **The user chose "tokens/cost"; removing the cost is my adjustment** | 👤 + ⚠️ |
+
+### Stage 6: display, accessibility, settings, shortcuts
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Display | **Focus view, timestamps, `spinnerVerbs`, `scrollToBottomOnSend`** | All chosen; light and independent | 👤 |
+| `useTerminal` | **A setting** that makes the main button open a terminal | Chosen | 👤 |
+| Accessibility | **Accessibility and colour settings** (`prefersReducedMotion`, daltonized) + **screen-reader announcements, speaker labels ("אתה"/"Claude") and navigation by headings** | Chosen; testing needs a real screen reader | 👤 |
+| More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
+| `claudeProcessWrapper`, `usePythonEnvironment`, `enableReopenClosedSessionShortcut`, `disableLoginPrompt` | **No** | Not needed (a wrapper is possible in the future; no login; Ctrl+Shift+T is already decided) | 👤 |
+| Shortcuts | **Ctrl+Esc** (editor↔chat) + **Ctrl+Alt+C** to open in a new tab (Ctrl+Shift+Esc stays) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
+| Rebindable shortcuts | **All shortcuts** (as `contributes.keybindings` with a command "Claude Code Local: Keyboard Shortcuts" that opens `workbench.action.openGlobalKeybindings` filtered to `claude-local`). **Shortcuts inside the webview** (Enter, Shift+Enter, Esc Esc): settings `claudeLocal.keybindings.*` or reading VS Code's keybindings.json. **To be decided at implementation time**; limitation: the webview does not see VS Code's keybindings automatically | An explicit requirement | 👤 |
+
+### Stage 7: cloud and network features
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Chrome / `@browser` | **Future development** by the user (probably an MCP server of their own); nothing for now, and room is left in the architecture | Claude in Chrome needs a claude.ai account | 👤 |
+| Remote Control | **Skip** | Goes through Anthropic servers | 👤 |
+| Voice dictation | **Skip** | Needs claude.ai; a local engine needs installation and a microphone in the webview | 👤 |
+| `/loop` indicator | **Yes**, in the chat, no storage (interval, next run, stop) | Verified: `/loop` creates `CronCreate` and the CLI runs a turn with no user message (`command_lifecycle`), so the UI must support turns that start by themselves | 👤 + 🔧 |
+
+### Stage 8: shared commands, interactive mode
+
+| Feature | Decision | Reason | Source |
+|---|---|---|---|
+| Commands not supported in stream-json | **Detect and hide/explain** ("זמין בטרמינל בלבד" + an "open in terminal" button) | The `initialize` list holds only what is supported; `terminal_slash_commands` marks terminal commands | 👤 + 🔧 |
+| Message queue, Ctrl+Enter, prompt history (up arrow) | **Yes**, in memory only | Verified: a message mid-turn is accepted and handled after the first | 👤 + 🔧 |
+| Switching model/mode mid-work | Mode: yes. **Model: not in the middle of an active turn** (wait for it to finish) | The model is switched by a restart (see below) | 👤 + ⚠️ |
+| `/diff` panel | **Yes** | Chosen | 👤 |
+| Claude's task list | **Yes**, built on `TaskCreate`/`TaskUpdate` | There is no `TodoWrite` in this CLI | 👤 + 🔧 |
+| Shell mode with `!` | **Cancelled** (see decision 2) | The CLI does not handle it; the model interprets it | 👤 |
+| Next-prompt suggestion, emoji, automatic `/recap` | **No** | Rejected | 👤 |
+| Hooks and managed settings | **No code in the extension** | Handled entirely in the CLI through `settings.json` | 👤 |
+
+## 3. The six final decisions (asked one by one)
+
+| # | Decision | Detailed reason |
+|---|---|---|
+| 1 | **The model list is fetched from the gateway** (`GET /v1/models`, in memory, read-only; the address from `ANTHROPIC_BASE_URL` or `claudeLocal.gatewayUrl`; if the gateway is unavailable, the current model stays) | The CLI returns no list (4 aliases of the same model), and your wrapper fetches it from the same place. Checked from inside VS Code and it works (15 milliseconds, no key, no proxy). It relaxes the rule "no network from the extension" only for the internal gateway |
+| 2 | **`!` mode: give up** | There is no such mode in the CLI in stream-json mode; the model interprets it and runs Bash by itself, which is not reliable |
+| 3 | **Auto mode: add with a warning** | Verified that it works; a classifier on a local model may err on dangerous actions, hence the warning |
+| 4 | **Model switch: restart the process** with `--model <id>`, the three `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` and `--resume` | `set_model` at run time is always accepted without validation and the error arrives only in the next turn; choosing at start-up was verified and works (`gemma4:26b`). The session title is created by a call to the HAIKU model, so without changing it the server loads two models (cold load = 285 seconds) |
+| 5 | **`claudePath` = `claude-bin.exe` + environment variables from the extension** (`API_TIMEOUT_MS=1200000`, `CLAUDE_ENABLE_STREAM_WATCHDOG=0`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`, in the editable setting `claudeLocal.environmentVariables`) | The `claude.cmd` wrapper asks "Select model number" before every run and would hang the extension; the long timeout is essential because of the cold load; the context window was measured |
+| 6 | **Model filtering:** automatically hide models with `extra_body.output_config.format` (`qwen2.5-coder:7b`, `gemma4:31b`) + `claudeLocal.modelDenylist` (default `gemma3:27b`) + a Hebrew message and a return to the previous model on a "does not support tools" error | The capability data in the gateway is not reliable; two models are configured for JSON-title-only output; `gemma3:27b` fails with "does not support tools"; the other models were not tested with tools |
+
+## 4. Extension settings (prefix `claudeLocal.`)
+
+Source of values: 👤 a value that was decided · ⚠️ my proposed default, not asked explicitly (awaiting approval before package A). **Existing today in `package.json`:** `claudePath`, `allowDangerouslySkipPermissions`, `useCtrlEnterToSend`. All the others are new and will be added in the packages named.
+
+| Setting | Type | Default | Meaning | Package | Source |
+|---|---|---|---|---|---|
+| `claudePath` | string | `claude` (on this machine set an explicit path to `claude-bin.exe`, see `SETUP.md` section 4) | The CLI executable | A | 👤 |
+| `allowDangerouslySkipPermissions` | boolean | `false` | Shows the "no permissions" mode | existing | 👤 |
+| `useCtrlEnterToSend` | boolean | `false` | Ctrl+Enter sends, Enter inserts a new line | existing | 👤 |
+| `environmentVariables` | object (name→string) | `{"API_TIMEOUT_MS":"1200000","CLAUDE_ENABLE_STREAM_WATCHDOG":"0","CLAUDE_CODE_MAX_CONTEXT_TOKENS":"64000"}` | Environment variables for the CLI process; merged over the environment, and the connection variables stay in the CLI's `settings.json` | A | 👤 |
+| `preferredLocation` | enum `panel` / `sidebar` | `panel` | Where the chat opens from the main button | A | 👤 (value ⚠️) |
+| `lockEditorGroups` | boolean | `false` | Lock the tab's editor group | A | 👤 (value ⚠️) |
+| `useTerminal` | boolean | `false` | The main button opens the CLI in a terminal instead of the chat | A | 👤 (value ⚠️) |
+| `enableNewConversationShortcut` | boolean | `false` | Ctrl+N for a new conversation | A | 👤 (value ⚠️) |
+| `gatewayUrl` | string | empty (taken from `ANTHROPIC_BASE_URL`) | Gateway address for fetching `/v1/models` | D | 👤 |
+| `modelDenylist` | string[] | `["gemma3:27b"]` | Models to hide from the picker | D | 👤 |
+| `attachSelection` | boolean | `true` | Attach the editor selection to the context | F | 👤 |
+| `attachOpenFile` | boolean | `true` | Attach the open file to the context | F | 👤 |
+| `respectGitIgnore` | boolean | `true` | Respect `.gitignore` files in @ completion | C | 👤 (value ⚠️) |
+| `autosave` | boolean | `true` | Save the editor after a Claude edit | F | 👤 |
+| `focusView` | boolean | `false` | Focus mode in the chat | G | 👤 (value ⚠️) |
+| `showMessageTimestamps` | boolean | `false` | Timestamps on messages | G | 👤 (value ⚠️) |
+| `spinnerVerbs` | string[] | empty (the extension's default) | Waiting words in the work indicator | G | 👤 (value ⚠️) |
+| `scrollToBottomOnSend` | boolean | `true` | Scroll to the bottom on send | G | 👤 (value ⚠️) |
+| `prefersReducedMotion` | boolean | `false` | Turn animations off | G | 👤 (value ⚠️) |
+| `colorMode` | enum `default` / `daltonized` | `default` | Colour scheme for colour-blind users | G | 👤 (name and value ⚠️) |
+| `keybindings.*` | string | per the shortcut | Shortcuts inside the webview; **not decided yet** whether as settings or from keybindings.json (see stage 6) | A | 👤 (open) |
+
+**VS Code-level keyboard shortcuts** are not settings but `contributes.keybindings`: Ctrl+Shift+Esc and Ctrl+Alt+C (existing), Ctrl+Esc, Ctrl+Shift+T, Alt+K and more.
+
+## 5. Build order
+
+| Package | Content | Depends on |
+|---|---|---|
+| **A** | Settings, rebindable shortcuts, Open in Terminal, `environmentVariables`, launching `claude-bin.exe` | – |
+| **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff`, `/loop` indicator | A |
+| **C** | Prompt box: Auto, grouped `/` menu, @-mentions, images, message queue, copy, `/btw`, plan in the editor | A |
+| **D** | Model picker, context meter, filtering, restart with `--resume` | A, C |
+| **E** | MCP, usage line, sign-in error card, URI | A |
+| **F** | Editor context (chips or IDE server), per-block diff, autosave | A, IDE prototype |
+| **G** | Display and accessibility (Focus view, timestamps, screen reader) | – |
+
+## 6. What is open
+
+1. The IDE server prototype (me). Until then the editor context falls back to chips. Tip: if you ever have a machine with the official Claude Code extension, copy one `.lock` file from `%USERPROFILE%\.claude\ide\`; it shows the exact format of the lock file (on this machine the folder does not exist).
+2. Direct confirmation of 64,000 for `qwen3.8:27b` with `/api/ps` (a window of at least 50,000 was already measured through the gateway, so it is not blocking), and a check of `POST :11435/api/show` for capabilities (not blocking).
+3. The plan-approval buttons: check at the end.
+4. Check the following versions inside VS Code 1.91.1 after every package, and update `spec.md`, `PROJECT_MAP.md`, `CHANGELOG.md`, `AGENT_CONTEXT.md` at the end of every package.
+5. When updating `spec.md` at the end of each package: also update the "Settings", "Placement" and "History" sections and "Verification status" according to what was built.
+6. Two things I adjusted without asking explicitly (⚠️): removing the cost from the usage line (tokens stay), and blocking a model switch in the middle of an active turn. If you disagree, say so.
+7. The defaults marked ⚠️ in the settings table (section 4) are my proposal and need approval before package A. The values that belong to explicit decisions (`attachSelection`, `attachOpenFile`, `autosave`, `modelDenylist`, `environmentVariables`) are not affected.
+
+## 7. IDE server: design notes
+
+Kept from the old plan (M2/M4) before it was deleted. This is an **initial design only**; the real protocol was not checked (see section 6, item 1), so **first capture the real format and messages from the CLI** (lock file, `initialize`, `mcp_message`) and only then write code. If the messages differ from what is written here, update this document to match reality.
+- **Server:** WebSocket on `127.0.0.1` on a random port, with an authentication header. An RFC 6455 frame codec written by hand (no npm packages, no build).
+- **Lock file:** written to `~/.claude/ide` so that the CLI's `/ide` and `--ide` recognize the IDE (`CLAUDE_CONFIG_DIR` is taken into account). This conflicts with the rule "the extension writes no files" only to the extent that the file is a temporary per-process lock file; this must be decided before building, and the file cleaned up on close.
+- **Tools the server exposes:** `getDiagnostics` and `getOpenEditors` (through `mcp_message`), `openFile`, `openDiff` (uses package F's diff view) and `selection_changed` (editor context). `executeCode` (Jupyter): no.
+- **Fallback:** if the CLI does not connect, the editor context stays as chips above the box (section 2, stage 3).
+- **Tests:** unit tests for the codec and the frames (`ws-frames`), and a manual check that `/ide` recognizes the server.

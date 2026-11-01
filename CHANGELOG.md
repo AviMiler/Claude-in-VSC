@@ -2,7 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
-## 2026-11-01
+## 2026-11-01 (second reorganisation)
+- **Docs reduced to the seven files the coding-workflow skill expects, plus `PLAN.md`** (no extension code touched): `docs/final-plan.md` became `PLAN.md` (English); `docs/conclusions.md` and `docs/litellm-gateway.md` were merged into `DEPENDENCIES.md` (sections 2-5, English); `git-instructions.md` was restored as its own short file (the skill looks for it); the Hebrew guide moved to `dev/claude-code-vscode-guide-he.html`; `docs/` no longer exists. `SETUP.md` stays in Hebrew in the root; `dev/README.md` stays and no longer holds findings. Why: only the needed files should remain, each with all its relevant content. Nothing was dropped: every identifier and number of the old files was checked against the new ones before deleting (the originals stay in git history).
+
+## 2026-11-01 (first reorganisation)
 - **Docs reorganised** (no extension code touched): removed the old `plan.md`, `git-instructions.md` (merged into `AGENT_CONTEXT.md`) and the one-time probe guides `docs/cli-checks*`, `docs/remaining-checks-*.txt`, `docs/gateway-probe-guide.txt` (their scripts are the same files as `dev/probe*.js`; how to run them is now `dev/README.md`); rewrote `spec.md` as a single "as built" document with one "Verification status" section; rewrote `SETUP.md` as one install guide with one merged `env` block; rewrote `docs/litellm-gateway.md` as a current-state reference; removed the overlapping sections from `docs/conclusions.md`; shortened `AGENT_CONTEXT.md` to the current state. Why: only the needed files should remain, each with all of its relevant content in one place.
 - **`package.json`: Ctrl+Alt+C added** as a second key for `claude-local.editor.open`. Why: Ctrl+Shift+Esc is Windows' Task Manager shortcut and does not reach VS Code.
 - **Final plan and conclusions** (`docs/final-plan.md`, `docs/conclusions.md`): every roadmap decision (stages 1-8 and the six final ones) with its reason and source, the settings table with types and defaults, the build order (packages A-G), and every conclusion with its evidence plus what is still unknown. Two adjustments of mine await the user's approval: cost removed from the usage line, and no model switch during an active turn.

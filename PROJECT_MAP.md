@@ -9,7 +9,10 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `AGENT_CONTEXT.md` — entry point for an agent: what to read, current state, working agreements, git rules.
 - `spec.md` — what the extension does today (as built) and its verification status.
 - `DECISIONS.md` — architecture-level decisions with alternatives and reasons.
-- `ARCHITECTURE.md`, `DEPENDENCIES.md` — structure and boundaries; the vendored libraries.
+- `ARCHITECTURE.md` — structure and boundaries.
+- `DEPENDENCIES.md` — vendored libraries and the measured findings about the CLI, the gateway/Ollama and VS Code (with evidence and what is unknown).
+- `PLAN.md` — the roadmap: every feature decision with its reason, the settings table, build order (packages A-G), open points, IDE-server design notes.
+- `git-instructions.md` — the git workflow.
 - `CHANGELOG.md` — what changed and why, newest first.
 - `SETUP.md` — install and settings for the user's machine (Hebrew).
 
@@ -47,14 +50,9 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 ## resources/
 - `claude-logo.svg` — hand-drawn spark used for commands and containers.
 
-## docs/ — roadmap, findings, references (Hebrew)
-- `final-plan.md` — the roadmap: every feature decision with its reason, the settings table, build order (packages A-G), open points, IDE-server design notes.
-- `conclusions.md` — findings about the CLI, the gateway and VS Code with their evidence, and what is still unknown.
-- `litellm-gateway.md` — the LiteLLM gateway and Ollama: endpoints, per-model config, measured context window.
-- `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for the roadmap).
-
 ## dev/ — development only (not packaged)
 - `README.md` — how to run the probes, the gateway probe, the fake CLI and the browser preview.
+- `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`).
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host.
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).

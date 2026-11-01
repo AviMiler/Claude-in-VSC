@@ -1,6 +1,6 @@
 # Spec — Claude Code Local (VS Code extension), as built
 
-What the extension is and does today (the "basic version", v0.1.0). User decisions are recorded in `DECISIONS.md`; the roadmap for what comes next, with the reason for each decision, is `docs/final-plan.md`; findings about the CLI and the environment are in `docs/conclusions.md`; the setup is in `SETUP.md`. Verification status of everything below: last section.
+What the extension is and does today (the "basic version", v0.1.0). User decisions are recorded in `DECISIONS.md`; the roadmap for what comes next, with the reason for each decision, is `PLAN.md`; findings about the CLI and the environment are in `DEPENDENCIES.md`; the setup is in `SETUP.md`. Verification status of everything below: last section.
 
 ## Purpose & principles
 - A VS Code extension that looks and behaves as close as possible to the official Claude Code extension: send a question, get the answer, render all formatting (Markdown, code with highlighting, thinking, tool rows). Basics only: conversation history of the open folder, the CLI's skills/commands, permissions, model and mode.
@@ -94,12 +94,12 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
   - Fenced code blocks: LTR, highlighted with `highlight.js`, a language label and a copy button.
   - Thinking: collapsed by default, expandable. (The local model produces no thinking blocks.)
   - Tool rows: tool name + a one-line summary (file path, command, pattern), expandable to the full input and the result; file paths open the file.
-  - Result line when the `result` message arrives: duration, cost and tokens, each only when given. (The cost the CLI reports is meaningless with a local model; the roadmap removes it from the usage line, pending the user's approval, `docs/final-plan.md` section 6.)
+  - Result line when the `result` message arrives: duration, cost and tokens, each only when given. (The cost the CLI reports is meaningless with a local model; the roadmap removes it from the usage line, pending the user's approval, `PLAN.md` section 6.)
   - Errors in Hebrew (see "Process & protocol").
   - During a turn a spinner with a Hebrew verb ("חושב…") and the stop button.
 - Composer: Enter sends, Shift+Enter is a new line; with `claudeLocal.useCtrlEnterToSend` Ctrl+Enter sends and Enter is a new line. While a turn runs the send button becomes stop. Footer: mode selector, model picker.
-- Model picker: the models from the `initialize` response (`displayName`, `description` as hint); a change sends `set_model`. The first choice is the CLI default (no `--model`). Planned change (decided 2026-11-01, not built): the list comes from the gateway (`GET /v1/models`) and a change restarts the process with `--model` and `--resume` instead of `set_model` (`DECISIONS.md`, `docs/final-plan.md` section 3).
-- Known limits (all planned in `docs/final-plan.md`): no image paste, attachments, @-mentions, editor context, focus view, timestamps.
+- Model picker: the models from the `initialize` response (`displayName`, `description` as hint); a change sends `set_model`. The first choice is the CLI default (no `--model`). Planned change (decided 2026-11-01, not built): the list comes from the gateway (`GET /v1/models`) and a change restarts the process with `--model` and `--resume` instead of `set_model` (`DECISIONS.md`, `PLAN.md` section 3).
+- Known limits (all planned in `PLAN.md`): no image paste, attachments, @-mentions, editor context, focus view, timestamps.
 - Code: `src/panels/` (`webview-html.js`, `message-router.js`, `event-translator.js`, `conversation.js`), `webview/chat/` (`index.html`, `chat.css`, `highlight-theme.css`, `util.js`, `markdown.js`, `tools.js`, `thread.js`, `cards.js`, `menu.js`, `composer.js`, `app.js`), `webview/vendor/`.
 
 ## History (past conversations)
@@ -126,7 +126,7 @@ The CLI decides; the extension only relays (user decision).
 - Code: `webview/chat/cards.js` (permission, plan and question cards), `src/panels/conversation.js` (`onControlRequest`, `answerPermission`, `denyAllPending`), `src/panels/message-router.js`.
 
 ## Settings
-VS Code settings are user configuration, not conversation data, so they do not conflict with the no-storage rule. Configuration title "Claude Code Local"; descriptions in Hebrew. The planned settings are in `docs/final-plan.md` section 4.
+VS Code settings are user configuration, not conversation data, so they do not conflict with the no-storage rule. Configuration title "Claude Code Local"; descriptions in Hebrew. The planned settings are in `PLAN.md` section 4.
 
 | Setting | Type, default | Meaning |
 |---|---|---|
@@ -147,10 +147,10 @@ VS Code settings are user configuration, not conversation data, so they do not c
 - **Verified:**
   - Unit tests: 22/22 pass.
   - The webview in a browser preview (dark and light themes): streaming Markdown, tables, highlighted code, tool rows with an Edit diff, permission approve, the `/` menu, the mode menu, the history panel, loading a past session.
-  - On the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b`): the extension loads, runs and answers; against the real CLI (`docs/conclusions.md`): `interrupt` (the `result` arrives in about 0.5 s, the process stays alive), `--resume` and `--fork-session`, `AskUserQuestion` answers through `updatedInput.answers`, queued messages, MCP control requests, `get_context_usage`, file rewind, `updatedInput` on Edit, auto mode, `--model` at launch.
+  - On the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b`): the extension loads, runs and answers; against the real CLI (`DEPENDENCIES.md`): `interrupt` (the `result` arrives in about 0.5 s, the process stays alive), `--resume` and `--fork-session`, `AskUserQuestion` answers through `updatedInput.answers`, queued messages, MCP control requests, `get_context_usage`, file rewind, `updatedInput` on Edit, auto mode, `--model` at launch.
 - **Not verified:**
   - Inside VS Code: the full manual checklist above; the CSP and `localResourceRoots` in a real webview; the high-contrast theme; Hebrew/English mixed text; what happens to a chat tab after Reload Window (no serializer); the sidebar view and status-bar item in every case.
   - Against the real CLI: the exact `can_use_tool` shapes and response fields for Write/Bash/`ExitPlanMode` as the extension handles them (probes saw the shapes; the extension's cards were exercised only with the fake CLI and the preview); the plan-approval buttons do not appear in VS Code (low priority, check last).
   - Packaging: `scripts/package.ps1` is not built.
-  - The wider list of open items: `docs/final-plan.md` section 6 and `docs/conclusions.md` section 4.
+  - The wider list of open items: `PLAN.md` section 6 and `DEPENDENCIES.md` section 5.
 - Manual checks are reported as not done until they actually run.

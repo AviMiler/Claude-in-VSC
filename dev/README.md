@@ -1,6 +1,6 @@
 # dev/ — development-only tools
 
-Nothing in this folder is packaged (`.vscodeignore`). Findings produced by the probes are recorded in `docs/conclusions.md` (CLI) and `docs/litellm-gateway.md` (gateway); this file only says how to run the tools again.
+Nothing in this folder is packaged (`.vscodeignore`). Findings produced by the probes are recorded in `DEPENDENCIES.md` (sections 2-5); this file only says how to run the tools again.
 
 ## CLI probes (feasibility checks against the real `claude` CLI)
 
@@ -21,7 +21,7 @@ node probe3-standalone.js --claude "C:\Users\206861775\AppData\Local\Programs\Cl
 
 | Option | Meaning |
 |---|---|
-| `--claude <path>` | the executable (default `claude`). Use `claude-bin.exe`, not the `claude.cmd` wrapper, which asks for a model number and stalls the run (`docs/conclusions.md`, CLI finding 1) |
+| `--claude <path>` | the executable (default `claude`). Use `claude-bin.exe`, not the `claude.cmd` wrapper, which asks for a model number and stalls the run (`DEPENDENCIES.md` section 2, finding 1) |
 | `--out <file>` | report path (default `probe-report.json`; a re-run overwrites it, pass another name to keep both) |
 | `--only p1,p2` | run only checks whose name starts with these prefixes. Run a short pair first (`--only p1,p2`, `--only q4,q5`, `--only s1,s3`) to see that everything works |
 | `--turn-timeout <sec>` | wait per model answer (defaults: 180 / 240 / 240). Raise it for a slow or cold model (a cold load took 285 s) |
@@ -42,7 +42,7 @@ node probe3-standalone.js --claude "C:\Users\206861775\AppData\Local\Programs\Cl
   - MCP add/remove: `claude mcp add probe-test -- node --version`, `claude mcp list`, `claude mcp remove probe-test`;
   - fork/resume flags: `claude --help | Select-String "fork|resume|rewind|continue"`;
   - start with a chosen model: `& "<path>\claude-bin.exe" -p "Reply with the single word OK" --model gemma4:26b --output-format json` (loads that model on the shared server; a cold load can take minutes);
-  - context-window plateau test through the gateway (on a quiet server; the last calls can take minutes): for `n` in 2000, 6000, 12000, 25000, 50000, 100000 POST `http://172.27.5.5:11436/v1/chat/completions` with `{"model":"qwen3.8:27b","max_tokens":5,"messages":[{"role":"user","content":"<n times 'word '>Reply OK"}]}` and print `usage.prompt_tokens`. If it stops growing at some value, that is the window; if it keeps growing, the window is at least that large. Result: no plateau up to 50,012 (`docs/litellm-gateway.md`);
+  - context-window plateau test through the gateway (on a quiet server; the last calls can take minutes): for `n` in 2000, 6000, 12000, 25000, 50000, 100000 POST `http://172.27.5.5:11436/v1/chat/completions` with `{"model":"qwen3.8:27b","max_tokens":5,"messages":[{"role":"user","content":"<n times 'word '>Reply OK"}]}` and print `usage.prompt_tokens`. If it stops growing at some value, that is the window; if it keeps growing, the window is at least that large. Result: no plateau up to 50,012 (`DEPENDENCIES.md` section 3.6);
   - what Ollama really loaded: `GET http://172.27.5.5:11435/api/ps` (`context_length`).
 
 ## Gateway probe (`gateway-probe/`)
@@ -53,9 +53,13 @@ A tiny VS Code extension (`package.json`, `probe.js`, `extension.js`) that prove
 2. Inside VS Code: `code --extensionDevelopmentPath=<repo>\dev\gateway-probe`, then in the new window F1 → `Gateway Probe: Run`. The output channel "Gateway Probe" shows the same lines plus the VS Code version and proxy settings; the buttons "Copy summary" / "Open full result" (`%TEMP%\gateway-probe-result-extension-host.json`). Settings: `gatewayProbe.baseUrl`, `gatewayProbe.apiKey`, `gatewayProbe.model`.
 3. Reading it: OK on `/v1/models` from VS Code means the extension can fetch the model list; `401` = another key is needed; `404/405` = endpoint not exposed; `ECONNREFUSED` / `ETIMEDOUT` / `ENOTFOUND` = network or proxy block. If the terminal works and VS Code does not, the cause is VS Code's proxy settings.
 
-Results (1.11.2026): all endpoints reachable from the extension host in 15-250 ms; see `docs/litellm-gateway.md`.
+Result (2026-11-01): all endpoints reachable from the extension host in 15-250 ms; see `DEPENDENCIES.md` section 3.2.
 
 ## Chat UI without VS Code
 
 - `fake-claude.js` / `fake-claude.cmd`: a fake stream-json CLI for tests and for trying the UI without a model (`claudeLocal.claudePath` = `dev/fake-claude.cmd`). Scenario by keyword in the message: `tool` (Bash permission), `שאלה` (AskUserQuestion), `slow` (long reply, for the stop button); otherwise a Markdown reply. `FAKE_CLAUDE_INTERRUPT=no-result|error` changes what follows an interrupt. It rejects `bypassPermissions` unless started with `--allow-dangerously-skip-permissions`, like the real CLI.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css`: the chat webview in a normal browser with a simulated host and VS Code theme variables: `node dev/preview-server.js [port]` (default 5199), or the "chat-preview" entry in `.claude/launch.json`.
+
+## Reference
+
+- `claude-code-vscode-guide-he.html`: a Hebrew guide to the official extension's 24 feature areas, the reference the roadmap in `PLAN.md` was decided from.

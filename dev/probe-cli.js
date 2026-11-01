@@ -1,4 +1,4 @@
-// Dev-only feasibility probe: runs the checks from docs/conclusions.md against a real CLI.
+// Dev-only feasibility probe: runs the checks from DEPENDENCIES.md against a real CLI.
 // Usage: node dev/probe-cli.js [--claude <path>] [--out <report.json>] [--only p1,p2] [--turn-timeout <sec>]
 // It spawns the CLI with the same arguments the extension uses, in a throw-away folder, and writes
 // everything it saw to a JSON report. Nothing here is shipped with the extension.
