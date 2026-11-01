@@ -149,6 +149,39 @@
         "command": "claude-local.showLogs",
         "title": "הצגת יומן",
         "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.reopenClosed",
+        "title": "פתיחה מחדש של שיחה שנסגרה",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.continueLast",
+        "title": "המשך את השיחה האחרונה",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.history.open",
+        "title": "פתיחת שיחה",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.history.refresh",
+        "title": "רענון רשימת השיחות",
+        "category": "Claude Code Local",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-local.history.filter",
+        "title": "סינון שיחות",
+        "category": "Claude Code Local",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "claude-local.history.rename",
+        "title": "שינוי שם שיחה",
+        "category": "Claude Code Local",
+        "icon": "$(edit)"
       }
     ],
     "keybindings": [
@@ -178,6 +211,12 @@
         "key": "ctrl+n",
         "mac": "cmd+n",
         "when": "config.claudeLocal.enableNewConversationShortcut && (activeWebviewPanelId == 'claudeLocalPanel' || focusedView =~ /^claudeLocalSidebar/)"
+      },
+      {
+        "command": "claude-local.reopenClosed",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "claude-local:hasClosed && (activeWebviewPanelId == 'claudeLocalPanel' || activeEditor == '')"
       }
     ],
     "menus": {
@@ -191,6 +230,33 @@
         {
           "command": "claude-local.editor.openLast",
           "when": "false"
+        },
+        {
+          "command": "claude-local.history.open",
+          "when": "false"
+        },
+        {
+          "command": "claude-local.history.rename",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "claude-local.history.filter",
+          "when": "view == claudeLocalHistory",
+          "group": "navigation@1"
+        },
+        {
+          "command": "claude-local.history.refresh",
+          "when": "view == claudeLocalHistory",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "claude-local.history.rename",
+          "when": "view == claudeLocalHistory && viewItem == session",
+          "group": "inline"
         }
       ]
     },
@@ -201,6 +267,11 @@
           "title": "Claude Code Local",
           "icon": "resources/claude-logo.svg",
           "when": "claude-local:doesNotSupportSecondarySidebar"
+        },
+        {
+          "id": "claude-local-history",
+          "title": "שיחות Claude",
+          "icon": "resources/claude-logo.svg"
         }
       ],
       "secondarySidebar": [
@@ -213,6 +284,12 @@
       ]
     },
     "views": {
+      "claude-local-history": [
+        {
+          "id": "claudeLocalHistory",
+          "name": "שיחות קודמות"
+        }
+      ],
       "claude-local-sidebar": [
         {
           "type": "webview",

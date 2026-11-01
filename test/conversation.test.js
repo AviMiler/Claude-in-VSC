@@ -80,3 +80,34 @@ test('bypass mode is refused without the setting and accepted with it', async ()
     c.dispose();
   }
 });
+
+test('renameSession sends /rename to the CLI, one line, and refuses without a session or while busy', () => {
+  const { c } = setup();
+  try {
+    const sent = [];
+    c.proc.sendUserText = (t) => sent.push(t);
+    assert.strictEqual(c.renameSession('x'), false); // no session yet
+    c.sessionId = '11111111-1111-1111-1111-111111111111';
+    assert.strictEqual(c.renameSession('  שם\nחדש  '), true);
+    assert.deepStrictEqual(sent, ['/rename שם חדש']);
+    assert.strictEqual(c.busy, true);
+    assert.strictEqual(c.renameSession('again'), false); // busy
+    assert.strictEqual(c.renameSession('   '), false);
+  } finally {
+    c.dispose();
+  }
+});
+
+test('onActivity is called after a post', () => {
+  let n = 0;
+  const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage() {} };
+  const services = {
+    logger: { info() {}, warn() {}, debug() {} },
+    settings: { get: () => ({}), onDidChange: () => ({ dispose() {} }) },
+    registry: { findBySession: () => null },
+  };
+  const c = new Conversation({ webview, services, onActivity: () => { n += 1; } });
+  c.post({ type: 'x' });
+  assert.strictEqual(n, 1);
+  c.dispose();
+});
