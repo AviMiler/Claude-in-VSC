@@ -134,11 +134,14 @@
 
   // While a turn runs a new message waits (in memory) as a grey bubble the user can cancel.
   function enqueue(text) {
+    const imageCount = attached.length;
     const item = queue.push(text, attached);
+    CL.post({ type: 'log', tag: 'queue', text: `add (${text.length} chars, ${imageCount} images)` });
     attached = [];
     renderAttachments();
     CL.thread.addQueued(item, () => {
       queue.cancel(item.id);
+      CL.post({ type: 'log', tag: 'queue', text: 'cancel' });
       CL.thread.removeQueued(item.id);
     });
     if (CL.display.scrollOnSend()) CL.thread.scrollToBottom();
@@ -175,6 +178,7 @@
     const item = queue.shift();
     if (!item) return;
     CL.thread.removeQueued(item.id);
+    CL.post({ type: 'log', tag: 'queue', text: 'send next queued' });
     dispatch(item.text, item.images);
   }
 

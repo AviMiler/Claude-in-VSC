@@ -12,7 +12,9 @@ async function sendStatus(c) {
   if (!c.proc) return c.post({ type: 'mcpState', servers: [], error: NO_PROCESS });
   try {
     const res = await c.proc.request('mcp_status', {}, 20000);
-    c.post({ type: 'mcpState', servers: normalizeServers(res) });
+    const servers = normalizeServers(res);
+    c.services.logger.info('mcp', `status: ${servers.length} servers`);
+    c.post({ type: 'mcpState', servers });
   } catch (err) {
     c.post({ type: 'mcpState', servers: [], error: `קריאת הסטטוס נכשלה: ${err.message}` });
   }
@@ -33,6 +35,7 @@ async function cliChange(c, built, doneText) {
   const { claudePath, environmentVariables } = c.services.settings.get();
   c.post({ type: 'mcpResult', ok: true, text: 'מריץ…', pending: true });
   const res = await runClaude(claudePath, built.args, { cwd: c.cwd, env: mergeEnv(process.env, environmentVariables) });
+  c.services.logger.info('mcp', `cli ${built.args[0] || ''} ${built.args[1] || ''} ok=${res.ok} timedOut=${Boolean(res.timedOut)}`);
   if (res.ok) c.post({ type: 'mcpResult', ok: true, text: `${doneText} ${APPLY_NOTE}` });
   else c.post({ type: 'mcpResult', ok: false, text: res.timedOut ? 'הפקודה לא הסתיימה בזמן.' : `הפקודה נכשלה: ${res.output || 'ללא פלט'}` });
   return sendStatus(c);
@@ -48,7 +51,9 @@ const ACTIONS = {
 
 function handleMcp(conversation, msg) {
   const action = ACTIONS[msg.action];
-  if (action) action(conversation, msg).catch((err) => conversation.services.logger.warn(`mcp ${msg.action}: ${err.message}`));
+  const logger = conversation.services.logger;
+  logger.info('mcp', `action ${msg.action}${msg.name ? ` server=${msg.name}` : ''}`);
+  if (action) action(conversation, msg).catch((err) => logger.warn('mcp', `${msg.action}: ${err.message}`));
 }
 
 module.exports = { handleMcp };

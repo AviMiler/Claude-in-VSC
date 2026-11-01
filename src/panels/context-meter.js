@@ -19,9 +19,12 @@ function refreshContextMeter(conversation) {
   proc.request('get_context_usage', {}, TIMEOUT_MS).then(
     (response) => {
       const usage = parseContextUsage(response);
-      if (usage && proc === conversation.proc) conversation.post({ type: 'context', ...usage });
+      if (usage && proc === conversation.proc) {
+        conversation.services.logger.info('context', `used=${usage.used} max=${usage.max}`);
+        conversation.post({ type: 'context', ...usage });
+      }
     },
-    (err) => conversation.services.logger.warn(`get_context_usage failed: ${err.message}`),
+    (err) => conversation.services.logger.warn('context', `get_context_usage failed: ${err.message}`),
   );
 }
 

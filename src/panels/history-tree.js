@@ -34,7 +34,7 @@ function registerHistory(context, services) {
     try {
       return transcripts.listSessions(workspaceCwd().cwd);
     } catch (err) {
-      logger.warn(`history list failed: ${err.message}`);
+      logger.warn('history', `list failed: ${err.message}`);
       return [];
     }
   }

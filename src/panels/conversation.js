@@ -81,8 +81,8 @@ class Conversation {
     ({ cwd: this.cwd, noFolder: this.noFolder } = workspaceCwd());
   }
 
-  log(text) {
-    this.services.logger.debug(text);
+  log(text, tag = 'stream', level = 'debug') {
+    this.services.logger[level](tag, text);
   }
 
   post(msg) {
@@ -131,13 +131,13 @@ class Conversation {
       model: this.model !== 'default' ? this.model : undefined,
       allowBypass: allowDangerouslySkipPermissions,
     }).concat(checkpoints.checkpointArgs({ fork: fork && Boolean(resume) }));
-    this.services.logger.info(`spawn ${claudePath} ${args.join(' ')} (cwd ${this.cwd})`);
+    this.services.logger.info('spawn', `start ${claudePath} ${args.join(' ')} (cwd ${this.cwd}, resume=${Boolean(resume)}, fork=${fork})`);
     const proc = new CliProcess({
       claudePath,
       args,
       cwd: this.cwd,
       env: { ...mergeEnv(process.env, { ...environmentVariables, ...modelEnv(this.model) }), ...checkpoints.CHECKPOINT_ENV },
-      log: (t) => this.log(t),
+      log: (t, tag, level) => this.log(t, tag, level),
     });
     const translate = createStreamTranslator();
     this.proc = proc;
@@ -149,7 +149,11 @@ class Conversation {
     proc.on('message', (msg) => {
       if (proc !== this.proc) return;
       checkpoints.addCheckpoint(this.checkpoints, msg);
-      if (taskMap.applyMessage(this.tasks, msg)) this.post({ type: 'backgroundTasks', tasks: taskMap.backgroundTasks(this.tasks) });
+      if (taskMap.applyMessage(this.tasks, msg)) {
+        const tasks = taskMap.backgroundTasks(this.tasks);
+        this.services.logger.info('background', `tasks now ${tasks.length}`);
+        this.post({ type: 'backgroundTasks', tasks });
+      }
       if (claudeTasks.applyMessage(this.claudeTasks, msg)) this.post({ type: 'claudeTasks', tasks: claudeTasks.listTasks(this.claudeTasks) });
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
@@ -167,7 +171,7 @@ class Conversation {
       this.pending.delete(id);
       this.post({ type: 'permissionCancelled', requestId: id });
     });
-    proc.on('stderr', (d) => this.log(`stderr: ${d}`));
+    proc.on('stderr', (d) => this.log(`stderr: ${d}`, 'spawn', 'warn'));
     proc.on('exit', (info) => this.onExit(proc, info, claudePath));
 
     proc.request('initialize', {}, 60000).then(
@@ -179,7 +183,7 @@ class Conversation {
         if (this.permissionMode === 'auto') this.setMode('auto');
         refreshContextMeter(this);
       },
-      (err) => this.services.logger.warn(`initialize failed: ${err.message}`),
+      (err) => this.services.logger.warn('control', `initialize failed: ${err.message}`),
     );
     return proc;
   }
@@ -207,7 +211,7 @@ class Conversation {
     const wasBusy = this.busy && !this.stopping;
     this.endTurn({});
     if (this.disposed) return;
-    this.services.logger.info(`process exited code=${info.code} signal=${info.signal || ''}`);
+    this.services.logger.info('spawn', `exit code=${info.code} signal=${info.signal || ''}${info.error ? ` error=${info.error.code || info.error.message}` : ''}`);
     let text = null;
     if (info.error) text = spawnErrorText(info.error, claudePath);
     else if (info.code !== 0 && info.code !== null) text = exitErrorText(info);
@@ -216,7 +220,9 @@ class Conversation {
     if (text) {
       this.post({ type: 'events', events: [{ kind: 'result', isError: true, errorText: text }] });
       const env = mergeEnv(process.env, this.services.settings.get().environmentVariables);
-      this.post({ type: 'errorCard', card: buildErrorCard({ claudePath, env }) });
+      const card = buildErrorCard({ claudePath, env });
+      this.services.logger.info('error-card', `shown for claudePath=${claudePath} (code=${info.code})`);
+      this.post({ type: 'errorCard', card });
     } else this.post({ type: 'busy', value: false });
   }
 
@@ -238,6 +244,7 @@ class Conversation {
     if (!this.proc) this.startProcess({ resume: this.sessionId || undefined });
     if (!this.hasMessages) this.setTitle(text.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX));
     this.hasMessages = true;
+    this.services.logger.info('stream', `send (${text.length} chars, ${valid.length} images, session=${this.sessionId || 'new'})`);
     this.busy = true;
     this.proc.sendUserText(text, valid);
   }
@@ -245,6 +252,7 @@ class Conversation {
   interrupt() {
     if (!this.proc || !this.busy || this.stopping) return;
     const proc = this.proc;
+    this.services.logger.info('stream', 'interrupt (stop pressed)');
     this.stopping = true;
     this.denyAllPending();
     proc.stop().then(() => {
@@ -257,7 +265,7 @@ class Conversation {
   }
 
   notifyFailure(what, err) {
-    this.services.logger.warn(`${what} failed: ${err.message}`);
+    this.services.logger.warn('control', `${what} failed: ${err.message}`);
     this.post({ type: 'notice', text: `ה-CLI סירב: ${err.message}` });
   }
 
@@ -267,6 +275,7 @@ class Conversation {
       return this.post({ type: 'mode', value: this.permissionMode });
     }
     const previous = this.permissionMode;
+    this.services.logger.info('session', `set mode ${previous} -> ${value}`);
     this.permissionMode = value;
     if (!this.proc) return this.post({ type: 'mode', value });
     this.proc.request('set_permission_mode', { mode: value }, 10000).then(
@@ -294,6 +303,7 @@ class Conversation {
       return;
     }
     this.pending.set(id, { proc, req });
+    this.services.logger.info('permission', `request ${id} tool=${req.tool_name}`);
     this.post({
       type: 'permission',
       requestId: id,
@@ -310,6 +320,7 @@ class Conversation {
     if (!entry) return;
     this.pending.delete(requestId);
     const { proc, req } = entry;
+    this.services.logger.info('permission', `answer ${requestId} ${behavior === 'allow' ? 'allow' : 'deny'}${always ? ' (always)' : ''}`);
     if (behavior === 'allow') {
       const response = { behavior: 'allow', updatedInput: updatedInput || req.input || {} };
       if (always && req.permission_suggestions) response.updatedPermissions = req.permission_suggestions;
@@ -322,6 +333,7 @@ class Conversation {
   denyAllPending(onlyProc) {
     for (const [id, { proc }] of this.pending) {
       if (onlyProc && proc !== onlyProc) continue;
+      this.services.logger.info('permission', `auto-deny ${id} (interrupted)`);
       proc.respond(id, { behavior: 'deny', message: INTERRUPTED, interrupt: true });
       this.pending.delete(id);
       this.post({ type: 'permissionCancelled', requestId: id });
@@ -333,8 +345,9 @@ class Conversation {
     try {
       items = transcripts.listSessions(this.cwd);
     } catch (err) {
-      this.services.logger.warn(`listSessions failed: ${err.message}`);
+      this.services.logger.warn('history', `listSessions failed: ${err.message}`);
     }
+    this.services.logger.info('history', `list: ${items.length} sessions`);
     this.post({ type: 'history', items, currentId: this.sessionId });
   }
 
@@ -346,13 +359,14 @@ class Conversation {
   }
 
   loadSession(id) {
+    this.services.logger.info('session', `load ${id}`);
     let events = [];
     let title = '';
     try {
       events = translateTranscript(transcripts.readSession(this.cwd, id));
       title = transcripts.sessionTitle(this.cwd, id);
     } catch (err) {
-      this.services.logger.warn(`readSession failed: ${err.message}`);
+      this.services.logger.warn('session', `readSession failed: ${err.message}`);
       this.post({ type: 'events', events: [{ kind: 'result', isError: true, errorText: 'לא ניתן לקרוא את השיחה מקובצי ה-CLI.' }] });
       return;
     }
@@ -386,12 +400,14 @@ class Conversation {
     this.busy = true;
     this.post({ type: 'busy', value: true });
     this.setTitle(title.slice(0, TITLE_MAX));
+    this.services.logger.info('history', `rename session ${this.sessionId} (${title.length} chars)`);
     this.proc.sendUserText(`/rename ${title}`, []);
     return true;
   }
 
   newConversation() {
     if (this.busy) return;
+    this.services.logger.info('session', 'new conversation');
     this.killProcess();
     this.sessionId = null;
     this.hasMessages = false;
@@ -436,6 +452,7 @@ class Conversation {
 
   // `/diff`: the files this session's Edit/Write tool calls changed (no git).
   async diffCommand() {
+    this.services.logger.info('diff', 'command');
     const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
   }
@@ -444,11 +461,13 @@ class Conversation {
   // the task as stopped through the usual system lines.
   stopTask(id) {
     if (!this.proc || !id) return;
+    this.services.logger.info('tasks', `stop_task ${id}`);
     this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
   }
 
   // Esc Esc / the rewind shortcut: the checkpoints menu (src/checkpoints/rewind-menu.js).
   rewindMenu() {
+    this.services.logger.info('checkpoint', `rewind menu (${this.checkpoints.items.length} checkpoints)`);
     return runRewindMenu(this);
   }
 
@@ -456,6 +475,7 @@ class Conversation {
   // context and the original transcript stays as it was. The thread on screen is kept.
   forkSession() {
     if (!this.sessionId || this.busy) return this.post({ type: 'notice', text: 'אפשר לפצל רק שיחה קיימת, כש-Claude לא עובד.' });
+    this.services.logger.info('checkpoint', `fork session ${this.sessionId}`);
     this.killProcess();
     // Whether the forked process accepts the old prompts' uuids is unverified, so they are dropped.
     this.checkpoints = checkpoints.createCheckpointList();
@@ -470,7 +490,7 @@ class Conversation {
         this.entries = await mentions.listEntries(this.cwd, this.services.settings.get().respectGitIgnore);
         this.entriesAt = now;
       } catch (err) {
-        this.services.logger.warn(`mention listing failed: ${err.message}`);
+        this.services.logger.warn('control', `mention listing failed: ${err.message}`);
         this.entries = [];
       }
     }

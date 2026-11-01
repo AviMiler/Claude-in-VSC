@@ -9,13 +9,15 @@ const CONFIRM = 'הנחת הטקסט בתיבה';
 async function handleUri(uri, services) {
   const parsed = parseOpenUri(uri.path, uri.query);
   if (parsed.error || (!parsed.prompt && !parsed.session)) {
-    services.logger.warn(`ignored URI ${uri.path} (${parsed.error || 'empty'})`);
+    services.logger.warn('uri', `ignored ${uri.path} (${parsed.error || 'empty'})`);
     return;
   }
+  services.logger.info('uri', `received ${uri.path} (prompt ${parsed.prompt ? parsed.prompt.length : 0} chars, session ${parsed.session || 'none'})`);
   const lines = ['קישור חיצוני מבקש לפתוח את Claude Code Local.'];
   if (parsed.session) lines.push(`שיחה: ${parsed.session}`);
   if (parsed.prompt) lines.push(`טקסט שיונח בתיבה (לא יישלח אוטומטית):\n${previewPrompt(parsed.prompt)}`);
   const answer = await vscode.window.showWarningMessage(lines.join('\n\n'), { modal: true }, CONFIRM);
+  services.logger.info('uri', `user ${answer === CONFIRM ? 'confirmed' : 'declined'}`);
   if (answer !== CONFIRM) return;
 
   const { registry } = services;

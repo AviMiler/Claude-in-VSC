@@ -45,6 +45,9 @@ Two places, each an independent conversation with its own CLI process (user deci
   | `claude-local.focusToggle` | Switch Between Editor and Chat | Ctrl+Esc | to the last text editor when a chat tab is active, otherwise opens the main chat; does not toggle back from the sidebar chat |
   | `claude-local.keyboardShortcuts` | Keyboard Shortcuts | — | opens the VS Code shortcut editor filtered to `claude-local` |
   | `claude-local.showLogs` | Show Logs | — | shows the OutputChannel "Claude Code Local" |
+  | `claude-local.copyLogs` | Copy Log | — | copies the whole log (in-memory ring buffer, 2000 lines) to the clipboard |
+
+  **Logging.** Every line is `HH:MM:SS.mmm [WARN|ERROR] [tag] text`; tags are fixed per feature (`src/util/log-tags.js`: spawn, stream, permission, queue, history, session, mcp, uri, error-card, model-switch, context, checkpoint, diff, tasks, background, display, settings, control, general). Setting `claudeLocal.logLevel`: `info` (default) or `debug` (adds a type/size summary of every stream line). The log never contains message text, file contents, tokens or environment values (counts, names, ids, lengths only; `redact` also masks `sk-…`, Bearer tokens and `*KEY/TOKEN/SECRET/PASSWORD=` pairs). Webview events go through the `log` message (allowed tags only) to the same logger.
 
   `claude-local.newConversation` is also bound to Ctrl+N, only when `claudeLocal.enableNewConversationShortcut` is on and the focus is in the chat (`when`: `activeWebviewPanelId == 'claudeLocalPanel' || focusedView =~ /^claudeLocalSidebar/`), so VS Code's "New File" is not overridden elsewhere.
 
