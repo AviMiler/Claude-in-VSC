@@ -129,6 +129,13 @@
     backgroundTasks: (m) => CL.tasksBar.render(m.tasks),
     claudeTasks: (m) => CL.claudeTasks.render(m.tasks),
     agentCards: (m) => CL.agentCards.render(m.cards),
+    loopJobs: (m) => CL.loopBar.render(m.jobs),
+    // A turn the CLI started by itself (a /loop job); unverified sequence, see src/loop/self-turn.js.
+    selfTurn() {
+      CL.thread.endTurn();
+      CL.thread.addNode(CL.el('div', { class: 'result-line', text: '⏰ Claude התחיל תור בעצמו (למשל משימה מתוזמנת של /loop)' }));
+      setBusy(true);
+    },
   };
 
   window.addEventListener('message', (e) => {

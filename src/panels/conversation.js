@@ -22,6 +22,7 @@ const { runRewindMenu } = require('../checkpoints/rewind-menu');
 const taskMap = require('../background/task-map');
 const claudeTasks = require('../tasks/claude-tasks');
 const agentCards = require('../agents/agent-cards');
+const loopHost = require('../loop/loop-host');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -147,10 +148,12 @@ class Conversation {
     const hadTasks = this.tasks && this.tasks.tasks.size > 0;
     this.tasks = taskMap.createTaskMap();
     if (hadTasks) this.post({ type: 'backgroundTasks', tasks: [] });
+    loopHost.resetLoop(this);
 
     proc.on('message', (msg) => {
       if (proc !== this.proc) return;
       checkpoints.addCheckpoint(this.checkpoints, msg);
+      loopHost.trackLoop(this, msg);
       if (taskMap.applyMessage(this.tasks, msg)) {
         const tasks = taskMap.backgroundTasks(this.tasks);
         this.services.logger.info('background', `tasks now ${tasks.length}`);
@@ -463,7 +466,7 @@ class Conversation {
   // `/diff`: the files this session's Edit/Write tool calls changed (no git).
   async diffCommand() {
     this.services.logger.info('diff', 'command');
-    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
+    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd, this.services.logger);
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
   }
 
@@ -473,6 +476,11 @@ class Conversation {
     if (!this.proc || !id) return;
     this.services.logger.info('background', `stop_task ${id}`);
     this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
+  }
+
+  // The stop button of the /loop bar (src/loop/loop-host.js).
+  stopLoop(id) {
+    return loopHost.stopLoop(this, id);
   }
 
   // Esc Esc / the rewind shortcut: the checkpoints menu (src/checkpoints/rewind-menu.js).
