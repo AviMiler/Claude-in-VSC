@@ -18,6 +18,7 @@ function activate(context) {
   vscode.commands.executeCommand('setContext', 'claude-local:doesNotSupportSecondarySidebar', !supportsSecondarySidebar());
 
   panels.register(context, services);
+  require('./src/uri').register(context, services);
   logger.info(`activated (VS Code ${vscode.version})`);
 }
 

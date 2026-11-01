@@ -104,6 +104,9 @@
       CL.thread.addNode(CL.el('button', { class: 'info-card-btn plan-open', type: 'button', text: 'פתיחת התוכנית בעורך', onclick: () => post({ type: 'planCommand', open: true }) }));
     },
     focus: () => CL.composer.focus(),
+    mcpState: (m) => CL.mcp.setState(m),
+    mcpResult: (m) => CL.mcp.setResult(m),
+    errorCard: (m) => CL.errorCard.show(m.card),
   };
 
   window.addEventListener('message', (e) => {

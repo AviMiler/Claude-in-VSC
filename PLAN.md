@@ -167,7 +167,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff` **(with the shared diff-view module that F reuses)**, `/loop` indicator, **agent cards, Claude's pinned task list** (both start with a check that the local model uses sub-agents / `TaskCreate`) | A |
 | **C** | Prompt box: Auto, grouped `/` menu **(with terminal-only commands greyed out)**, @-mentions, **Alt+K (`@path`)**, images, message queue **(visible, cancellable)** **+ per-conversation prompt history**, copy, `/btw`, plan in the editor | A |
 | **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |
-| **E** | MCP, sign-in error card, URI (the usage line moved to D) | A |
+| **E** ✅ done 2026-11-01 (branch `pkg-e-mcp`) | MCP, sign-in error card, URI (the usage line moved to D). **Still open:** nothing run in real VS Code; `claude mcp add -e` argument order and the live `mcp_status` shape unverified against the real CLI | A |
 | **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
 | **G** | Display and accessibility (Focus view, timestamps, screen reader) | – |
 
