@@ -4,7 +4,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## Root
 - `extension.js` — entry: builds logger, settings, registry; sets the secondary-sidebar context key; calls `panels.register`.
-- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 3 view containers (chat sidebar, fallback, sessions list) + 3 views, 12 settings.
+- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 3 view containers (chat sidebar, fallback, sessions list) + 3 views, 18 settings.
 - `.vscodeignore` — keeps dev/, test/, .claude/ out of the package.
 - `AGENT_CONTEXT.md` — entry point for an agent: what to read, current state, working agreements, git rules.
 - `spec.md` — what the extension does today (as built) and its verification status.
@@ -37,6 +37,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `chat-panel.js` — editor-tab conversation (`claudeLocalPanel`).
 - `sidebar-view.js` — sidebar/activity-bar conversation.
 - `commands.js` — `claude-local.*` commands (main button follows `preferredLocation` / `useTerminal`; `focusToggle`, `keyboardShortcuts`, `terminal.open`).
+- `display-settings.js` — pure: `readDisplay` / `sanitizeVerbs`, the display and accessibility settings sent to the webview.
 - `status-bar.js` — the "✻ Claude" item.
 - `index.js` — `register` for the panels feature.
 
@@ -48,7 +49,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel), `settings.js` (`claudeLocal.*` + change events), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
 
 ## webview/chat/ — plain scripts loaded by `index.html`
-- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `app.js` (wiring, messages from host).
+- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `display-logic.js` (pure: spinner verb, time format, speaker label, heading text); `display.js` (applies display settings as body attributes, speaker headings); `a11y.js` (screen-reader announcer); `a11y.css` (focus view, reduced motion, daltonized palette, sr-only); `app.js` (wiring, messages from host).
 
 ## webview/vendor/
 - `marked.umd.js`, `marked.LICENSE.md`, `highlight.min.js`, `powershell.min.js`, `highlight.LICENSE` — see DEPENDENCIES.md.
@@ -65,7 +66,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `display.test.js`.
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

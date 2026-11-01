@@ -2,6 +2,7 @@
 const vscode = require('vscode');
 
 const { sanitizeEnvironmentVariables } = require('../cli/env');
+const { readDisplay } = require('../panels/display-settings');
 
 const SECTION = 'claudeLocal';
 
@@ -16,6 +17,7 @@ function read() {
     lockEditorGroups: c.get('lockEditorGroups') === true,
     useTerminal: c.get('useTerminal') === true,
     respectGitIgnore: c.get('respectGitIgnore') !== false,
+    display: readDisplay((name) => c.get(name)),
     keybindings: {
       send: c.get('keybindings.send'),
       newLine: c.get('keybindings.newLine'),

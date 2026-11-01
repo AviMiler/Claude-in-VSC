@@ -1,0 +1,56 @@
+/* Display and accessibility settings (package G). Driven by attributes on <body> set in display.js. */
+
+/* Visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Speaker heading: only for screen readers and heading navigation, unless time stamps are on. */
+.msg-heading { margin: 0; font-size: 11px; font-weight: 400; color: var(--cl-muted); }
+body:not([data-timestamps]) .msg-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.items { position: relative; }
+
+/* Focus view: only the conversation itself; tool rows, thinking, result lines and copy buttons are hidden.
+   Permission cards, questions and errors stay. */
+body[data-focus] .tl-tool,
+body[data-focus] .tl-thinking,
+body[data-focus] .result-line,
+body[data-focus] .turn-actions { display: none; }
+
+/* Reduced motion: the setting, or the operating system's preference. */
+body[data-reduced-motion] *,
+body[data-reduced-motion] *::before,
+body[data-reduced-motion] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Colour-blind palette (Okabe-Ito): blue for success, vermillion for errors, amber for warnings; the
+   orange accent moves to a distinguishable yellow-orange. */
+body[data-color-mode="daltonized"] {
+  --cl-ok: #0072b2;
+  --cl-err: #d55e00;
+  --cl-warn: #e69f00;
+  --cl-orange: #e69f00;
+  --cl-orange-hover: #b87d00;
+}
