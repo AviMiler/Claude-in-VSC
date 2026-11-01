@@ -181,3 +181,41 @@
 
 ### שער LiteLLM (נוסף ב-1.11.2026)
 השרת ב-`172.27.5.5:11436` הוא **LiteLLM 1.80.0**. הפונקציות הרלוונטיות שבו (`/v1/model/info`, `/model_group/info`, `/public/model_hub`, `/utils/token_counter`, `/utils/supported_openai_params`, `/routes`) מתועדות ב-`docs/litellm-gateway.md`, יחד עם פקודות לבדיקתן. אם הן מחזירות יכולות וחלון הקשר לכל מודל, הן פותרות את הצורך בניחוש בבורר המודל ובהגדרת `CLAUDE_CODE_MAX_CONTEXT_TOKENS`. **לא אומת עדיין.**
+
+---
+
+## ממצאי הסבב השלישי (1.11.2026): `probe3` ובדיקות ידניות
+
+מקור: `probe3-report.json` ופלט PowerShell. המשתמש מדווח שבתוך VS Code עצמו **הכול עובד תקין** (בדיקת התוסף הקיים).
+
+| בדיקה | תוצאה | השפעה |
+|---|---|---|
+| rewind עם משתנה סביבה | **הוכח**: `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` + `--replay-user-messages`. העריכה בוצעה, `rewind_files` (dry run) החזיר `filesChanged`, `insertions`, `deletions`, והקובץ חזר ל-`two` | Checkpoints מלאים אפשריים. התוסף חייב להפעיל את התהליך עם המשתנה והדגל |
+| rewind בלי המשתנה | `File rewinding is not enabled`, למרות `checkpoints=true` שהוגדר ב-`/config` (הבדיקה גם נתקעה על timeout) | ההגדרה הקבועה **לא מספיקה** ואפשר להחזיר אותה ל-false. נדרש המשתנה |
+| `updatedInput` | **עובד**: החלפנו את `new_string` ב-`PROBE_CHANGED`, והקובץ הכיל אותו (המודל "חשב" שכתב `TWO`) | אישור/דחייה של בלוק שינוי בנפרד וכן עריכת ההצעה לפני אישור אפשריים |
+| צורת בקשת הרשאה | Edit/Write: `display_name`, `description`, `permission_suggestions`, `decision_reason`, `decision_reason_type` (`safetyCheck`), `classifier_approvable`, `tool_use_id`. ההצעה: `[{"type":"setMode","mode":"acceptEdits","destination":"session"}]`. ל-Read אין `permission_suggestions` | "אשר תמיד" בעריכות = מעבר למצב `acceptEdits` לאורך הסשן |
+| דחייה עם הודעה | ההודעה שלנו הגיעה למודל מילה במילה | כפתור "דחייה" עם סיבה עובד |
+| `node --version` ב-Bash | לא נשאלה הרשאה | פקודות קריאה בלבד מאושרות אוטומטית. צורת בקשה של Bash נשארת לא נראית |
+| ExitPlanMode | הבקשה כוללת `requires_user_interaction`, אבל `input` ריק (`{}`) | **פתוח**: איפה נמצא טקסט התוכנית? ייתכן בהודעה לפני הקריאה או בקובץ תוכנית. יש לבדוק שכרטיס התוכנית בתוסף מציג אותה |
+| `set_model` לשם כלשהו | תמיד מחזיר `{}` בלי אימות. שגיאה מופיעה **בתור הבא** בתוך `result` עם `is_error: true` ו-`subtype: success`, עם טקסט שמתחיל ב-`API Error: 400` | חייבים לזהות `is_error` ב-`result`, לא רק את `subtype` |
+| `gemma3:27b` | `API Error: 400 ... does not support tools` | **מודלים בלי תמיכה בכלים לא שמישים עם Claude Code.** הבורר חייב לסנן לפי יכולת כלים (`/model/info`) |
+| `--model gemma4:26b` בהפעלה | עובד: תשובה `OK`; הטעינה הקרה לקחה 48 שניות; ה-CLI מדפיס אזהרת `unrecognized_model` והנחת חלון של 200 אלף | בחירה בהפעלה עובדת |
+| יצירת כותרת לסשן | קריאה נוספת למודל ה-`HAIKU` (כאן `qwen3.8:27b`) בכל סשן | אם `ANTHROPIC_DEFAULT_*_MODEL` לא משתנים עם הבחירה, השרת טוען שני מודלים. העטיפה מגדירה את שלושתם לבחירה |
+| מצב Auto | `set_permission_mode auto` התקבל, וקובץ נוצר **בלי בקשת הרשאה** | מצב Auto עובד (ה-CLI מחליט לבד). השימוש בו הוא החלטה בטיחותית של המשתמש |
+| `num_ctx` | פורט 11434 לא נגיש; `/api/show` בשער מחזיר 404 | נשארות: `ollama ps` על השרת, בדיקת הפלאטו, או `/model/info` של LiteLLM |
+| בתוך VS Code 1.91.1 | המשתמש מדווח שהכול עובד | בדיקות M9 סומנו כעוברות (לא נבדקו אחת-אחת) |
+
+### שינויים בהחלטות
+- **שלב 3, diff:** אפשר ללכת על **אישור לכל בלוק שינוי בנפרד** כפי שהוחלט (עדיפות ראשונה). החלופה (אישור הכול) לא נדרשת.
+- **שלב 4, Checkpoints:** **מלא** (fork + rewind code). חובה להפעיל את התהליך עם המשתנה והדגל.
+- **שלב 2, מצב Auto:** מאושר טכנית. מומלץ להציג אזהרה ברורה בבורר ("ה-CLI מחליט לבד").
+- **שלב 2, בורר מודל:** בחירה = **הפעלה מחדש של התהליך** עם `--model <id>` ו-`ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL=<id>` (עם `--resume` להמשך השיחה), במקום `set_model` בזמן ריצה. `set_model` לא מאומת לשם חוקי, והוא משאיר את הכותרות על מודל אחר. הרשימה צריכה להסתנן לפי תמיכה בכלים.
+
+### מה עדיין פתוח
+1. `set_model` לשם חוקי שתומך בכלים (הרצה חוזרת של s4 עם `--alt-model gemma4:26b`).
+2. נקודות LiteLLM (`/v1/model/info` וכו') והשפעתן על הבורר ועל חלון ההקשר.
+3. טקסט התוכנית ב-ExitPlanMode (לבדוק בכרטיס התוכנית ב-VS Code).
+4. שרת IDE (אב-טיפוס).
+5. `num_ctx`.
+6. החלטות: שליפה מהשער על ידי התוסף; ויתור על `!`.
+

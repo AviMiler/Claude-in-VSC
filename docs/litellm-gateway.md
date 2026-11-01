@@ -45,3 +45,7 @@ Invoke-RestMethod http://172.27.5.5:11436/routes -Headers $h
 - **חלון הקשר:** `CLAUDE_CODE_MAX_CONTEXT_TOKENS` ייקבע לפי `max_input_tokens` של המודל הנבחר במקום מדידה ידנית (עם אישור שהערך הוא החלון שמוגדר בפועל ב-Ollama ולא רק המקסימום התיאורטי של המודל).
 - **מד הקשר:** אפשר להשתמש ב-`/utils/token_counter` כמקור נוסף.
 - **ההחלטה הפתוחה** (האם התוסף שולף נתונים מהשער בעצמו) הופכת חשובה יותר: היא נותנת לא רק רשימה אלא גם יכולות.
+
+## ממצא נוסף (1.11.2026)
+`gemma3:27b` נדחה בשער עם `litellm.BadRequestError: ... does not support tools`, ושם מודל שאינו קיים עם `Invalid model name passed`. כלומר השער יודע מי תומך בכלים, והנקודות `/v1/model/info` ו-`/model_group/info` עשויות לחשוף זאת (למשל `supports_function_calling`). זה הופך אותן לחשובות במיוחד לבורר המודל. `/api/show` של Ollama אינו חשוף דרך השער (404).
+

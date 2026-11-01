@@ -108,7 +108,12 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 ### 5.6 הגדרת checkpoints
 
-במהלך הבדיקות הורצה `claude -p "/config checkpoints=true"`, והיא משנה הגדרה קבועה של ה-CLI. להחזרה: `claude -p "/config checkpoints=false"`.
+במהלך הבדיקות הורצה `claude -p "/config checkpoints=true"`, והיא משנה הגדרה קבועה של ה-CLI. בבדיקה (1.11.2026) התברר שהיא **לא** מפעילה rewind בהרצה של התוסף: `rewind_files` עבד רק כשהתהליך הופעל עם המשתנה `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` והדגל `--replay-user-messages`, והתוסף יעשה זאת בעצמו. אפשר להחזיר את ההגדרה: `claude -p "/config checkpoints=false"`.
+
+### 5.7 החלפת מודל
+
+הכותרת של כל סשן נוצרת בקריאה למודל ה-HAIKU (`ANTHROPIC_DEFAULT_HAIKU_MODEL`). אם בוחרים מודל אחר ב-`--model` בלי לעדכן את שלושת משתני `ANTHROPIC_DEFAULT_*_MODEL`, השרת טוען שני מודלים. העטיפה מגדירה את שלושתם לבחירה, והתוסף יעשה אותו דבר בהחלפת מודל (הפעלה מחדש של התהליך עם `--resume`).
+מודלים שאינם תומכים בכלים (למשל `gemma3:27b`) נכשלים עם `API Error: 400 ... does not support tools` ואינם שמישים עם Claude Code.
 
 ## בדיקה
 
