@@ -82,6 +82,7 @@ class Conversation {
     return {
       useCtrlEnterToSend: s.useCtrlEnterToSend,
       keybindings: s.keybindings,
+      display: s.display,
       allowBypass: s.allowDangerouslySkipPermissions,
     };
   }

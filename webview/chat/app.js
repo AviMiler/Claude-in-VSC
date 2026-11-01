@@ -13,7 +13,7 @@
   let statusVerb = null;
 
   function setVerb() {
-    const verb = statusVerb || VERBS[Math.floor(Math.random() * VERBS.length)];
+    const verb = statusVerb || CL.display.verb(VERBS);
     spinnerVerb.textContent = `${verb}…`;
   }
 
@@ -63,11 +63,15 @@
     init(m) {
       CL.tools.setCwd(m.cwd);
       CL.composer.setSettings(m.settings);
+      CL.display.apply(m.settings.display);
       CL.composer.setMode(m.permissionMode);
       CL.composer.setNoFolder(m.noFolder);
       CL.composer.focus();
     },
-    settings: (m) => CL.composer.setSettings(m.settings),
+    settings(m) {
+      CL.composer.setSettings(m.settings);
+      CL.display.apply(m.settings.display);
+    },
     commands: (m) => CL.slashMenu.setCommands(m.commands),
     models: (m) => CL.composer.setModels(m.models, m.current),
     mode: (m) => CL.composer.setMode(m.value),
@@ -120,7 +124,7 @@
   function userSent(text, imageCount = 0) {
     if (!titled) setTitle(text.replace(/\s+/g, ' ').trim().slice(0, 60));
     CL.thread.addUser(imageCount ? `${text}\n[תמונות: ${imageCount}]` : text);
-    CL.thread.scrollToBottom();
+    if (CL.display.scrollOnSend()) CL.thread.scrollToBottom();
     setBusy(true);
   }
 

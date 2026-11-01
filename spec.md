@@ -115,6 +115,15 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
 - Code: `src/panels/` (`webview-html.js`, `message-router.js`, `event-translator.js`, `conversation.js`, `mentions.js`, `plan-doc.js`), `webview/chat/` (`index.html`, `chat.css`, `highlight-theme.css`, `keys.js` (key-spec parsing and matching), `util.js`, `markdown.js`, `tools.js`, `thread.js`, `cards.js`, `menu.js`, `slash-menu.js`, `mention-menu.js`, `prompt-logic.js`, `composer.js`, `app.js`), `webview/vendor/`.
 - Known limits (all planned in `PLAN.md`): no image paste, attachments, @-mentions, editor context, focus view, timestamps.
 - Code: `src/panels/` (`webview-html.js`, `message-router.js`, `event-translator.js`, `conversation.js`), `webview/chat/` (`index.html`, `chat.css`, `highlight-theme.css`, `keys.js` (key-spec parsing and matching), `util.js`, `markdown.js`, `tools.js`, `thread.js`, `cards.js`, `menu.js`, `composer.js`, `app.js`, plus `mcp-dialog.js`, `mcp.css`, `error-card.js` from package E), `webview/vendor/`.
+- **Display and accessibility (package G):** the settings below are applied live as attributes on `<body>` (`data-focus`, `data-timestamps`, `data-reduced-motion`, `data-color-mode`).
+  - Focus view hides tool rows, thinking, the result line and the per-answer actions, leaving user and Claude text.
+  - Timestamps appear in the speaker heading; messages loaded from a past conversation get no time.
+  - Spinner: a non-empty `spinnerVerbs` replaces the default verbs; empty keeps them. `scrollToBottomOnSend` off stops the forced scroll when a message is sent or queued.
+  - Reduced motion: the setting OR the OS `prefers-reduced-motion`. `colorMode: daltonized` overrides the status colours with the Okabe-Ito palette.
+  - Screen reader: every user message and answer is preceded by an `<h2>` speaker heading ("אתה" / "Claude") for heading navigation. The thread's `aria-live` is off; a separate polite `role="status"` announcer speaks work started/finished, a permission request and an error, and stays silent while a past conversation loads.
+  - Known limits: the "applies next conversation" notice also shows for these live settings; code-block copy buttons stay visible in focus view; a focus-view turn made only of tool rows leaves an empty heading. Choices made without an explicit user decision: `DECISIONS.md`, 2026-11-01 package G entry.
+- Known limits (all planned in `PLAN.md`): no `/btw`, LaTeX, editor context.
+- Code: `src/panels/` (`webview-html.js`, `message-router.js`, `event-translator.js`, `conversation.js`, `display-settings.js`), `webview/chat/` (`index.html`, `chat.css`, `a11y.css`, `highlight-theme.css`, `keys.js` (key-spec parsing and matching), `util.js`, `markdown.js`, `tools.js`, `thread.js`, `cards.js`, `menu.js`, `composer.js`, `display-logic.js`, `display.js`, `a11y.js`, `app.js`), `webview/vendor/`.
 
 ## History (past conversations)
 The CLI's transcripts are the only store; the extension reads them read-only (user decisions).
@@ -172,9 +181,15 @@ VS Code settings are user configuration, not conversation data, so they do not c
 | `claudeLocal.useTerminal` | boolean, false | the main button and Ctrl+Shift+Esc open the CLI in a terminal |
 | `claudeLocal.enableNewConversationShortcut` | boolean, false | Ctrl+N starts a new conversation while the chat has focus |
 | `claudeLocal.keybindings.send` / `.newLine` / `.rewind` | string, `Enter` / `Shift+Enter` / `Escape Escape` | shortcuts inside the chat webview |
+| `claudeLocal.focusView` | boolean, false | focus view: hides tool rows, thinking, result line and answer actions |
+| `claudeLocal.showMessageTimestamps` | boolean, false | time in the speaker heading of each message |
+| `claudeLocal.spinnerVerbs` | string[], empty | waiting words in the work indicator; empty = the built-in Hebrew verbs |
+| `claudeLocal.scrollToBottomOnSend` | boolean, true | scroll the thread to the bottom when a message is sent |
+| `claudeLocal.prefersReducedMotion` | boolean, false | turns animations off (also follows the OS preference) |
+| `claudeLocal.colorMode` | `default` / `daltonized`, `default` | colour-blind-safe status colours |
 
 - Changes apply live; `claudePath` and `environmentVariables` apply to the next process start and the chat says "ההגדרה תחול בשיחה הבאה".
-- Code: `package.json` `contributes.configuration`, `src/util/settings.js`, `src/cli/env.js`, `webview/chat/keys.js`.
+- Code: `package.json` `contributes.configuration`, `src/util/settings.js`, `src/cli/env.js`, `src/panels/display-settings.js`, `webview/chat/keys.js`, `webview/chat/display.js`.
 
 ## Testing
 - Automated: `node --test "test/*.test.js"` (run in PowerShell; Node 22 needs the glob, a bare folder does not work). Tests: `args`, `process`, `env`, `keys`, `event-translator`, `transcripts`, `conversation` (with a stub `vscode` module), `session-model`, `panel-registry`. `dev/fake-claude.js` (+ `.cmd`) is a fake stream-json CLI that answers `initialize` (commands, models), streams a reply with partial messages, asks `can_use_tool`, and honours `interrupt`; selected with `claudeLocal.claudePath`. Units: args building, process/control protocol over a pipe to the fake CLI, transcript reading, the event translator.
@@ -185,6 +200,7 @@ VS Code settings are user configuration, not conversation data, so they do not c
 ## Verification status (2026-11-01)
 - **Verified:**
   - Unit tests: 72/72 pass (after package E; adds `mcp` and `error-card-uri`). Package E (MCP dialog, error card, URI handler) is covered by unit tests only. (Before that: 60/60 pass after package B1; adds `session-model`, `panel-registry` and two `conversation` tests). Package B1 (filters, closed list, tab markers, continue suggestion, rename call) is covered by unit tests only; the container, tree, Ctrl+Shift+T, tab title markers and `/rename` as user text against the real CLI are **not verified** in real VS Code. (Previously: 46/46 after package C part 1-3.) Package C logic (grouping, queue, history, mention ranking, image check) is covered by unit tests only. Package A (environment merge, key parsing/matching, process env) is covered by unit tests only.
+  - Unit tests: 65/65 pass (after package G; adds `display`, 5 tests; package G, including all screen-reader behaviour and the focus view, daltonized and reduced-motion looks, is covered by unit tests only and **not verified** in a browser, in real VS Code or with a real screen reader). (Previously: 60/60 after package B1; adds `session-model`, `panel-registry` and two `conversation` tests). Package B1 (filters, closed list, tab markers, continue suggestion, rename call) is covered by unit tests only; the container, tree, Ctrl+Shift+T, tab title markers and `/rename` as user text against the real CLI are **not verified** in real VS Code. (Previously: 46/46 after package C part 1-3.) Package C logic (grouping, queue, history, mention ranking, image check) is covered by unit tests only. Package A (environment merge, key parsing/matching, process env) is covered by unit tests only.
   - The webview in a browser preview (dark and light themes): streaming Markdown, tables, highlighted code, tool rows with an Edit diff, permission approve, the `/` menu, the mode menu, the history panel, loading a past session.
   - On the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b`): the extension loads, runs and answers; against the real CLI (`DEPENDENCIES.md`): `interrupt` (the `result` arrives in about 0.5 s, the process stays alive), `--resume` and `--fork-session`, `AskUserQuestion` answers through `updatedInput.answers`, queued messages, MCP control requests, `get_context_usage`, file rewind, `updatedInput` on Edit, auto mode, `--model` at launch.
 - **Not verified:**

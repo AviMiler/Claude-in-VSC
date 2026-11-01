@@ -141,7 +141,7 @@
       queue.cancel(item.id);
       CL.thread.removeQueued(item.id);
     });
-    CL.thread.scrollToBottom();
+    if (CL.display.scrollOnSend()) CL.thread.scrollToBottom();
   }
 
   function send() {

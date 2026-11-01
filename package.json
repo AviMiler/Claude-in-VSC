@@ -81,6 +81,39 @@
           "default": true,
           "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
         },
+        "claudeLocal.focusView": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "תצוגת מיקוד: מסתיר שורות כלים, חשיבה ושורות סיכום, ומשאיר את השיחה עצמה (כרטיסי אישור ושגיאות נשארים)."
+        },
+        "claudeLocal.showMessageTimestamps": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "מציג שעה ליד כל הודעה (לשיחות שנטענות מההיסטוריה אין שעה)."
+        },
+        "claudeLocal.spinnerVerbs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "markdownDescription": "מילות ההמתנה במחוון העבודה. ריק = מילות ברירת המחדל של התוסף."
+        },
+        "claudeLocal.scrollToBottomOnSend": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "גלילה לתחתית השיחה בשליחת הודעה."
+        },
+        "claudeLocal.prefersReducedMotion": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "מכבה אנימציות בצ'אט (גם כשמערכת ההפעלה מבקשת תנועה מופחתת)."
+        },
+        "claudeLocal.colorMode": {
+          "type": "string",
+          "enum": ["default", "daltonized"],
+          "enumDescriptions": ["צבעי ברירת המחדל", "צבעים מותאמים ללקויי ראיית צבעים"],
+          "default": "default",
+          "markdownDescription": "ערכת צבעים ללקויי ראיית צבעים."
+        },
         "claudeLocal.enableNewConversationShortcut": {
           "type": "boolean",
           "default": false,
