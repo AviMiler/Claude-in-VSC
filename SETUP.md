@@ -102,7 +102,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 אם החלון קטן מכ-25 אלף טוקנים, ההוראות של Claude Code נחתכות בשקט, ויש לבקש ממנהל השרת להגדיל אותו (`PARAMETER num_ctx` ב-Modelfile).
 
-**עדכון 1.11.2026:** `GET http://172.27.5.5:11435/api/ps` הראה `context_length: 64000` למודל הטעון (`gemma4:26b`), והגדרת השער (`num_ctx: 12288`) אינה נאכפת. הערך הזמני ל-`CLAUDE_CODE_MAX_CONTEXT_TOKENS` הוא `64000`, בכפוף לאישור על `qwen3.8:27b` (לשלוח הודעה ואז להריץ שוב `Invoke-RestMethod http://172.27.5.5:11435/api/ps | ConvertTo-Json -Depth 5`).
+**עדכון 1.11.2026:** `GET http://172.27.5.5:11435/api/ps` הראה `context_length: 64000` למודל הטעון (`gemma4:26b`), והגדרת השער (`num_ctx: 12288`) אינה נאכפת. הערך ל-`CLAUDE_CODE_MAX_CONTEXT_TOKENS` הוא `64000`. אושר על `qwen3.8:27b` בבדיקת פלאטו דרך השער (`prompt_tokens` גדל עד 50,012 בלי חיתוך), ולכן יש להוסיף ל-`env` ב-`settings.json`: `"CLAUDE_CODE_MAX_CONTEXT_TOKENS": "64000"`. שים לב שהבקשה הראשונה אחרי כ-5 דקות של חוסר פעילות כוללת טעינה קרה של המודל (נמדדו 285 שניות), ולכן `API_TIMEOUT_MS=1200000` (סעיף 5.2) הכרחי.
 
 ### 5.5 בחירת מודל
 
