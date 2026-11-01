@@ -84,4 +84,6 @@ Responsiveness problems; the MCP dialog "slightly bad design"; the background-ta
 ### F-17 Minor
 - `[agents] card … started (subagent=?` — the sub-agent type is not logged.
 - `initialize failed: process exited` appeared once (test 2.1, 23:10:43); the next start worked. Check whether it was the shortcut test (two processes) or a real race.
+- Test 7.1: the "`/doctor` is available only in the terminal" card appeared next to the `@` test; unclear whether `/doctor` was typed or the menu inserted it. Check that picking from the `@` list never triggers a `/` command.
+- Tests 2.3 and 2.4 were marked NOT RUN, but the log of 2.3 shows the settings changing correctly; 2.4 (Show Log / Copy Log) is still unchecked.
 - Models like `qwen2.5:7b` print tool calls as JSON text and answer in Chinese or mixed language: a model limit, not an extension bug.
