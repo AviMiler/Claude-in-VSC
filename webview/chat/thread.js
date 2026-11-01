@@ -187,10 +187,9 @@
   function formatResult(ev) {
     const parts = [];
     if (typeof ev.durationMs === 'number') parts.push(`${(ev.durationMs / 1000).toFixed(1)} שנ׳`);
-    if (typeof ev.costUsd === 'number' && ev.costUsd > 0) parts.push(`$${ev.costUsd.toFixed(4)}`);
     if (ev.inputTokens || ev.outputTokens) {
       const k = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n || 0));
-      parts.push(`קלט ${k(ev.inputTokens)} · פלט ${k(ev.outputTokens)}`);
+      parts.push(`תור: קלט ${k(ev.inputTokens)} · פלט ${k(ev.outputTokens)}`);
     }
     return parts.join(' · ');
   }

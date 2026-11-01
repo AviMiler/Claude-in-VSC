@@ -8,6 +8,9 @@
 //   otherwise a Markdown reply (headings, list, table, code).
 // FAKE_CLAUDE_INTERRUPT=no-result | error changes what follows an interrupt (no result line, or a
 // result with is_error:true), to test both ways a real CLI might end a stopped turn.
+// FAKE_CLAUDE_NO_TOOLS_MODEL=<id>: when started with --model <id>, every turn fails like a model
+// without tool support (DEPENDENCIES.md section 2 #26, #29). system/init reports the --model value
+// and, in the fake-only field fake_default_models, the three ANTHROPIC_DEFAULT_*_MODEL variables.
 const readline = require('readline');
 
 const SESSION = process.argv.includes('--resume')
@@ -15,6 +18,8 @@ const SESSION = process.argv.includes('--resume')
   : '00000000-0000-4000-8000-000000000001';
 let mode = process.argv.includes('--permission-mode') ? process.argv[process.argv.indexOf('--permission-mode') + 1] : 'default';
 const allowBypass = process.argv.includes('--allow-dangerously-skip-permissions');
+const MODEL = process.argv.includes('--model') ? process.argv[process.argv.indexOf('--model') + 1] : 'fake-model';
+const noTools = Boolean(process.env.FAKE_CLAUDE_NO_TOOLS_MODEL) && process.env.FAKE_CLAUDE_NO_TOOLS_MODEL === MODEL;
 const onInterrupt = process.env.FAKE_CLAUDE_INTERRUPT || '';
 
 const out = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
@@ -98,6 +103,10 @@ async function toolCall(name, input) {
 async function turn(text) {
   interrupted = false;
   const started = Date.now();
+  if (noTools) {
+    out({ type: 'result', subtype: 'success', is_error: true, result: `API Error: 400 litellm.BadRequestError: ${MODEL} does not support tools`, duration_ms: 10, session_id: SESSION });
+    return;
+  }
   if (/tool/.test(text)) {
     await streamText('אריץ פקודה קצרה.', 5);
     await toolCall('Bash', { command: 'echo hi', description: 'Print hi' });
@@ -129,7 +138,8 @@ function onControlRequest(msg) {
   const reply = (response) => out({ type: 'control_response', response: { subtype: 'success', request_id: msg.request_id, response } });
   if (subtype === 'initialize') {
     reply({ commands: COMMANDS, models: MODELS, agents: [], output_style: 'default', available_output_styles: ['default'], account: {}, pid: process.pid });
-    out({ type: 'system', subtype: 'init', session_id: SESSION, model: 'fake-model', permissionMode: mode, cwd: process.cwd(), tools: ['Bash'] });
+    out({ type: 'system', subtype: 'init', session_id: SESSION, model: MODEL, permissionMode: mode, cwd: process.cwd(), tools: ['Bash'],
+      fake_default_models: ['OPUS', 'SONNET', 'HAIKU'].map((n) => process.env[`ANTHROPIC_DEFAULT_${n}_MODEL`] || null) });
   } else if (subtype === 'interrupt') {
     interrupted = true;
     reply({});
@@ -143,6 +153,8 @@ function onControlRequest(msg) {
     reply({});
   } else if (subtype === 'set_model') {
     reply({});
+  } else if (subtype === 'get_context_usage') {
+    reply({ categories: [], totalTokens: 23400, maxTokens: Number(process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS) || 200000 });
   } else {
     out({ type: 'control_response', response: { subtype: 'error', request_id: msg.request_id, error: `unknown ${subtype}` } });
   }

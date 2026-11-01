@@ -18,6 +18,8 @@ function read() {
     useTerminal: c.get('useTerminal') === true,
     respectGitIgnore: c.get('respectGitIgnore') !== false,
     display: readDisplay((name) => c.get(name)),
+    gatewayUrl: String(c.get('gatewayUrl') || ''),
+    modelDenylist: Array.isArray(c.get('modelDenylist')) ? c.get('modelDenylist') : [],
     keybindings: {
       send: c.get('keybindings.send'),
       newLine: c.get('keybindings.newLine'),
