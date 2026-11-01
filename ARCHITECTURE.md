@@ -16,7 +16,7 @@ The webview posts `ready`; `Conversation` spawns the CLI (`args.js`, `spawn.js`,
 The `claude` CLI (`claudeLocal.claudePath`, stream-json + control protocol over stdio) and its files under `~/.claude` (`CLAUDE_CONFIG_DIR` respected). No network from the webviews. The extension host makes one exception: a read-only `GET /v1/models` to the user's own model gateway (in memory only; see DECISIONS.md, 2026-11-01).
 
 ## Key Boundaries & Constraints
-Nothing is persisted (no globalState/workspaceState/own files) and transcripts are never written. One conversation = one process; a process dies with its panel. The webview has a strict CSP (nonce scripts, only `webview/` and `resources/`), raw Markdown HTML is escaped, and links open through the host (http/https only). `event-translator.js` and `transcripts.js` must stay free of `vscode` so they can be unit-tested. No build step, no TypeScript.
+Nothing is persisted (no globalState/workspaceState/own files) and transcripts are never written. The message queue and prompt history live only in the webview (lost with the panel); the plan opens as a read-only virtual document (`plan-doc.js`), no file is written. One conversation = one process; a process dies with its panel. The webview has a strict CSP (nonce scripts, only `webview/` and `resources/`), raw Markdown HTML is escaped, and links open through the host (http/https only). `event-translator.js` and `transcripts.js` must stay free of `vscode` so they can be unit-tested. No build step, no TypeScript.
 
 ## Design Decisions
 See DECISIONS.md.

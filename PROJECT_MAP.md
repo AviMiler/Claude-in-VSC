@@ -4,7 +4,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## Root
 - `extension.js` — entry: builds logger, settings, registry; sets the secondary-sidebar context key; calls `panels.register`.
-- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 2 view containers + 2 views, 12 settings.
+- `package.json` — manifest: 9 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 2 view containers + 2 views, 12 settings.
 - `.vscodeignore` — keeps dev/, test/, .claude/ out of the package.
 - `AGENT_CONTEXT.md` — entry point for an agent: what to read, current state, working agreements, git rules.
 - `spec.md` — what the extension does today (as built) and its verification status.
