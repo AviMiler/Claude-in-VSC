@@ -8,6 +8,17 @@
 - `git-instructions.md` — the git workflow (branches, commits, push rules).
 - `SETUP.md` — install and settings for the user's machine (Hebrew). `dev/README.md` — probes, fake CLI, browser preview. `CHANGELOG.md` — what changed and why.
 
+## Models: mandatory
+**Development of this project MUST use only the models below, by the task type below. Fable is NOT used here; Opus is the strongest model allowed.**
+
+| Task | Model (mandatory) |
+|---|---|
+| Packages A, C, E, G (settings, shortcuts, `/` menu, error cards, accessibility), and package B's sessions/history/rename | **Sonnet 5.5** (`claude-sonnet-5-5`) |
+| Package B's checkpoints, background tasks, `/diff`, `/loop`; package D's model-switch restart with `--resume`; package F (IDE server and its hand-written WebSocket codec, per-block diff approval); any change to the stream-json/control protocol handling or to permission handling; code review between packages | **Opus 5.5** (`claude-opus-5-5`) |
+| Trivial edits only (doc wording, renames, small fixes) | **Haiku 5.5** (`claude-haiku-5-5`) |
+
+If the session is not on the required model for the task, **stop and ask the user to switch** before writing code.
+
 ## What this is
 A VS Code extension (plain JS, no build, no npm) that is a Hebrew RTL front for the real `claude` CLI. The CLI is the only source of truth: the extension persists nothing (no globalState/workspaceState/own files) and reads history read-only from `~/.claude/projects/<encoded cwd>/*.jsonl`.
 

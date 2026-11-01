@@ -159,6 +159,8 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 
 ## 5. Build order
 
+**Models are mandatory (see `AGENT_CONTEXT.md`, "Models: mandatory"): Sonnet 5.5 for packages A, C, E, G and the simple parts of B; Opus 5.5 for the protocol-sensitive parts of B, for D's restart/`--resume`, for F, and for review. Fable is not used; Opus is the maximum.**
+
 | Package | Content | Depends on |
 |---|---|---|
 | **A** | Settings, rebindable shortcuts **(including Ctrl+Esc, tested on the user's machine for the Start-menu conflict)**, Open in Terminal, `environmentVariables`, launching `claude-bin.exe` | – |
