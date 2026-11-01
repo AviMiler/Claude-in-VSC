@@ -16,6 +16,7 @@ const ROUTES = {
   planCommand: (c, m) => c.planCommand(m.open === true),
   diffCommand: (c) => c.diffCommand(),
   rewindMenu: (c) => c.rewindMenu(),
+  stopTask: (c, m) => c.stopTask(String(m.id || '')),
   openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
 };

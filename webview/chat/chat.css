@@ -597,6 +597,14 @@ svg { display: block; }
   flex: none;
   padding: 4px 12px 12px;
 }
+/* Background tasks bar (tasks-bar.js) */
+.bg-tasks { margin-bottom: 6px; font-size: 12px; border: 1px solid var(--cl-border); border-radius: 4px; padding: 4px 8px; }
+.bg-tasks-title { color: var(--cl-muted); margin-bottom: 2px; }
+.bg-tasks ul { list-style: none; margin: 0; padding: 0; }
+.bg-task { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.bg-task-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bg-task:not(.running) .bg-task-label, .bg-task-status { color: var(--cl-muted); }
+.bg-task-stop { font: inherit; cursor: pointer; }
 .notice {
   margin-bottom: 6px;
   font-size: 12px;

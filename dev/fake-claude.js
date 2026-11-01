@@ -4,6 +4,7 @@
 // Keywords in the user message pick a scenario:
 //   "tool"   -> a Bash tool call that asks permission
 //   "edit"   -> fake Edit + Write calls (for /diff; nothing is written)
+//   "background" -> a background Bash task (task_started / background_tasks_changed) until stop_task
 //   "שאלה"   -> an AskUserQuestion card
 //   "slow"   -> a long, slow reply (to try the stop button)
 //   otherwise a Markdown reply (headings, list, table, code).
@@ -103,6 +104,12 @@ async function turn(text) {
     await streamText('אריץ פקודה קצרה.', 5);
     await toolCall('Bash', { command: 'echo hi', description: 'Print hi' });
     await streamText('הפקודה הסתיימה.', 5);
+  } else if (/background/.test(text)) {
+    // A background Bash task as probe4 captured it; it keeps "running" until stop_task.
+    const task = { task_id: 'bg_fake_1', task_type: 'local_bash', description: 'ping ארוך' };
+    out({ type: 'system', subtype: 'task_started', ...task, tool_use_id: 'toolu_fake_bg', is_backgrounded: true, session_id: SESSION });
+    out({ type: 'system', subtype: 'background_tasks_changed', tasks: [task], session_id: SESSION });
+    await streamText('הפקודה רצה ברקע.', 5);
   } else if (/edit/.test(text)) {
     // Fake Edit/Write calls for /diff (nothing is written to disk).
     await toolCall('Edit', { file_path: `${process.cwd()}/demo.js`, old_string: 'const a = 1;', new_string: 'const a = 2;' });
@@ -149,6 +156,13 @@ function onControlRequest(msg) {
     reply({});
   } else if (subtype === 'set_model') {
     reply({});
+  } else if (subtype === 'stop_task') {
+    // The sequence probe4 captured after a stop.
+    const id = msg.request.task_id;
+    reply({});
+    out({ type: 'system', subtype: 'background_tasks_changed', tasks: [], session_id: SESSION });
+    out({ type: 'system', subtype: 'task_updated', task_id: id, patch: { status: 'killed', end_time: Date.now() }, session_id: SESSION });
+    out({ type: 'system', subtype: 'task_notification', task_id: id, tool_use_id: 'toolu_fake_bg', status: 'stopped', output_file: '', summary: 'נעצר', session_id: SESSION });
   } else if (subtype === 'rewind_files') {
     // Mirrors the real CLI's gate (DEPENDENCIES.md finding 23); nothing is written.
     if (process.env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING !== '1') {

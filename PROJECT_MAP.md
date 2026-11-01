@@ -40,6 +40,9 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `status-bar.js` — the "✻ Claude" item.
 - `index.js` — `register` for the panels feature.
 
+## src/background/ — background task map
+- `task-map.js` — pure map from `task_started` / `background_tasks_changed` / `task_updated` / `task_notification`. Test: `test/task-map.test.js`. UI: `webview/chat/tasks-bar.js` (`#bg-tasks` bar with stop).
+
 ## src/checkpoints/ — rewind code and fork
 - `checkpoints.js` — pure: `CHECKPOINT_ENV`, `checkpointArgs({fork})`, `checkpointFrom`/`addCheckpoint` from replayed user lines, `filesChangedCount`. Test: `test/checkpoints.test.js`.
 - `rewind-menu.js` — Esc Esc QuickPick of this process's prompts, then rewind code (dry run, confirm, real) or fork.
@@ -68,9 +71,10 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 ## dev/ — development only (not packaged)
 - `README.md` — how to run the probes, the gateway probe, the fake CLI and the browser preview.
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
-- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`).
+- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`).
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host.
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
+- `probe4-standalone.js` — self-contained probe: background tasks, Task tools, sub-agents, cron tools.
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/

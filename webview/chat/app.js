@@ -106,6 +106,7 @@
       CL.thread.addNode(CL.el('button', { class: 'info-card-btn plan-open', type: 'button', text: 'פתיחת התוכנית בעורך', onclick: () => post({ type: 'planCommand', open: true }) }));
     },
     focus: () => CL.composer.focus(),
+    backgroundTasks: (m) => CL.tasksBar.render(m.tasks),
   };
 
   window.addEventListener('message', (e) => {

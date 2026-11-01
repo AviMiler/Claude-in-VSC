@@ -2,6 +2,11 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-01 (package B2, part 3: background tasks)
+- **Built:** a task bar above the composer with a stop button per running task (`stop_task {task_id}`); finished tasks stay listed until the process restarts. New `src/background/task-map.js`, `webview/chat/tasks-bar.js`, `test/task-map.test.js`, `dev/probe4-standalone.js`; changed `index.html`, `chat.css`, `app.js`, `conversation.js`, `message-router.js`, `dev/fake-claude.js` ("background" scenario). Tests 73/73. Probe4 findings added to `DEPENDENCIES.md`.
+- **Deviation from `PLAN.md` row 73 (pending the user's decision):** no "move to background" button, because the CLI has no such control request (probe4: four candidate subtypes all unsupported). The PLAN row is unchanged. See `DECISIONS.md`.
+- **Not verified:** real VS Code. **Pending from B2:** `/loop` indicator, agent cards, pinned task list.
+
 ## 2026-11-01 (package B2, part 2: checkpoints)
 - **Built:** Esc Esc (package A's `onRewind` hook) opens a QuickPick of this process's prompts; "rewind code" (`rewind_files` dry run, modal confirm, real) or "fork" (`--resume <id> --fork-session`, thread kept on screen). All spawns get `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` and `--replay-user-messages`. New `src/checkpoints/` (`checkpoints.js`, `rewind-menu.js`), `test/checkpoints.test.js`; changed `conversation.js`, `message-router.js`, `webview/chat/app.js`, `dev/fake-claude.js`. Tests 69/69.
 - **Deviation (narrowed):** rewinding the conversation to a point and "both" are not offered, since that CLI message was never captured. Prompts from loaded transcripts are not checkpoints (uuid from an earlier process unverified).

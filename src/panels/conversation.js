@@ -15,6 +15,7 @@ const editLog = require('../diff/edit-log');
 const { runDiffCommand } = require('../diff/diff-command');
 const checkpoints = require('../checkpoints/checkpoints');
 const { runRewindMenu } = require('../checkpoints/rewind-menu');
+const taskMap = require('../background/task-map');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -128,10 +129,15 @@ class Conversation {
     });
     const translate = createStreamTranslator();
     this.proc = proc;
+    // Background tasks live in the CLI process; a new process starts with none.
+    const hadTasks = this.tasks && this.tasks.tasks.size > 0;
+    this.tasks = taskMap.createTaskMap();
+    if (hadTasks) this.post({ type: 'backgroundTasks', tasks: [] });
 
     proc.on('message', (msg) => {
       if (proc !== this.proc) return;
       checkpoints.addCheckpoint(this.checkpoints, msg);
+      if (taskMap.applyMessage(this.tasks, msg)) this.post({ type: 'backgroundTasks', tasks: taskMap.backgroundTasks(this.tasks) });
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
         if (ev.kind === 'session') {
@@ -411,6 +417,13 @@ class Conversation {
   async diffCommand() {
     const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
+  }
+
+  // The stop button of a background task: `stop_task {task_id}` (probe4); the CLI then reports
+  // the task as stopped through the usual system lines.
+  stopTask(id) {
+    if (!this.proc || !id) return;
+    this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
   }
 
   // Esc Esc / the rewind shortcut: the checkpoints menu (src/checkpoints/rewind-menu.js).
