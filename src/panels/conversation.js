@@ -21,6 +21,7 @@ const checkpoints = require('../checkpoints/checkpoints');
 const { runRewindMenu } = require('../checkpoints/rewind-menu');
 const taskMap = require('../background/task-map');
 const claudeTasks = require('../tasks/claude-tasks');
+const agentCards = require('../agents/agent-cards');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -66,6 +67,7 @@ class Conversation {
     this.edits = editLog.createEditLog(); // this session's Edit/Write tool calls, for /diff
     this.checkpoints = checkpoints.createCheckpointList(); // prompts sent in this process, for rewind
     this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
+    this.agents = agentCards.createAgentCards(); // one card per sub-agent call (live only)
     this.entries = null;
     this.models = new ModelSwitcher(this);
     this.subs = [
@@ -154,7 +156,11 @@ class Conversation {
         this.services.logger.info('background', `tasks now ${tasks.length}`);
         this.post({ type: 'backgroundTasks', tasks });
       }
-      if (claudeTasks.applyMessage(this.claudeTasks, msg)) this.post({ type: 'claudeTasks', tasks: claudeTasks.listTasks(this.claudeTasks) });
+      if (claudeTasks.applyMessage(this.claudeTasks, msg)) {
+        const list = claudeTasks.listTasks(this.claudeTasks);
+        this.services.logger.info('tasks', `list now ${list.length} (done ${list.filter((t) => t.status === 'completed').length})`);
+        this.post({ type: 'claudeTasks', tasks: list });
+      }
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
         if (ev.kind === 'session') {
@@ -165,6 +171,8 @@ class Conversation {
       this.trackPlan(events);
       for (const ev of events) editLog.addEvent(this.edits, ev);
       if (events.length) this.post({ type: 'events', events });
+      // After the events, so the Agent tool row the card attaches to already exists.
+      agentCards.trackAgents(this, this.agents, msg);
     });
     proc.on('controlRequest', (id, req) => this.onControlRequest(proc, id, req));
     proc.on('controlCancel', (id) => {
@@ -377,6 +385,7 @@ class Conversation {
     for (const ev of events) editLog.addEvent(this.edits, ev);
     this.checkpoints = checkpoints.createCheckpointList();
     this.claudeTasks = claudeTasks.createClaudeTasks();
+    this.agents = agentCards.createAgentCards();
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
@@ -414,6 +423,7 @@ class Conversation {
     this.edits = editLog.createEditLog();
     this.checkpoints = checkpoints.createCheckpointList();
     this.claudeTasks = claudeTasks.createClaudeTasks();
+    this.agents = agentCards.createAgentCards();
     this.setTitle('Claude');
     this.post({ type: 'reset' });
     this.post({ type: 'context', used: null, max: null });
@@ -461,7 +471,7 @@ class Conversation {
   // the task as stopped through the usual system lines.
   stopTask(id) {
     if (!this.proc || !id) return;
-    this.services.logger.info('tasks', `stop_task ${id}`);
+    this.services.logger.info('background', `stop_task ${id}`);
     this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
   }
 

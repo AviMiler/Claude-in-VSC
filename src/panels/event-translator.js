@@ -91,7 +91,8 @@ function createStreamTranslator() {
   }
 
   return function translate(msg) {
-    // Sub-agent traffic (Task tool) is nested under its tool call; this milestone shows only the top level.
+    // Sub-agent traffic (Agent/Task tool) stays out of the main thread; the agent cards show it
+    // (src/agents/agent-map.js reads the same raw lines).
     if (msg.parent_tool_use_id) return [];
     switch (msg.type) {
       case 'system':

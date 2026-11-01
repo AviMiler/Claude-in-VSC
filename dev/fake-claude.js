@@ -6,6 +6,9 @@
 //   "edit"   -> fake Edit + Write calls (for /diff; nothing is written)
 //   "tasks"  -> TaskCreate / TaskUpdate calls (Claude's pinned task list)
 //   "background" -> a background Bash task (task_started / background_tasks_changed) until stop_task
+//   "agent"  -> a sub-agent call (Agent tool, task_* lines, inner Glob), for the agent cards
+//   "loop"   -> CronCreate, then one self-started turn after FAKE_CLAUDE_LOOP_MS (default 3000)
+//   "CronDelete ... id <id>" -> CronDelete (what the /loop bar's stop button sends)
 //   "שאלה"   -> an AskUserQuestion card
 //   "slow"   -> a long, slow reply (to try the stop button)
 //   otherwise a Markdown reply (headings, list, table, code).
@@ -105,6 +108,37 @@ async function toolCall(name, input, reply) {
   return decision;
 }
 
+// A foreground sub-agent as probe4 captured it: the Agent call, task_started, the sub-agent's own
+// Glob call (parent_tool_use_id), task_progress, a "(no content)" tool result and the summary in
+// task_notification.
+async function agentScenario() {
+  const agentId = `toolu_fake_agent_${++msgSeq}`;
+  const inner = `toolu_fake_inner_${msgSeq}`;
+  const task = { task_id: 'agent_fake_1', tool_use_id: agentId, session_id: SESSION };
+  const sub = (o) => out({ ...o, parent_tool_use_id: agentId, session_id: SESSION });
+  out({ type: 'assistant', message: { id: `msg_fake_${msgSeq}`, role: 'assistant', model: 'fake', content: [{ type: 'tool_use', id: agentId, name: 'Agent', input: { description: 'רשימת קבצים', prompt: 'List the files', subagent_type: 'general-purpose' } }] }, parent_tool_use_id: null, session_id: SESSION });
+  out({ type: 'system', subtype: 'task_started', ...task, description: 'רשימת קבצים', subagent_type: 'general-purpose', is_backgrounded: false, spawn_depth: 1, task_type: 'local_agent', prompt: 'List the files' });
+  sub({ type: 'assistant', message: { id: `msg_fake_sub_${msgSeq}`, role: 'assistant', model: 'fake', content: [{ type: 'tool_use', id: inner, name: 'Glob', input: { pattern: '*' } }] } });
+  out({ type: 'system', subtype: 'task_progress', ...task, description: 'Finding *', subagent_type: 'general-purpose', usage: { total_tokens: 0, tool_uses: 1, duration_ms: 900 }, last_tool_name: 'Glob' });
+  await sleep(300);
+  sub({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: inner, content: 'a.js\nb.js' }] } });
+  out({ type: 'system', subtype: 'task_notification', ...task, status: 'completed', summary: 'נמצאו שני קבצים: a.js, b.js', usage: { total_tokens: 0, tool_uses: 1, duration_ms: 1500 } });
+  out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: agentId, content: [{ type: 'text', text: '(no content)' }] }] }, parent_tool_use_id: null, session_id: SESSION });
+  await streamText('הסוכן סיים.', 5);
+}
+
+// The self-started /loop turn. Its exact real sequence was never captured (DEPENDENCIES.md row
+// 38); this fake sends system/init, a streamed reply and a result with no user message.
+let loopTimer = null;
+function scheduleSelfTurn() {
+  loopTimer = setTimeout(async () => {
+    loopTimer = null;
+    out({ type: 'system', subtype: 'init', session_id: SESSION, model: MODEL, permissionMode: mode, cwd: process.cwd(), tools: ['CronCreate', 'CronDelete', 'CronList'] });
+    await streamText('PING', 5);
+    out({ type: 'result', subtype: 'success', is_error: false, duration_ms: 20, usage: { input_tokens: 100, output_tokens: 2 }, session_id: SESSION });
+  }, Number(process.env.FAKE_CLAUDE_LOOP_MS) || 3000);
+}
+
 async function turn(text) {
   interrupted = false;
   const started = Date.now();
@@ -112,7 +146,23 @@ async function turn(text) {
     out({ type: 'result', subtype: 'success', is_error: true, result: `API Error: 400 litellm.BadRequestError: ${MODEL} does not support tools`, duration_ms: 10, session_id: SESSION });
     return;
   }
-  if (/tool/.test(text)) {
+  if (/CronDelete/.test(text)) {
+    // The stop button of the /loop bar asks Claude to run CronDelete (probe4 shapes).
+    const id = (/id (\w+)/.exec(text) || [])[1] || 'unknown';
+    if (loopTimer) clearTimeout(loopTimer);
+    loopTimer = null;
+    await toolCall('CronDelete', { id }, { text: `Cancelled job ${id}.`, toolUseResult: { id } });
+    await streamText('המשימה המתוזמנת בוטלה.', 5);
+  } else if (/agent/.test(text)) {
+    await agentScenario();
+  } else if (/loop/.test(text)) {
+    // /loop as probe4 captured it: CronCreate, then (after FAKE_CLAUDE_LOOP_MS) one self-started turn.
+    const job = { id: 'fakejob1', humanSchedule: 'Every minute', recurring: true, durable: false };
+    await toolCall('CronCreate', { cron: '*/1 * * * *', prompt: 'Reply with the single word PING', recurring: true },
+      { text: `Scheduled recurring job ${job.id} (Every minute). Session-only.`, toolUseResult: job });
+    await streamText('נקבעה משימה חוזרת.', 5);
+    scheduleSelfTurn();
+  } else if (/tool/.test(text)) {
     await streamText('אריץ פקודה קצרה.', 5);
     await toolCall('Bash', { command: 'echo hi', description: 'Print hi' });
     await streamText('הפקודה הסתיימה.', 5);

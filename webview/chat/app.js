@@ -98,6 +98,7 @@
     sessionLoaded(m) {
       CL.thread.reset();
       CL.claudeTasks.render([]); // the task list is live only, not rebuilt from transcripts
+      CL.agentCards.reset(); // so are agent cards
       CL.composer.resetConversation(m.events.filter((ev) => ev.kind === 'user').map((ev) => ev.text));
       CL.history.setCurrent(m.id);
       setTitle(m.title);
@@ -109,6 +110,7 @@
     reset() {
       CL.thread.reset();
       CL.claudeTasks.render([]);
+      CL.agentCards.reset();
       CL.composer.resetConversation([]);
       setTitle('');
       setBusy(false);
@@ -126,6 +128,7 @@
     errorCard: (m) => CL.errorCard.show(m.card),
     backgroundTasks: (m) => CL.tasksBar.render(m.tasks),
     claudeTasks: (m) => CL.claudeTasks.render(m.tasks),
+    agentCards: (m) => CL.agentCards.render(m.cards),
   };
 
   window.addEventListener('message', (e) => {
