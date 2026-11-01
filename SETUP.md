@@ -55,7 +55,7 @@ C:\Users\206861775\.vscode\extensions\local.claude-local-0.1.0
 | `CLAUDE_ENABLE_STREAM_WATCHDOG` | `0`. כמו הקודם: מונע ניתוק של זרם איטי |
 | `CLAUDE_CODE_MAX_CONTEXT_TOKENS` | `64000`. ה-CLI לא מכיר את `qwen3.8:27b` ומניח חלון של 200 אלף טוקנים (מיליון עם הסיומת `[1m]`), ומד ההקשר וה-auto-compact מסתמכים על ההנחה הזו. החלון האמיתי נמדד: לפחות 50,000 ו-`context_length: 64000` ב-Ollama (`DEPENDENCIES.md` סעיפים 3.5 ו-3.6). אם החלון היה קטן מכ-25 אלף טוקנים, ההוראות של Claude Code היו נחתכות בשקט, והיה צריך לבקש ממנהל השרת להגדיל `num_ctx` |
 
-שלושת המשתנים האחרונים (`API_TIMEOUT_MS`, `CLAUDE_ENABLE_STREAM_WATCHDOG`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`) הם פתרון זמני: לפי ההחלטה הסופית התוסף יעביר אותם בעצמו דרך ההגדרה `claudeLocal.environmentVariables` (`PLAN.md` סעיף 3, החלטה 5). ההגדרה הזו **עוד לא נבנתה** (חבילה A), ועד אז הם חייבים להיות בקובץ הזה.
+שלושת המשתנים האחרונים (`API_TIMEOUT_MS`, `CLAUDE_ENABLE_STREAM_WATCHDOG`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`) התוסף מעביר בעצמו דרך ההגדרה `claudeLocal.environmentVariables` (ראו סעיף 7), והם מוגדרים שם כברירת מחדל. אפשר להשאיר אותם גם בקובץ הזה; ערך שמוגדר בהגדרת התוסף גובר.
 
 ## 4. הגדרת הנתיב ל-CLI בתוסף
 ב-VS Code: `Ctrl+,` ← חיפוש `claudeLocal.claudePath` ← הערך הוא הקובץ האמיתי `claude-bin.exe`:
@@ -78,3 +78,24 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 - **מודל בלי תמיכה בכלים** (למשל `gemma3:27b`) נכשל עם `API Error: 400 ... does not support tools` ואינו שמיש עם Claude Code.
 - **Checkpoints:** ההגדרה "Rewind code (checkpoints)" של ה-CLI (`/config checkpoints=true`) **אינה** מפעילה rewind בהרצה של התוסף. התוסף מפעיל אותו בעצמו עם `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` ו-`--replay-user-messages`. אין צורך לשנות את ההגדרה הקבועה; מי שרוצה לכבות אותה: `claude -p "/config checkpoints=false"`.
 - **הפרויקט `claude-gui`** נפרד, וההגדרות שלו (`config.json`) לא משפיעות על התוסף.
+
+## 7. הגדרות התוסף וקיצורי מקלדת
+כל ההגדרות ב-`Ctrl+,` ← חיפוש `claudeLocal`.
+
+| הגדרה | ברירת מחדל | מה היא עושה |
+|---|---|---|
+| `claudeLocal.environmentVariables` | `API_TIMEOUT_MS=1200000`, `CLAUDE_ENABLE_STREAM_WATCHDOG=0`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000` | משתני סביבה לתהליך ה-CLI, גם בצ'אט וגם בפתיחה בטרמינל. נוספים מעל הסביבה של VS Code ודורסים משתנה בעל אותו שם. משתני החיבור (`ANTHROPIC_BASE_URL` ועוד) נשארים ב-`settings.json` של ה-CLI. שינוי חל בשיחה הבאה. |
+| `claudeLocal.preferredLocation` | `panel` | איפה נפתח הצ'אט מהכפתור הראשי: `panel` = לשונית עורך, `sidebar` = סרגל הצד. |
+| `claudeLocal.lockEditorGroups` | כבוי | נועל את קבוצת העורכים של לשונית הצ'אט. |
+| `claudeLocal.useTerminal` | כבוי | הכפתור הראשי ו-`Ctrl+Shift+Esc` פותחים את ה-CLI בטרמינל. הפקודה "פתיחה בטרמינל" זמינה תמיד. |
+| `claudeLocal.enableNewConversationShortcut` | כבוי | `Ctrl+N` פותח שיחה חדשה כשהמיקוד בצ'אט. |
+| `claudeLocal.keybindings.send` / `.newLine` / `.rewind` | `Enter` / `Shift+Enter` / `Escape Escape` | קיצורים בתוך תיבת ההודעה. פורמט: `Ctrl+Enter`, או רצף מופרד ברווח: `Escape Escape`. `useCtrlEnterToSend` ממשיכה לעבוד ומחליפה בין שליחה לשורה חדשה, כל עוד שני הקיצורים בברירת המחדל. `rewind` יופעל עם בניית נקודות השמירה. |
+
+**קיצורי VS Code** (ניתנים לשינוי): `Ctrl+Shift+Esc` ו-`Ctrl+Alt+C` פותחים לשונית צ'אט, `Ctrl+Esc` עובר בין העורך לצ'אט, ו-`Ctrl+N` (רק אם הופעל). לשינוי: Command Palette ← "Claude Code Local: קיצורי מקלדת" (פותח את עורך הקיצורים מסונן ל-`claude-local`). הקיצורים בתוך תיבת ההודעה אינם מופיעים שם, כי ה-webview לא רואה את קיצורי VS Code; משנים אותם בהגדרות `claudeLocal.keybindings.*`.
+
+### בדיקה שנדרשת אצלכם: האם `Ctrl+Esc` פותח את תפריט התחל?
+ב-Windows `Ctrl+Esc` בדרך כלל פותח את תפריט התחל, ולכן ייתכן ש-VS Code לא יקבל אותו. **זה לא נבדק (נבדק רק במחשב שלכם).** הבדיקה:
+1. פותחים את VS Code עם התוסף, ולוחצים `Ctrl+Esc` כשהמיקוד בעורך קוד.
+2. אם נפתח הצ'אט ותפריט התחל **לא** נפתח: הכול תקין.
+3. אם נפתח תפריט התחל (או שלא קרה כלום): `Ctrl+K Ctrl+S`, חיפוש `claude-local.focusToggle`, לחיצה כפולה על השורה, והקלדת קיצור אחר (למשל `Ctrl+Alt+E`).
+4. חוזרים עם התוצאה (עבד / תפריט התחל / שום דבר) כדי לעדכן את `spec.md`.

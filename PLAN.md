@@ -163,7 +163,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 
 | Package | Content | Depends on |
 |---|---|---|
-| **A** | Settings, rebindable shortcuts **(including Ctrl+Esc, tested on the user's machine for the Start-menu conflict)**, Open in Terminal, `environmentVariables`, launching `claude-bin.exe` | – |
+| **A** ✅ done 2026-11-01 (branch `package-a-settings-shortcuts`) | Settings, rebindable shortcuts **(including Ctrl+Esc, tested on the user's machine for the Start-menu conflict)**, Open in Terminal, `environmentVariables`, launching `claude-bin.exe`. **Still open:** the Ctrl+Esc check on the user's machine (`SETUP.md` section 7) and the in-VS Code check of the new commands | – |
 | **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff` **(with the shared diff-view module that F reuses)**, `/loop` indicator, **agent cards, Claude's pinned task list** (both start with a check that the local model uses sub-agents / `TaskCreate`) | A |
 | **C** | Prompt box: Auto, grouped `/` menu **(with terminal-only commands greyed out)**, @-mentions, **Alt+K (`@path`)**, images, message queue **(visible, cancellable)** **+ per-conversation prompt history**, copy, `/btw`, plan in the editor | A |
 | **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |

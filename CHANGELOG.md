@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-01 (package A: settings and shortcuts)
+- **New settings:** `environmentVariables` (merged over the CLI environment, defaults `API_TIMEOUT_MS=1200000`, `CLAUDE_ENABLE_STREAM_WATCHDOG=0`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`), `preferredLocation`, `lockEditorGroups`, `useTerminal`, `enableNewConversationShortcut`, `keybindings.send/newLine/rewind` (webview-side; `useCtrlEnterToSend` kept and swaps the defaults). Why: the local model needs the long timeout and the real 64,000 window, and the user asked for placement and shortcut control (`PLAN.md` sections 3-4).
+- **New commands and shortcuts:** Open in Terminal (`terminal.open`), Keyboard Shortcuts (opens the shortcut editor filtered to `claude-local`), `focusToggle` on Ctrl+Esc (editor to chat; does not toggle back from the sidebar), Ctrl+N for a new conversation (opt-in, only with chat focus). Ctrl+Shift+Esc and Ctrl+Alt+C kept. Why: all VS Code-level shortcuts must be rebindable.
+- **Code:** new `src/cli/env.js`, `src/cli/terminal.js`, `src/util/workspace.js` (`workspaceCwd` moved out of `conversation.js`), `webview/chat/keys.js`; `SETUP.md` section 7 (Hebrew).
+- **Deviations from the plan:** `useTerminal` applies to `editor.open` and `editor.openLast`; the `rewind` key is matched but only calls the hook `CL.composer.onRewind` until package B (checkpoints); Ctrl+Esc has no context key.
+- **Known limits:** VS Code replaces the whole `environmentVariables` object when the user sets one key. **Not verified in real VS Code:** the new commands, the Ctrl+N `when` clause, key forwarding from the webview, and the Ctrl+Esc Start-menu conflict (user item, `SETUP.md` section 7). Unit tests 32/32.
+
 ## 2026-11-01 (second reorganisation)
 - **Docs reduced to the seven files the coding-workflow skill expects, plus `PLAN.md`** (no extension code touched): `docs/final-plan.md` became `PLAN.md` (English); `docs/conclusions.md` and `docs/litellm-gateway.md` were merged into `DEPENDENCIES.md` (sections 2-5, English); `git-instructions.md` was restored as its own short file (the skill looks for it); the Hebrew guide moved to `dev/claude-code-vscode-guide-he.html`; `docs/` no longer exists. `SETUP.md` stays in Hebrew in the root; `dev/README.md` stays and no longer holds findings. Why: only the needed files should remain, each with all its relevant content. Nothing was dropped: every identifier and number of the old files was checked against the new ones before deleting (the originals stay in git history).
 

@@ -21,7 +21,10 @@
     model: 'default',
     models: [],
     settings: { useCtrlEnterToSend: false, allowBypass: false },
+    keys: CL.keys.resolve(),
   };
+  // Double Esc (or the configured rewind shortcut); CL.composer.onRewind is the hook for the checkpoints package.
+  let rewindSeq = CL.keys.createSequence(state.keys.rewind);
 
   function autoresize() {
     input.style.height = 'auto';
@@ -92,12 +95,14 @@
       e.preventDefault();
       return;
     }
-    if (e.key !== 'Enter') return;
-    const ctrl = e.ctrlKey || e.metaKey;
-    const sends = state.settings.useCtrlEnterToSend ? ctrl : !e.shiftKey && !ctrl;
-    if (sends) {
+    if (rewindSeq.feed(e) && CL.composer.onRewind) CL.composer.onRewind();
+    if (CL.keys.matches(e, state.keys.send)) {
       e.preventDefault();
       send();
+    } else if (CL.keys.matches(e, state.keys.newLine)) {
+      e.preventDefault();
+      input.setRangeText('\n', input.selectionStart, input.selectionEnd, 'end');
+      input.dispatchEvent(new Event('input'));
     }
   });
 
@@ -145,9 +150,11 @@
     },
     setSettings(s) {
       state.settings = { ...state.settings, ...s };
-      input.placeholder = state.settings.useCtrlEnterToSend
-        ? 'כתבו ל-Claude… (Ctrl+Enter לשליחה, הקלידו / לפקודות)'
-        : 'כתבו ל-Claude… (הקלידו / לפקודות וסקילים)';
+      state.keys = CL.keys.resolve(state.settings);
+      rewindSeq = CL.keys.createSequence(state.keys.rewind);
+      input.placeholder = state.keys.send === CL.keys.DEFAULTS.send
+        ? 'כתבו ל-Claude… (הקלידו / לפקודות וסקילים)'
+        : `כתבו ל-Claude… (${state.keys.send} לשליחה, הקלידו / לפקודות)`;
     },
     setNoFolder(on) {
       cwdNote.hidden = !on;

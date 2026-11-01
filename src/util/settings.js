@@ -1,6 +1,8 @@
 // Reads claudeLocal.* settings and notifies listeners when any of them changes.
 const vscode = require('vscode');
 
+const { sanitizeEnvironmentVariables } = require('../cli/env');
+
 const SECTION = 'claudeLocal';
 
 function read() {
@@ -9,6 +11,15 @@ function read() {
     claudePath: c.get('claudePath') || 'claude',
     allowDangerouslySkipPermissions: c.get('allowDangerouslySkipPermissions') === true,
     useCtrlEnterToSend: c.get('useCtrlEnterToSend') === true,
+    environmentVariables: sanitizeEnvironmentVariables(c.get('environmentVariables')),
+    preferredLocation: c.get('preferredLocation') === 'sidebar' ? 'sidebar' : 'panel',
+    lockEditorGroups: c.get('lockEditorGroups') === true,
+    useTerminal: c.get('useTerminal') === true,
+    keybindings: {
+      send: c.get('keybindings.send'),
+      newLine: c.get('keybindings.newLine'),
+      rewind: c.get('keybindings.rewind'),
+    },
   };
 }
 

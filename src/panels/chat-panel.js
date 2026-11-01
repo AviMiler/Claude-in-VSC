@@ -26,6 +26,7 @@ function openChatPanel(services, { resume } = {}) {
   const entry = {
     conversation,
     isTab: true,
+    isActive: () => panel.active,
     reveal: () => panel.reveal(undefined, false),
   };
   const reg = registry.add(entry);
@@ -35,6 +36,9 @@ function openChatPanel(services, { resume } = {}) {
     conversation.dispose();
   });
   panel.webview.html = chatHtml(panel.webview, extensionUri);
+  if (services.settings.get().lockEditorGroups) {
+    Promise.resolve(vscode.commands.executeCommand('workbench.action.lockEditorGroup')).catch(() => {});
+  }
   return entry;
 }
 

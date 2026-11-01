@@ -1,9 +1,10 @@
 // One conversation = one webview + one long-lived CLI process. Holds only in-memory state that
 // dies with the window; everything persistent is the CLI's (spec: "the CLI is the only source
 // of truth").
-const os = require('os');
 const vscode = require('vscode');
 const { CliProcess } = require('../cli/process');
+const { mergeEnv } = require('../cli/env');
+const { workspaceCwd } = require('../util/workspace');
 const { buildArgs } = require('../cli/args');
 const { createStreamTranslator } = require('./event-translator');
 const { routeMessage } = require('./message-router');
@@ -15,11 +16,6 @@ const INTERRUPTED = 'Interrupted by the user';
 // within this time the turn is closed locally so the stop button never hangs.
 const STOP_RESULT_WAIT_MS = 4000;
 const TITLE_MAX = 40;
-
-function workspaceCwd() {
-  const folders = vscode.workspace.workspaceFolders;
-  return folders && folders.length ? { cwd: folders[0].uri.fsPath, noFolder: false } : { cwd: os.homedir(), noFolder: true };
-}
 
 function spawnErrorText(err, claudePath) {
   return `לא ניתן להפעיל את Claude (${err.code || err.message}). בדוק את ההגדרה claudeLocal.claudePath (כרגע: ${claudePath}).`;
@@ -66,7 +62,11 @@ class Conversation {
   }
 
   webviewSettings(s = this.services.settings.get()) {
-    return { useCtrlEnterToSend: s.useCtrlEnterToSend, allowBypass: s.allowDangerouslySkipPermissions };
+    return {
+      useCtrlEnterToSend: s.useCtrlEnterToSend,
+      keybindings: s.keybindings,
+      allowBypass: s.allowDangerouslySkipPermissions,
+    };
   }
 
   // --- lifecycle -------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class Conversation {
   }
 
   startProcess({ resume } = {}) {
-    const { claudePath, allowDangerouslySkipPermissions } = this.services.settings.get();
+    const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
     const args = buildArgs({
       permissionMode: this.permissionMode,
       resume,
@@ -99,7 +99,13 @@ class Conversation {
       allowBypass: allowDangerouslySkipPermissions,
     });
     this.services.logger.info(`spawn ${claudePath} ${args.join(' ')} (cwd ${this.cwd})`);
-    const proc = new CliProcess({ claudePath, args, cwd: this.cwd, log: (t) => this.log(t) });
+    const proc = new CliProcess({
+      claudePath,
+      args,
+      cwd: this.cwd,
+      env: mergeEnv(process.env, environmentVariables),
+      log: (t) => this.log(t),
+    });
     const translate = createStreamTranslator();
     this.proc = proc;
 

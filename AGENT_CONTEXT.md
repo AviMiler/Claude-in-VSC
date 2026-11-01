@@ -24,8 +24,9 @@ A VS Code extension (plain JS, no build, no npm) that is a Hebrew RTL front for 
 
 ## Current state (2026-11-01)
 - The basic version (v0.1.0) is built and works on the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b` behind a LiteLLM gateway).
-- No extension code exists yet for the roadmap features; all their decisions are closed (`PLAN.md`).
-- Next step: package A of `PLAN.md` section 5 (settings, rebindable shortcuts, Open in Terminal, `environmentVariables`, launching `claude-bin.exe`), after the user approves the points marked ⚠️ in `PLAN.md` section 6 (items 6 and 7).
+- Package A is done on branch `package-a-settings-shortcuts` (not committed yet when written): the new settings, `environmentVariables`, Open in Terminal, rebindable shortcuts (Ctrl+Esc, Ctrl+N opt-in, Keyboard Shortcuts command), `claude-bin.exe` documented in `SETUP.md`. Unit tests 32/32; the new VS Code commands and keys are unverified in real VS Code. The `rewind` key is only a hook until package B.
+- Open user item: check whether Ctrl+Esc opens the Windows Start menu (`SETUP.md` section 7); if so, rebind `claude-local.focusToggle`.
+- Next step: package B of `PLAN.md` section 5 (sessions, checkpoints incl. the `rewind` action, `/diff`, background tasks; starts with the sub-agent / `TaskCreate` checks). The other roadmap features are not built; their decisions are closed (`PLAN.md`).
 - What is not verified yet: `spec.md` "Verification status", `PLAN.md` section 6, `DEPENDENCIES.md` section 5. Recent changes: `CHANGELOG.md`.
 
 ## How to work here
