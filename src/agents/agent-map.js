@@ -145,15 +145,14 @@ function onSystem(map, msg) {
 // Applies one raw CLI line; returns the card ids it changed (empty when nothing did).
 function applyMessage(map, msg) {
   if (!msg) return [];
+  const content = msg.message && msg.message.content;
+  const relevant = msg.type === 'system' ? Boolean(msg.tool_use_id || msg.task_id) : (msg.type === 'assistant' || msg.type === 'user') && Array.isArray(content);
+  if (!relevant) return []; // most lines (stream deltas) stop here, before any copying
   const before = new Map([...map.cards].map(([id, c]) => [id, JSON.stringify(c)]));
   let changed = false;
   if (msg.type === 'system') changed = onSystem(map, msg);
-  else {
-    const content = msg.message && msg.message.content;
-    if (!Array.isArray(content)) return [];
-    if (msg.type === 'assistant') changed = onAssistant(map, msg, content);
-    else if (msg.type === 'user') changed = onUser(map, msg, content);
-  }
+  else if (msg.type === 'assistant') changed = onAssistant(map, msg, content);
+  else changed = onUser(map, msg, content);
   if (!changed) return [];
   return [...map.cards.keys()].filter((id) => before.get(id) !== JSON.stringify(map.cards.get(id)));
 }

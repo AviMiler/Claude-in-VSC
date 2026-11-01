@@ -5,9 +5,13 @@ const { TAGS } = require('../util/log-tags');
 const loopJobs = require('./loop-jobs');
 const { startsSelfTurn } = require('./self-turn');
 
-// conv: the Conversation (busy, proc, post, send, services.logger, loop).
-function trackLoop(conv, msg) {
-  if (startsSelfTurn(msg, conv.busy)) {
+// After a stopped turn is closed locally (no `result` came), its late lines are not a new turn.
+const LATE_LINES_MS = 10000;
+
+// conv: the Conversation (busy, proc, post, send, services.logger, loop, forcedEndAt).
+function trackLoop(conv, msg, now = Date.now()) {
+  const late = conv.forcedEndAt && now - conv.forcedEndAt < LATE_LINES_MS;
+  if (!late && startsSelfTurn(msg, conv.busy)) {
     // Unverified sequence (DEPENDENCIES.md row 38): the turn stays open until its `result`.
     conv.busy = true;
     conv.services.logger.info(TAGS.LOOP, 'self-started turn (no user message)');

@@ -219,6 +219,7 @@ class Conversation {
     if (proc !== this.proc) return;
     this.proc = null;
     this.denyAllPending();
+    loopHost.resetLoop(this); // the jobs died with the process
     const wasBusy = this.busy && !this.stopping;
     this.endTurn({});
     if (this.disposed) return;
@@ -270,6 +271,7 @@ class Conversation {
       clearTimeout(this.stopTimer);
       this.stopTimer = setTimeout(() => {
         if (proc !== this.proc || !this.stopping) return;
+        this.forcedEndAt = Date.now(); // late lines of this turn must not look self-started (loop-host.js)
         this.post({ type: 'events', events: [this.endTurn({ kind: 'result' })] });
       }, STOP_RESULT_WAIT_MS);
     });
