@@ -8,6 +8,12 @@ const panels = require('./src/panels');
 
 let services;
 
+// Names and flags only: environment values and model denylist contents stay out of the log.
+function describeSettings(s) {
+  const d = s.display || {};
+  return `claudePath=${s.claudePath} bypass=${s.allowDangerouslySkipPermissions} terminal=${s.useTerminal} location=${s.preferredLocation} envNames=[${Object.keys(s.environmentVariables || {}).join(',')}] gatewayUrl=${s.gatewayUrl ? 'set' : 'unset'} denylist=${s.modelDenylist.length} focusView=${d.focusView} timestamps=${d.showMessageTimestamps} colorMode=${d.colorMode}`;
+}
+
 function activate(context) {
   const logger = createLogger();
   const settings = createSettings();
@@ -19,7 +25,8 @@ function activate(context) {
 
   panels.register(context, services);
   require('./src/uri').register(context, services);
-  logger.info(`activated (VS Code ${vscode.version})`);
+  logger.info('settings', `activated (VS Code ${vscode.version}); ${describeSettings(settings.get())}`);
+  context.subscriptions.push(settings.onDidChange((s) => logger.info('settings', `changed: ${describeSettings(s)}`)));
 }
 
 function deactivate() {

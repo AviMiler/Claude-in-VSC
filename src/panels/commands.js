@@ -85,6 +85,10 @@ function registerCommands(context, services) {
       return undefined;
     },
     'claude-local.showLogs': () => logger.show(),
+    'claude-local.copyLogs': async () => {
+      const lines = await logger.copy();
+      vscode.window.showInformationMessage(`היומן הועתק ללוח (${lines} שורות).`);
+    },
   };
   for (const [id, fn] of Object.entries(commands)) {
     context.subscriptions.push(vscode.commands.registerCommand(id, fn));

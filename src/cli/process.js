@@ -7,6 +7,12 @@ const { spawnCli } = require('./spawn');
 
 const KILL_GRACE_MS = 6000;
 
+// Type and size only: stream lines carry message text, which must not reach the log.
+function describe(msg, length) {
+  const sub = (msg.request && msg.request.subtype) || (msg.response && msg.response.subtype) || msg.subtype;
+  return `${msg.type}${sub ? `/${sub}` : ''} (${length} chars)`;
+}
+
 class CliProcess extends EventEmitter {
   constructor({ claudePath, args, cwd, env, log = () => {} }) {
     super();
@@ -42,16 +48,17 @@ class CliProcess extends EventEmitter {
   }
 
   onLine(line) {
-    this.log(`<< ${line}`);
     let msg;
     try {
       msg = JSON.parse(line);
     } catch {
-      this.log(`ignored non-JSON line`);
+      this.log(`ignored non-JSON line (${line.length} chars)`);
       return;
     }
+    this.log(`<< ${describe(msg, line.length)}`);
     if (msg.type === 'control_response') {
       const { request_id: id, subtype, response, error } = msg.response || {};
+      this.log(`response ${id} ${subtype}${error ? `: ${error}` : ''}`, 'control', error ? 'warn' : 'info');
       const entry = this.pending.get(id);
       if (!entry) return;
       this.pending.delete(id);
@@ -74,7 +81,7 @@ class CliProcess extends EventEmitter {
   send(obj) {
     if (this.exited) return false;
     const line = JSON.stringify(obj);
-    this.log(`>> ${line}`);
+    this.log(`>> ${describe(obj, line.length)}`);
     this.child.stdin.write(line + '\n');
     return true;
   }
@@ -94,6 +101,7 @@ class CliProcess extends EventEmitter {
         reject(new Error(`${subtype} timed out`));
       }, timeoutMs);
       this.pending.set(requestId, { resolve, reject, timer });
+      this.log(`request ${requestId} ${subtype}`, 'control', 'info');
       this.send({ type: 'control_request', request_id: requestId, request: { subtype, ...payload } });
     });
   }

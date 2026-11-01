@@ -34,7 +34,7 @@ class ModelSwitcher {
         const { ids, info } = await fetchModels(resolveGatewayUrl(s));
         this.list = filterModels(ids, info, s.modelDenylist);
       } catch (err) {
-        conv.services.logger.warn(`model list failed: ${err.message}`);
+        conv.services.logger.warn('model-switch', `model list failed: ${err.message}`);
       }
     }
     const values = [DEFAULT_MODEL, ...(this.list || [])];
@@ -54,6 +54,7 @@ class ModelSwitcher {
       conv.post({ type: 'notice', text: 'לא ניתן להחליף מודל בזמן ש-Claude עובד. השתמשו ב"עצירה והחלפה".' });
       return conv.post({ type: 'model', value: conv.model });
     }
+    conv.services.logger.info('model-switch', `${conv.model} -> ${value}${revert ? ' (revert)' : ''}, restart=${Boolean(conv.proc)}`);
     this.previous = revert ? null : conv.model;
     conv.model = value;
     conv.post({ type: 'model', value });
@@ -73,6 +74,7 @@ class ModelSwitcher {
     );
     if (choice !== STOP_AND_SWITCH) return conv.post({ type: 'model', value: conv.model });
     if (!conv.busy) return this.switchTo(value);
+    conv.services.logger.info('model-switch', `stop-and-switch to ${value}: interrupting`);
     this.pendingSwitch = value;
     conv.interrupt();
   }

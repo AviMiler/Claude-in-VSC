@@ -82,7 +82,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `transcript-events.js` — transcript entries to the same UI events as live.
 
 ## src/util/
-- `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel), `settings.js` (`claudeLocal.*` + change events), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
+- `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel + ring buffer, tagged API, copy), `log-tags.js` (fixed feature tags), `log-buffer.js` (pure: redact, line format, level filter, ring buffer), `settings.js` (`claudeLocal.*` + change events), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
 
 ## webview/chat/ — plain scripts loaded by `index.html`
 - `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `mcp-dialog.js` (MCP dialog) with `mcp.css`; `error-card.js` (CLI-failure card); `app.js` (wiring, messages from host).

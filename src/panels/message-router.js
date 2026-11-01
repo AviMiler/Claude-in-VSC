@@ -2,6 +2,7 @@
 
 const { handleMcp } = require('../mcp/mcp-handler');
 const { openSettings } = require('./settings-actions');
+const { WEBVIEW_TAGS } = require('../util/log-tags');
 
 const ROUTES = {
   ready: (c) => c.onReady(),
@@ -25,12 +26,14 @@ const ROUTES = {
   openLink: (c, m) => c.openLink(String(m.url)),
   mcp: (c, m) => handleMcp(c, m),
   openSettings: (_c, m) => openSettings(String(m.target)),
+  // Webview events worth a log line (counts and names only, never message text).
+  log: (c, m) => WEBVIEW_TAGS.includes(m.tag) && c.services.logger.info(m.tag, `ui: ${String(m.text).slice(0, 200)}`),
 };
 
 function routeMessage(conversation, msg) {
   const route = msg && ROUTES[msg.type];
   if (route) route(conversation, msg);
-  else conversation.services.logger.warn(`unknown webview message: ${msg && msg.type}`);
+  else conversation.services.logger.warn('control', `unknown webview message: ${msg && msg.type}`);
 }
 
 module.exports = { routeMessage };

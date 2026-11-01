@@ -93,7 +93,9 @@
         },
         "claudeLocal.spinnerVerbs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "markdownDescription": "מילות ההמתנה במחוון העבודה. ריק = מילות ברירת המחדל של התוסף."
         },
@@ -109,8 +111,14 @@
         },
         "claudeLocal.colorMode": {
           "type": "string",
-          "enum": ["default", "daltonized"],
-          "enumDescriptions": ["צבעי ברירת המחדל", "צבעים מותאמים ללקויי ראיית צבעים"],
+          "enum": [
+            "default",
+            "daltonized"
+          ],
+          "enumDescriptions": [
+            "צבעי ברירת המחדל",
+            "צבעים מותאמים ללקויי ראיית צבעים"
+          ],
           "default": "default",
           "markdownDescription": "ערכת צבעים ללקויי ראיית צבעים."
         },
@@ -121,8 +129,12 @@
         },
         "claudeLocal.modelDenylist": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["gemma3:27b"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "gemma3:27b"
+          ],
           "markdownDescription": "מודלים שלא יוצגו בבורר המודלים (למשל מודלים שלא תומכים בכלים)."
         },
         "claudeLocal.enableNewConversationShortcut": {
@@ -144,6 +156,19 @@
           "type": "string",
           "default": "Escape Escape",
           "markdownDescription": "חזרה לנקודת שמירה (יופעל עם בניית נקודות השמירה). קיצור בתוך תיבת ההודעה (לא מ-`keybindings.json` של VS Code; את קיצורי VS Code משנים בפקודה \"קיצורי מקלדת\"). פורמט: `Ctrl+Enter`, או רצף עם רווח: `Escape Escape`."
+        },
+        "claudeLocal.logLevel": {
+          "type": "string",
+          "enum": [
+            "info",
+            "debug"
+          ],
+          "default": "info",
+          "enumDescriptions": [
+            "אירועים עיקריים בלבד",
+            "מפורט: כולל סיכום של כל שורה בזרם מול ה-CLI"
+          ],
+          "markdownDescription": "רמת הפירוט של היומן \"Claude Code Local\". היומן אינו כולל טקסט הודעות, תוכן קבצים, מפתחות או ערכי משתני סביבה."
         }
       }
     },
@@ -193,6 +218,11 @@
       {
         "command": "claude-local.showLogs",
         "title": "הצגת יומן",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.copyLogs",
+        "title": "העתקת יומן",
         "category": "Claude Code Local"
       },
       {
