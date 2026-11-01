@@ -4,7 +4,7 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 
 ## [2026-10-30] Start fresh and small in this repo
 **Decision:** Build a new, small "basic version" in this repo. The older OneDrive project's code is a reference for ideas only.
-**Alternatives considered:** Continue the old project and run its never-executed code; follow `plan.md`'s four milestones (M1-M4) as written.
+**Alternatives considered:** Continue the old project and run its never-executed code; follow the older four-milestone plan (M1-M4; since removed from the repo) as written.
 **Why:** The old code was never run; the user wants something that works first, with design invested, and a narrower scope than the old M1.
 
 ## [2026-10-30] Strict source of truth: the extension stores no data
