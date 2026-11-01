@@ -14,6 +14,7 @@ const ROUTES = {
   openFile: (c, m) => c.openFile(String(m.path), m.line),
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),
+  diffCommand: (c) => c.diffCommand(),
   openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
 };

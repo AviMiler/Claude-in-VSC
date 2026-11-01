@@ -3,6 +3,7 @@
 // the UI without a model (set claudeLocal.claudePath to dev/fake-claude.cmd).
 // Keywords in the user message pick a scenario:
 //   "tool"   -> a Bash tool call that asks permission
+//   "edit"   -> fake Edit + Write calls (for /diff; nothing is written)
 //   "שאלה"   -> an AskUserQuestion card
 //   "slow"   -> a long, slow reply (to try the stop button)
 //   otherwise a Markdown reply (headings, list, table, code).
@@ -102,6 +103,11 @@ async function turn(text) {
     await streamText('אריץ פקודה קצרה.', 5);
     await toolCall('Bash', { command: 'echo hi', description: 'Print hi' });
     await streamText('הפקודה הסתיימה.', 5);
+  } else if (/edit/.test(text)) {
+    // Fake Edit/Write calls for /diff (nothing is written to disk).
+    await toolCall('Edit', { file_path: `${process.cwd()}/demo.js`, old_string: 'const a = 1;', new_string: 'const a = 2;' });
+    await toolCall('Write', { file_path: `${process.cwd()}/notes.md`, content: '# הערות\n' });
+    await streamText('שיניתי שני קבצים.', 5);
   } else if (/שאלה/.test(text)) {
     await toolCall('AskUserQuestion', {
       questions: [{ question: 'איזה צבע?', header: 'צבע', multiSelect: false, options: [{ label: 'כחול', description: 'צבע קר' }, { label: 'אדום', description: 'צבע חם' }] }],

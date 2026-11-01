@@ -40,6 +40,11 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `status-bar.js` — the "✻ Claude" item.
 - `index.js` — `register` for the panels feature.
 
+## src/diff/ — shared diff view and `/diff`
+- `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; reused by package F and `openDiff`.
+- `diff-command.js` — `/diff` QuickPick to diff.
+
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
 - `transcript-events.js` — transcript entries to the same UI events as live.
@@ -59,13 +64,13 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 ## dev/ — development only (not packaged)
 - `README.md` — how to run the probes, the gateway probe, the fake CLI and the browser preview.
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
-- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`).
+- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`).
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host.
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario).
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

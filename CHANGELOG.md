@@ -2,6 +2,12 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-01 (package B2, part 1: `/diff` and the shared diff-view module)
+- **Built:** `/diff` (extension-side, never sent, like `/plan`): QuickPick of files changed by this conversation's Edit/MultiEdit/Write calls, opening a VS Code diff of old to new fragments (Write: empty to content). No git, no disk writes. Shared module `src/diff/` (`edit-log.js`, `diff-view.js`, `diff-command.js`) for reuse by package F and `openDiff`.
+- **Why:** `PLAN.md` package B ("`/diff` with the shared diff-view module that F reuses").
+- **Code:** changed `conversation.js` (`this.edits`, `diffCommand()`), `message-router.js`, `index.js` (`services.diffView`), `webview/chat/composer.js`, `dev/fake-claude.js` ("edit" scenario); new `test/edit-log.test.js`. Tests 64/64.
+- **Not verified:** real VS Code diff rendering. **Still pending from B2 (not built):** checkpoints, background tasks, `/loop` indicator, agent cards, pinned task list.
+
 ## 2026-11-01 (package B1: sessions list, Sonnet part of package B)
 - **Built:** an Activity Bar container `claude-local-history` with the TreeView `claudeLocalHistory` listing past conversations of the open folder (read-only from `src/history/`); temporary in-memory filters (waiting = open with a pending permission, active = open and busy, finished = everything else including not-open); rename through the CLI (`/rename <title>` sent as ordinary user text, nothing written by the extension; a conversation that is not open is resumed first and renamed once ready); reopen a closed conversation (in-memory list, max 10, session id and title only; Ctrl+Shift+T); emoji prefix in the tab title (blue circle = waiting for permission, orange circle = finished while the tab was hidden), because VS Code has no tab colour API; a suggestion row "continue the last conversation" read from the newest transcript, shown only when no conversation is open and the filter is "all".
 - **Why:** user decisions in `PLAN.md` stage 1 and 4; all state is in memory, so the "no storage" rule holds. The activity-bar list supersedes the 2026-10-30 "no separate sessions panel" decision.

@@ -11,6 +11,8 @@ const { routeMessage } = require('./message-router');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
+const editLog = require('../diff/edit-log');
+const { runDiffCommand } = require('../diff/diff-command');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -51,6 +53,7 @@ class Conversation {
     this.disposed = false;
     this.planText = '';
     this.turnTexts = new Map();
+    this.edits = editLog.createEditLog(); // this session's Edit/Write tool calls, for /diff
     this.entries = null;
     this.subs = [
       webview.onDidReceiveMessage((msg) => {
@@ -133,6 +136,7 @@ class Conversation {
         }
       }
       this.trackPlan(events);
+      for (const ev of events) editLog.addEvent(this.edits, ev);
       if (events.length) this.post({ type: 'events', events });
     });
     proc.on('controlRequest', (id, req) => this.onControlRequest(proc, id, req));
@@ -327,6 +331,8 @@ class Conversation {
     this.killProcess();
     this.sessionId = id;
     this.hasMessages = events.length > 0;
+    this.edits = editLog.createEditLog();
+    for (const ev of events) editLog.addEvent(this.edits, ev);
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
@@ -359,6 +365,7 @@ class Conversation {
     this.killProcess();
     this.sessionId = null;
     this.hasMessages = false;
+    this.edits = editLog.createEditLog();
     this.setTitle('Claude');
     this.post({ type: 'reset' });
     this.startProcess();
@@ -392,6 +399,12 @@ class Conversation {
     if (!open) return this.setMode('plan');
     if (!this.planText) return this.post({ type: 'notice', text: 'עדיין אין תוכנית לפתיחה. עברו למצב תכנון ובקשו מ-Claude תוכנית.' });
     return this.services.planDocs.open(this.planText);
+  }
+
+  // `/diff`: the files this session's Edit/Write tool calls changed (no git).
+  async diffCommand() {
+    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
+    if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
   }
 
   async mentionSearch(query, seq) {
