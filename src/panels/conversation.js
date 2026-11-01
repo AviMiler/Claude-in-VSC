@@ -12,6 +12,7 @@ const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
 
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
 // After the CLI acknowledges an interrupt it should end the turn with a `result`; if none comes
 // within this time the turn is closed locally so the stop button never hangs.
@@ -186,13 +187,16 @@ class Conversation {
 
   // --- webview requests ------------------------------------------------------------------
 
-  send(text) {
+  send(text, images) {
     if (!text || !text.trim() || this.busy) return;
+    const valid = Array.isArray(images)
+      ? images.filter((i) => i && IMAGE_TYPES.includes(i.mediaType) && typeof i.data === 'string')
+      : [];
     if (!this.proc) this.startProcess({ resume: this.sessionId || undefined });
     if (!this.hasMessages) this.setTitle(text.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX));
     this.hasMessages = true;
     this.busy = true;
-    this.proc.sendUserText(text);
+    this.proc.sendUserText(text, valid);
   }
 
   interrupt() {
@@ -370,6 +374,22 @@ class Conversation {
       }
     }
     this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(this.entries, query) });
+  }
+
+  // Files dragged in with Shift arrive as URIs and become @path mentions (a PDF is read by the CLI itself).
+  dropUris(uris) {
+    const parts = [];
+    for (const raw of Array.isArray(uris) ? uris.slice(0, 20) : []) {
+      let uri;
+      try {
+        uri = vscode.Uri.parse(String(raw));
+      } catch {
+        continue;
+      }
+      if (uri.scheme !== 'file') continue;
+      parts.push(mentions.mentionText(mentions.toSlashes(vscode.workspace.asRelativePath(uri, false))));
+    }
+    if (parts.length) this.insertText(`${parts.join(' ')} `);
   }
 
   insertText(text) {

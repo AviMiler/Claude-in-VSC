@@ -55,3 +55,16 @@ test('history: browse back and forward, restore the draft', () => {
   h.reset(['a']);
   assert.strictEqual(h.prev(''), 'a');
 });
+
+test('validateImage accepts known types and rejects others or oversize', () => {
+  assert.strictEqual(p.validateImage('image/png', 'AAAA'), null);
+  assert.ok(p.validateImage('image/svg+xml', 'AAAA'));
+  assert.ok(p.validateImage('image/png', ''));
+  assert.ok(p.validateImage('image/png', 'A'.repeat(8 * 1024 * 1024)));
+});
+
+test('queue keeps images with the queued message', () => {
+  const q = p.createQueue();
+  q.push('x', [{ mediaType: 'image/png', data: 'AA' }]);
+  assert.strictEqual(q.shift().images.length, 1);
+});

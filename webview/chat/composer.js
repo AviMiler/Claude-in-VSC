@@ -1,4 +1,4 @@
-// The input box and its footer: send/stop, the mode and model pickers, and the "/" trigger.
+﻿// The input box and its footer: send/stop, the mode and model pickers, and the "/" trigger.
 (function () {
   const { post } = CL;
 
@@ -9,11 +9,11 @@
   const cwdNote = document.getElementById('cwd-note');
 
   const MODES = [
-    { value: 'default', icon: '✎', label: 'ידני', desc: 'Claude יבקש אישור לפני עריכת קבצים והרצת פקודות' },
-    { value: 'acceptEdits', icon: '⏵⏵', label: 'עריכה אוטומטית', desc: 'Claude יערוך קבצים בלי לשאול' },
-    { value: 'auto', icon: '✦', label: 'אוטומטי', desc: 'ה-CLI מחליט לבד, המסווג עלול לטעות', warn: true },
-    { value: 'plan', icon: '⏸', label: 'תכנון', desc: 'Claude יחקור ויציע תוכנית בלי לשנות דבר' },
-    { value: 'bypassPermissions', icon: '⚠', label: 'ללא הרשאות', desc: 'Claude יפעל בלי לבקש שום אישור', danger: true },
+    { value: 'default', icon: 'ג', label: '׳™׳“׳ ׳™', desc: 'Claude ׳™׳‘׳§׳© ׳׳™׳©׳•׳¨ ׳׳₪׳ ׳™ ׳¢׳¨׳™׳›׳× ׳§׳‘׳¦׳™׳ ׳•׳”׳¨׳¦׳× ׳₪׳§׳•׳“׳•׳×' },
+    { value: 'acceptEdits', icon: 'גµגµ', label: '׳¢׳¨׳™׳›׳” ׳׳•׳˜׳•׳׳˜׳™׳×', desc: 'Claude ׳™׳¢׳¨׳•׳ ׳§׳‘׳¦׳™׳ ׳‘׳׳™ ׳׳©׳׳•׳' },
+    { value: 'auto', icon: 'ג¦', label: '׳׳•׳˜׳•׳׳˜׳™', desc: '׳”-CLI ׳׳—׳׳™׳˜ ׳׳‘׳“, ׳”׳׳¡׳•׳•׳’ ׳¢׳׳•׳ ׳׳˜׳¢׳•׳×', warn: true },
+    { value: 'plan', icon: 'ג¸', label: '׳×׳›׳ ׳•׳', desc: 'Claude ׳™׳—׳§׳•׳¨ ׳•׳™׳¦׳™׳¢ ׳×׳•׳›׳ ׳™׳× ׳‘׳׳™ ׳׳©׳ ׳•׳× ׳“׳‘׳¨' },
+    { value: 'bypassPermissions', icon: 'ג ', label: '׳׳׳ ׳”׳¨׳©׳׳•׳×', desc: 'Claude ׳™׳₪׳¢׳ ׳‘׳׳™ ׳׳‘׳§׳© ׳©׳•׳ ׳׳™׳©׳•׳¨', danger: true },
   ];
 
   const state = {
@@ -35,7 +35,7 @@
   function refreshSend() {
     sendBtn.classList.toggle('stop', state.busy);
     sendBtn.disabled = !state.busy && !input.value.trim();
-    sendBtn.title = state.busy ? 'עצירה' : 'שליחה';
+    sendBtn.title = state.busy ? '׳¢׳¦׳™׳¨׳”' : '׳©׳׳™׳—׳”';
     sendBtn.setAttribute('aria-label', sendBtn.title);
   }
 
@@ -52,12 +52,12 @@
 
   function modelLabel(value) {
     const m = state.models.find((x) => x.value === value);
-    return m ? m.displayName || m.value : value === 'default' ? 'ברירת מחדל' : value;
+    return m ? m.displayName || m.value : value === 'default' ? '׳‘׳¨׳™׳¨׳× ׳׳—׳“׳' : value;
   }
 
   function refreshModel() {
     modelBtn.hidden = !state.models.length;
-    chip(modelBtn, '◇', modelLabel(state.model));
+    chip(modelBtn, 'ג—‡', modelLabel(state.model));
   }
 
   const history = CL.prompt.createHistory();
@@ -69,24 +69,74 @@
     refreshSend();
   }
 
-  function dispatch(text) {
-    post({ type: 'send', text });
-    CL.app.userSent(text);
+  function dispatch(text, images = []) {
+    post({ type: 'send', text, images });
+    CL.app.userSent(text, images.length);
   }
+
+  // --- attached images (pasted or dropped); kept in memory until sent ---------------------------
+  const attachmentsEl = document.getElementById('attachments');
+  let attached = [];
+
+  function renderAttachments() {
+    attachmentsEl.hidden = !attached.length;
+    attachmentsEl.replaceChildren(...attached.map((img, idx) => CL.el('span', { class: 'attach-chip' },
+      CL.el('img', { src: `data:${img.mediaType};base64,${img.data}`, alt: '׳×׳׳•׳ ׳” ׳׳¦׳•׳¨׳₪׳×' }),
+      CL.el('button', {
+        type: 'button',
+        title: '׳”׳¡׳¨׳”',
+        'aria-label': '׳”׳¡׳¨׳× ׳”׳×׳׳•׳ ׳”',
+        text: 'ג•',
+        onclick: () => { attached.splice(idx, 1); renderAttachments(); refreshSend(); },
+      }))));
+  }
+
+  function addImage(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(String(reader.result));
+      const error = m ? CL.prompt.validateImage(m[1], m[2]) : '׳׳ ׳ ׳™׳×׳ ׳׳§׳¨׳•׳ ׳׳× ׳”׳×׳׳•׳ ׳”';
+      if (error) return CL.app.notice(error);
+      attached.push({ mediaType: m[1], data: m[2] });
+      renderAttachments();
+      return refreshSend();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  input.addEventListener('paste', (e) => {
+    const files = [...(e.clipboardData ? e.clipboardData.files : [])].filter((f) => f.type.startsWith('image/'));
+    if (!files.length) return;
+    e.preventDefault();
+    files.forEach(addImage);
+  });
+
+  // Files dragged in from the Explorer (Shift) become @path mentions; image files from outside are attached.
+  const composerEl = document.querySelector('.composer');
+  composerEl.addEventListener('dragover', (e) => e.preventDefault());
+  composerEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    const uris = (dt.getData('text/uri-list') || '').split(/\r?\n/).filter((l) => l && !l.startsWith('#'));
+    if (uris.length) post({ type: 'dropUris', uris });
+    [...dt.files].filter((f) => f.type.startsWith('image/')).forEach(addImage);
+  });
 
   // Terminal-only commands are never sent to the model: show the card instead.
   function showTerminalCard(text) {
     CL.slashMenu.close();
     CL.thread.addCard(CL.el('div', { class: 'info-card', role: 'status' },
-      CL.el('div', { class: 'info-card-text', dir: 'auto', text: `הפקודה /${CL.prompt.commandName(text)} זמינה רק בטרמינל` }),
-      CL.el('button', { class: 'info-card-btn', type: 'button', text: 'פתיחה בטרמינל', onclick: () => post({ type: 'openTerminal' }) })));
+      CL.el('div', { class: 'info-card-text', dir: 'auto', text: `׳”׳₪׳§׳•׳“׳” /${CL.prompt.commandName(text)} ׳–׳׳™׳ ׳” ׳¨׳§ ׳‘׳˜׳¨׳׳™׳ ׳` }),
+      CL.el('button', { class: 'info-card-btn', type: 'button', text: '׳₪׳×׳™׳—׳” ׳‘׳˜׳¨׳׳™׳ ׳', onclick: () => post({ type: 'openTerminal' }) })));
     CL.thread.scrollToBottom();
     clearInput();
   }
 
   // While a turn runs a new message waits (in memory) as a grey bubble the user can cancel.
   function enqueue(text) {
-    const item = queue.push(text);
+    const item = queue.push(text, attached);
+    attached = [];
+    renderAttachments();
     CL.thread.addQueued(item, () => {
       queue.cancel(item.id);
       CL.thread.removeQueued(item.id);
@@ -108,7 +158,12 @@
     }
     clearInput();
     if (state.busy) enqueue(text);
-    else dispatch(text);
+    else {
+      const images = attached;
+      attached = [];
+      renderAttachments();
+      dispatch(text, images);
+    }
   }
 
   function sendNextQueued() {
@@ -116,7 +171,7 @@
     const item = queue.shift();
     if (!item) return;
     CL.thread.removeQueued(item.id);
-    dispatch(item.text);
+    dispatch(item.text, item.images);
   }
 
   // "/" menu: open while the text is a single "/word" at the very start.
@@ -245,12 +300,12 @@
       state.keys = CL.keys.resolve(state.settings);
       rewindSeq = CL.keys.createSequence(state.keys.rewind);
       input.placeholder = state.keys.send === CL.keys.DEFAULTS.send
-        ? 'כתבו ל-Claude… (הקלידו / לפקודות וסקילים)'
-        : `כתבו ל-Claude… (${state.keys.send} לשליחה, הקלידו / לפקודות)`;
+        ? '׳›׳×׳‘׳• ׳-Claudeג€¦ (׳”׳§׳׳™׳“׳• / ׳׳₪׳§׳•׳“׳•׳× ׳•׳¡׳§׳™׳׳™׳)'
+        : `׳›׳×׳‘׳• ׳-Claudeג€¦ (${state.keys.send} ׳׳©׳׳™׳—׳”, ׳”׳§׳׳™׳“׳• / ׳׳₪׳§׳•׳“׳•׳×)`;
     },
     setNoFolder(on) {
       cwdNote.hidden = !on;
-      cwdNote.textContent = on ? 'לא נפתחה תיקייה – Claude עובד בתיקיית הבית' : '';
+      cwdNote.textContent = on ? '׳׳ ׳ ׳₪׳×׳—׳” ׳×׳™׳§׳™׳™׳” ג€“ Claude ׳¢׳•׳‘׳“ ׳‘׳×׳™׳§׳™׳™׳× ׳”׳‘׳™׳×' : '';
     },
     focus() {
       input.focus();

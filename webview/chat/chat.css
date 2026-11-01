@@ -708,3 +708,12 @@ svg { display: block; }
   font-size: 11px; opacity: .55; padding: 0;
 }
 .copy-answer:hover { opacity: 1; }
+
+/* Attached images */
+.attachments { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 8px 0; }
+.attach-chip { position: relative; display: inline-flex; }
+.attach-chip img { height: 44px; max-width: 80px; object-fit: cover; border-radius: 4px; border: 1px solid var(--cl-border); }
+.attach-chip button {
+  position: absolute; top: -5px; inset-inline-end: -5px; width: 16px; height: 16px; padding: 0; line-height: 14px;
+  border-radius: 50%; border: 1px solid var(--cl-border); background: var(--cl-input-bg); color: inherit; cursor: pointer; font-size: 9px;
+}

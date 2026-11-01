@@ -2,7 +2,8 @@
 
 const ROUTES = {
   ready: (c) => c.onReady(),
-  send: (c, m) => c.send(String(m.text || '')),
+  send: (c, m) => c.send(String(m.text || ''), m.images),
+  dropUris: (c, m) => c.dropUris(m.uris),
   interrupt: (c) => c.interrupt(),
   setMode: (c, m) => c.setMode(String(m.value)),
   setModel: (c, m) => c.setModel(String(m.value)),

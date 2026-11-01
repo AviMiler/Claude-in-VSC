@@ -46,13 +46,23 @@
     return list.some((n) => String(n).toLowerCase() === name.toLowerCase());
   }
 
+  const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+  const MAX_IMAGE_BASE64 = (5 * 1024 * 1024 * 4) / 3; // 5 MB of binary, as base64 characters
+
+  // Images are accepted for every model (PLAN.md stage 2); only type and size are checked.
+  function validateImage(mediaType, base64) {
+    if (!IMAGE_TYPES.includes(mediaType)) return 'סוג תמונה לא נתמך (PNG, JPEG, GIF או WebP)';
+    if (!base64 || base64.length > MAX_IMAGE_BASE64) return 'התמונה גדולה מדי (עד 5MB)';
+    return null;
+  }
+
   // Messages typed while a turn runs wait here (in memory) and go out one at a time when it ends.
   function createQueue() {
     let items = [];
     let nextId = 1;
     return {
-      push(text) {
-        const item = { id: nextId++, text };
+      push(text, images = []) {
+        const item = { id: nextId++, text, images };
         items.push(item);
         return item;
       },
@@ -118,7 +128,7 @@
     };
   }
 
-  const api = { GROUPS, DEFAULT_TERMINAL_ONLY, classify, filterCommands, commandName, isTerminalOnly, createQueue, createHistory };
+  const api = { GROUPS, DEFAULT_TERMINAL_ONLY, classify, filterCommands, validateImage, IMAGE_TYPES, commandName, isTerminalOnly, createQueue, createHistory };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else (root.CL = root.CL || {}).prompt = api;
 })(typeof window !== 'undefined' ? window : globalThis);

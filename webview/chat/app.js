@@ -111,13 +111,13 @@
   document.getElementById('new-btn').addEventListener('click', () => post({ type: 'newConversation' }));
 
   // Called by the composer when the user sends; the first message titles the header like the tab.
-  function userSent(text) {
+  function userSent(text, imageCount = 0) {
     if (!titled) setTitle(text.replace(/\s+/g, ' ').trim().slice(0, 60));
-    CL.thread.addUser(text);
+    CL.thread.addUser(imageCount ? `${text}\n[תמונות: ${imageCount}]` : text);
     CL.thread.scrollToBottom();
     setBusy(true);
   }
 
-  CL.app = { setBusy, userSent };
+  CL.app = { setBusy, userSent, notice: showNotice };
   post({ type: 'ready' });
 })();
