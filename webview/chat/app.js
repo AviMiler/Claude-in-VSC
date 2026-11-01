@@ -46,13 +46,17 @@
       if (ev.kind === 'session') {
         CL.history.setCurrent(ev.sessionId);
         if (ev.permissionMode) CL.composer.setMode(ev.permissionMode);
+        if (ev.skills || ev.terminalOnly) CL.slashMenu.setMeta({ skills: ev.skills, terminalOnly: ev.terminalOnly });
       } else if (ev.kind === 'status') {
         statusVerb = STATUS_VERBS[ev.status] || null;
         if (!spinner.hidden) setVerb();
       }
     }
     CL.thread.apply(events);
-    if (events.some((ev) => ev.kind === 'result')) setBusy(false);
+    if (events.some((ev) => ev.kind === 'result')) {
+      setBusy(false);
+      CL.composer.sendNextQueued();
+    }
   }
 
   const HANDLERS = {
@@ -69,12 +73,16 @@
     mode: (m) => CL.composer.setMode(m.value),
     model: (m) => CL.composer.setModel(m.value),
     events: (m) => onEvents(m.events),
-    busy: (m) => setBusy(m.value),
+    busy(m) {
+      setBusy(m.value);
+      if (!m.value) CL.composer.sendNextQueued();
+    },
     permission: (m) => CL.cards.show(m),
     permissionCancelled: (m) => CL.cards.cancel(m.requestId),
     history: (m) => CL.history.show(m.items, m.currentId),
     sessionLoaded(m) {
       CL.thread.reset();
+      CL.composer.resetConversation(m.events.filter((ev) => ev.kind === 'user').map((ev) => ev.text));
       CL.history.setCurrent(m.id);
       setTitle(m.title);
       CL.thread.apply(m.events);
@@ -84,11 +92,17 @@
     },
     reset() {
       CL.thread.reset();
+      CL.composer.resetConversation([]);
       setTitle('');
       setBusy(false);
       CL.composer.focus();
     },
     notice: (m) => showNotice(m.text),
+    mentionResults: (m) => CL.mentions.setResults(m.items, m.seq),
+    insertText: (m) => CL.composer.insertText(m.text),
+    planReady() {
+      CL.thread.addNode(CL.el('button', { class: 'info-card-btn plan-open', type: 'button', text: 'פתיחת התוכנית בעורך', onclick: () => post({ type: 'planCommand', open: true }) }));
+    },
     focus: () => CL.composer.focus(),
   };
 
@@ -100,13 +114,13 @@
   document.getElementById('new-btn').addEventListener('click', () => post({ type: 'newConversation' }));
 
   // Called by the composer when the user sends; the first message titles the header like the tab.
-  function userSent(text) {
+  function userSent(text, imageCount = 0) {
     if (!titled) setTitle(text.replace(/\s+/g, ' ').trim().slice(0, 60));
-    CL.thread.addUser(text);
+    CL.thread.addUser(imageCount ? `${text}\n[תמונות: ${imageCount}]` : text);
     CL.thread.scrollToBottom();
     setBusy(true);
   }
 
-  CL.app = { setBusy, userSent };
+  CL.app = { setBusy, userSent, notice: showNotice };
   post({ type: 'ready' });
 })();

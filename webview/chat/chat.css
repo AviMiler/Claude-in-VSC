@@ -674,3 +674,46 @@ svg { display: block; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--vscode-scrollbarSlider-background); }
 ::-webkit-scrollbar-thumb:hover { background: var(--vscode-scrollbarSlider-hoverBackground); }
+
+/* Grouped "/" menu */
+.slash-group { padding: 4px 10px 2px; font-size: 11px; opacity: .65; }
+.slash-item.disabled { opacity: .5; }
+.slash-item.disabled .slash-name { text-decoration: line-through; }
+
+/* Terminal-only card */
+.info-card {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 7px 11px; border: 1px solid var(--cl-border); border-radius: var(--cl-radius);
+}
+.info-card-text { flex: 1; min-width: 0; }
+.info-card-btn {
+  border: 1px solid var(--cl-border); border-radius: var(--cl-radius); padding: 2px 10px;
+  background: transparent; color: inherit; cursor: pointer; font: inherit;
+}
+.info-card-btn:hover { background: var(--cl-sel-bg); color: var(--cl-sel-fg); }
+
+/* Queued messages */
+.msg-queued {
+  display: flex; align-items: center; gap: 8px; padding: 7px 11px; opacity: .6;
+  border: 1px dashed var(--cl-border); border-radius: var(--cl-radius); background: var(--cl-input-bg);
+}
+.queued-badge { flex: none; font-size: 11px; padding: 0 6px; border-radius: 8px; background: var(--cl-border); }
+.queued-text { flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.queued-cancel { flex: none; border: 0; background: transparent; color: inherit; cursor: pointer; }
+
+/* Copy button under an answer */
+.turn-actions { padding-inline-start: 20px; }
+.copy-answer {
+  border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit;
+  font-size: 11px; opacity: .55; padding: 0;
+}
+.copy-answer:hover { opacity: 1; }
+
+/* Attached images */
+.attachments { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 8px 0; }
+.attach-chip { position: relative; display: inline-flex; }
+.attach-chip img { height: 44px; max-width: 80px; object-fit: cover; border-radius: 4px; border: 1px solid var(--cl-border); }
+.attach-chip button {
+  position: absolute; top: -5px; inset-inline-end: -5px; width: 16px; height: 16px; padding: 0; line-height: 14px;
+  border-radius: 50%; border: 1px solid var(--cl-border); background: var(--cl-input-bg); color: inherit; cursor: pointer; font-size: 9px;
+}

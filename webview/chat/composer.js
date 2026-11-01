@@ -11,6 +11,7 @@
   const MODES = [
     { value: 'default', icon: '✎', label: 'ידני', desc: 'Claude יבקש אישור לפני עריכת קבצים והרצת פקודות' },
     { value: 'acceptEdits', icon: '⏵⏵', label: 'עריכה אוטומטית', desc: 'Claude יערוך קבצים בלי לשאול' },
+    { value: 'auto', icon: '✦', label: 'אוטומטי', desc: 'ה-CLI מחליט לבד, המסווג עלול לטעות', warn: true },
     { value: 'plan', icon: '⏸', label: 'תכנון', desc: 'Claude יחקור ויציע תוכנית בלי לשנות דבר' },
     { value: 'bypassPermissions', icon: '⚠', label: 'ללא הרשאות', desc: 'Claude יפעל בלי לבקש שום אישור', danger: true },
   ];
@@ -21,7 +22,10 @@
     model: 'default',
     models: [],
     settings: { useCtrlEnterToSend: false, allowBypass: false },
+    keys: CL.keys.resolve(),
   };
+  // Double Esc (or the configured rewind shortcut); CL.composer.onRewind is the hook for the checkpoints package.
+  let rewindSeq = CL.keys.createSequence(state.keys.rewind);
 
   function autoresize() {
     input.style.height = 'auto';
@@ -56,14 +60,118 @@
     chip(modelBtn, '◇', modelLabel(state.model));
   }
 
-  function send() {
-    const text = input.value;
-    if (!text.trim() || state.busy) return;
-    CL.slashMenu.close();
-    post({ type: 'send', text });
-    CL.app.userSent(text);
+  const history = CL.prompt.createHistory();
+  const queue = CL.prompt.createQueue();
+
+  function clearInput() {
     input.value = '';
     autoresize();
+    refreshSend();
+  }
+
+  function dispatch(text, images = []) {
+    post({ type: 'send', text, images });
+    CL.app.userSent(text, images.length);
+  }
+
+  // --- attached images (pasted or dropped); kept in memory until sent ---------------------------
+  const attachmentsEl = document.getElementById('attachments');
+  let attached = [];
+
+  function renderAttachments() {
+    attachmentsEl.hidden = !attached.length;
+    attachmentsEl.replaceChildren(...attached.map((img, idx) => CL.el('span', { class: 'attach-chip' },
+      CL.el('img', { src: `data:${img.mediaType};base64,${img.data}`, alt: 'תמונה מצורפת' }),
+      CL.el('button', {
+        type: 'button',
+        title: 'הסרה',
+        'aria-label': 'הסרת התמונה',
+        text: '✕',
+        onclick: () => { attached.splice(idx, 1); renderAttachments(); refreshSend(); },
+      }))));
+  }
+
+  function addImage(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(String(reader.result));
+      const error = m ? CL.prompt.validateImage(m[1], m[2]) : 'לא ניתן לקרוא את התמונה';
+      if (error) return CL.app.notice(error);
+      attached.push({ mediaType: m[1], data: m[2] });
+      renderAttachments();
+      return refreshSend();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  input.addEventListener('paste', (e) => {
+    const files = [...(e.clipboardData ? e.clipboardData.files : [])].filter((f) => f.type.startsWith('image/'));
+    if (!files.length) return;
+    e.preventDefault();
+    files.forEach(addImage);
+  });
+
+  // Files dragged in from the Explorer (Shift) become @path mentions; image files from outside are attached.
+  const composerEl = document.querySelector('.composer');
+  composerEl.addEventListener('dragover', (e) => e.preventDefault());
+  composerEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    const uris = (dt.getData('text/uri-list') || '').split(/\r?\n/).filter((l) => l && !l.startsWith('#'));
+    if (uris.length) post({ type: 'dropUris', uris });
+    [...dt.files].filter((f) => f.type.startsWith('image/')).forEach(addImage);
+  });
+
+  // Terminal-only commands are never sent to the model: show the card instead.
+  function showTerminalCard(text) {
+    CL.slashMenu.close();
+    CL.thread.addCard(CL.el('div', { class: 'info-card', role: 'status' },
+      CL.el('div', { class: 'info-card-text', dir: 'auto', text: `הפקודה /${CL.prompt.commandName(text)} זמינה רק בטרמינל` }),
+      CL.el('button', { class: 'info-card-btn', type: 'button', text: 'פתיחה בטרמינל', onclick: () => post({ type: 'openTerminal' }) })));
+    CL.thread.scrollToBottom();
+    clearInput();
+  }
+
+  // While a turn runs a new message waits (in memory) as a grey bubble the user can cancel.
+  function enqueue(text) {
+    const item = queue.push(text, attached);
+    attached = [];
+    renderAttachments();
+    CL.thread.addQueued(item, () => {
+      queue.cancel(item.id);
+      CL.thread.removeQueued(item.id);
+    });
+    CL.thread.scrollToBottom();
+  }
+
+  function send() {
+    const text = input.value;
+    if (!text.trim()) return;
+    if (CL.prompt.isTerminalOnly(text, CL.slashMenu.getMeta())) return showTerminalCard(text);
+    CL.slashMenu.close();
+    history.add(text);
+    // /plan and /plan open are the extension's own commands: never sent to the model.
+    const plan = /^\/plan(\s+open)?\s*$/i.exec(text.trim());
+    if (plan) {
+      post({ type: 'planCommand', open: Boolean(plan[1]) });
+      return clearInput();
+    }
+    clearInput();
+    if (state.busy) enqueue(text);
+    else {
+      const images = attached;
+      attached = [];
+      renderAttachments();
+      dispatch(text, images);
+    }
+  }
+
+  function sendNextQueued() {
+    if (state.busy) return;
+    const item = queue.shift();
+    if (!item) return;
+    CL.thread.removeQueued(item.id);
+    dispatch(item.text, item.images);
   }
 
   // "/" menu: open while the text is a single "/word" at the very start.
@@ -71,6 +179,7 @@
     const m = /^\/(\S*)$/.exec(input.value.slice(0, input.selectionStart));
     if (!m || input.value.slice(input.selectionStart).trim()) return CL.slashMenu.close();
     CL.slashMenu.update(m[1], (cmd) => {
+      if (cmd.group === 'terminal') return showTerminalCard(`/${cmd.name}`);
       input.value = `/${cmd.name} `;
       CL.slashMenu.close();
       input.focus();
@@ -80,28 +189,71 @@
     });
   }
 
+  // "@" menu: the word being typed right before the caret starts with "@".
+  function updateMention() {
+    const before = input.value.slice(0, input.selectionStart);
+    const m = /(^|\s)@([^\s@]*)$/.exec(before);
+    if (!m) return CL.mentions.close();
+    const start = before.length - m[2].length - 1;
+    CL.mentions.request(m[2], (item) => {
+      const text = /\s/.test(item.path) ? `@"${item.path}"` : `@${item.path}`;
+      insertAt(start, input.selectionStart, item.isDir ? text : `${text} `);
+      CL.mentions.close();
+    });
+  }
+
+  function insertAt(from, to, text) {
+    input.setRangeText(text, from, to, 'end');
+    input.focus();
+    autoresize();
+    refreshSend();
+    input.dispatchEvent(new Event('input'));
+  }
+
   input.addEventListener('input', () => {
     autoresize();
     refreshSend();
     updateSlash();
+    updateMention();
   });
 
   input.addEventListener('keydown', (e) => {
     if (e.isComposing) return;
-    if (CL.slashMenu.onKey(e)) {
+    if (CL.mentions.onKey(e) || CL.slashMenu.onKey(e)) {
       e.preventDefault();
       return;
     }
-    if (e.key !== 'Enter') return;
-    const ctrl = e.ctrlKey || e.metaKey;
-    const sends = state.settings.useCtrlEnterToSend ? ctrl : !e.shiftKey && !ctrl;
-    if (sends) {
+    if (rewindSeq.feed(e) && CL.composer.onRewind) CL.composer.onRewind();
+    if (e.key === 'ArrowUp' && !e.shiftKey && input.selectionStart === 0 && input.selectionEnd === 0) {
+      const older = history.prev(input.value);
+      if (older !== null) {
+        e.preventDefault();
+        input.value = older;
+        input.setSelectionRange(0, 0);
+        autoresize();
+        refreshSend();
+      }
+    } else if (e.key === 'ArrowDown' && history.browsing && input.selectionStart === input.value.length) {
+      const newer = history.next();
+      if (newer !== null) {
+        e.preventDefault();
+        input.value = newer;
+        input.setSelectionRange(newer.length, newer.length);
+        autoresize();
+        refreshSend();
+      }
+    }
+    if (CL.keys.matches(e, state.keys.send)) {
       e.preventDefault();
       send();
+    } else if (CL.keys.matches(e, state.keys.newLine)) {
+      e.preventDefault();
+      input.setRangeText('\n', input.selectionStart, input.selectionEnd, 'end');
+      input.dispatchEvent(new Event('input'));
     }
   });
 
-  input.addEventListener('blur', () => setTimeout(() => CL.slashMenu.close(), 100));
+  input.addEventListener('blur', () => setTimeout(() => { CL.slashMenu.close(); CL.mentions.close(); }, 100));
 
   sendBtn.addEventListener('click', () => {
     if (state.busy) post({ type: 'interrupt' });
@@ -145,9 +297,11 @@
     },
     setSettings(s) {
       state.settings = { ...state.settings, ...s };
-      input.placeholder = state.settings.useCtrlEnterToSend
-        ? 'כתבו ל-Claude… (Ctrl+Enter לשליחה, הקלידו / לפקודות)'
-        : 'כתבו ל-Claude… (הקלידו / לפקודות וסקילים)';
+      state.keys = CL.keys.resolve(state.settings);
+      rewindSeq = CL.keys.createSequence(state.keys.rewind);
+      input.placeholder = state.keys.send === CL.keys.DEFAULTS.send
+        ? 'כתבו ל-Claude… (הקלידו / לפקודות וסקילים)'
+        : `כתבו ל-Claude… (${state.keys.send} לשליחה, הקלידו / לפקודות)`;
     },
     setNoFolder(on) {
       cwdNote.hidden = !on;
@@ -155,6 +309,16 @@
     },
     focus() {
       input.focus();
+    },
+    sendNextQueued,
+    insertText(text) {
+      insertAt(input.selectionStart, input.selectionEnd, text);
+    },
+    // A new or loaded conversation starts with its own history and an empty queue.
+    resetConversation(sentTexts) {
+      history.reset(sentTexts);
+      queue.clear();
+      CL.thread.clearQueued();
     },
   };
 

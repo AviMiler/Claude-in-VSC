@@ -1,25 +1,23 @@
 // One conversation = one webview + one long-lived CLI process. Holds only in-memory state that
 // dies with the window; everything persistent is the CLI's (spec: "the CLI is the only source
 // of truth").
-const os = require('os');
 const vscode = require('vscode');
 const { CliProcess } = require('../cli/process');
+const { mergeEnv } = require('../cli/env');
+const { workspaceCwd } = require('../util/workspace');
 const { buildArgs } = require('../cli/args');
 const { createStreamTranslator } = require('./event-translator');
 const { routeMessage } = require('./message-router');
 const transcripts = require('../history/transcripts');
+const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
 
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
 // After the CLI acknowledges an interrupt it should end the turn with a `result`; if none comes
 // within this time the turn is closed locally so the stop button never hangs.
 const STOP_RESULT_WAIT_MS = 4000;
 const TITLE_MAX = 40;
-
-function workspaceCwd() {
-  const folders = vscode.workspace.workspaceFolders;
-  return folders && folders.length ? { cwd: folders[0].uri.fsPath, noFolder: false } : { cwd: os.homedir(), noFolder: true };
-}
 
 function spawnErrorText(err, claudePath) {
   return `לא ניתן להפעיל את Claude (${err.code || err.message}). בדוק את ההגדרה claudeLocal.claudePath (כרגע: ${claudePath}).`;
@@ -47,6 +45,9 @@ class Conversation {
     this.stopping = false;
     this.stopTimer = null;
     this.disposed = false;
+    this.planText = '';
+    this.turnTexts = new Map();
+    this.entries = null;
     this.subs = [
       webview.onDidReceiveMessage((msg) => routeMessage(this, msg)),
       services.settings.onDidChange((s) => {
@@ -66,7 +67,11 @@ class Conversation {
   }
 
   webviewSettings(s = this.services.settings.get()) {
-    return { useCtrlEnterToSend: s.useCtrlEnterToSend, allowBypass: s.allowDangerouslySkipPermissions };
+    return {
+      useCtrlEnterToSend: s.useCtrlEnterToSend,
+      keybindings: s.keybindings,
+      allowBypass: s.allowDangerouslySkipPermissions,
+    };
   }
 
   // --- lifecycle -------------------------------------------------------------------------
@@ -91,7 +96,7 @@ class Conversation {
   }
 
   startProcess({ resume } = {}) {
-    const { claudePath, allowDangerouslySkipPermissions } = this.services.settings.get();
+    const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
     const args = buildArgs({
       permissionMode: this.permissionMode,
       resume,
@@ -99,7 +104,13 @@ class Conversation {
       allowBypass: allowDangerouslySkipPermissions,
     });
     this.services.logger.info(`spawn ${claudePath} ${args.join(' ')} (cwd ${this.cwd})`);
-    const proc = new CliProcess({ claudePath, args, cwd: this.cwd, log: (t) => this.log(t) });
+    const proc = new CliProcess({
+      claudePath,
+      args,
+      cwd: this.cwd,
+      env: mergeEnv(process.env, environmentVariables),
+      log: (t) => this.log(t),
+    });
     const translate = createStreamTranslator();
     this.proc = proc;
 
@@ -112,6 +123,7 @@ class Conversation {
           if (ev.permissionMode) this.permissionMode = ev.permissionMode;
         }
       }
+      this.trackPlan(events);
       if (events.length) this.post({ type: 'events', events });
     });
     proc.on('controlRequest', (id, req) => this.onControlRequest(proc, id, req));
@@ -127,6 +139,8 @@ class Conversation {
         if (proc !== this.proc) return;
         this.initInfo = info;
         this.postInitInfo(info);
+        // `auto` is not a launch flag value we rely on; re-apply it with the verified control request.
+        if (this.permissionMode === 'auto') this.setMode('auto');
       },
       (err) => this.services.logger.warn(`initialize failed: ${err.message}`),
     );
@@ -159,8 +173,9 @@ class Conversation {
     if (info.error) text = spawnErrorText(info.error, claudePath);
     else if (info.code !== 0 && info.code !== null) text = exitErrorText(info);
     else if (wasBusy) text = 'Claude Code נסגר באמצע תשובה.';
+    // The error result already ends the turn in the webview; a second `busy:false` would race with a queued send.
     if (text) this.post({ type: 'events', events: [{ kind: 'result', isError: true, errorText: text }] });
-    this.post({ type: 'busy', value: false });
+    else this.post({ type: 'busy', value: false });
   }
 
   killProcess() {
@@ -173,13 +188,16 @@ class Conversation {
 
   // --- webview requests ------------------------------------------------------------------
 
-  send(text) {
+  send(text, images) {
     if (!text || !text.trim() || this.busy) return;
+    const valid = Array.isArray(images)
+      ? images.filter((i) => i && IMAGE_TYPES.includes(i.mediaType) && typeof i.data === 'string')
+      : [];
     if (!this.proc) this.startProcess({ resume: this.sessionId || undefined });
     if (!this.hasMessages) this.setTitle(text.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX));
     this.hasMessages = true;
     this.busy = true;
-    this.proc.sendUserText(text);
+    this.proc.sendUserText(text, valid);
   }
 
   interrupt() {
@@ -322,6 +340,66 @@ class Conversation {
     vscode.window.showTextDocument(uri, options).then(undefined, () => {
       vscode.window.showWarningMessage(`לא ניתן לפתוח את ${filePath}`);
     });
+  }
+
+  // The plan is the assistant's text of the turn that ends in ExitPlanMode (its `input.plan` arrives empty).
+  trackPlan(events) {
+    for (const ev of events) {
+      if (ev.kind === 'block' && ev.blockType === 'text') this.turnTexts.set(ev.key, ev.text);
+      else if (ev.kind === 'tool' && ev.name === 'ExitPlanMode') {
+        const text = [...this.turnTexts.values()].join('\n\n').trim();
+        if (text) {
+          this.planText = text;
+          this.post({ type: 'planReady' });
+        }
+      } else if (ev.kind === 'result') this.turnTexts.clear();
+    }
+  }
+
+  // `/plan` switches to plan mode; `/plan open` shows the last plan as a read-only document.
+  planCommand(open) {
+    if (!open) return this.setMode('plan');
+    if (!this.planText) return this.post({ type: 'notice', text: 'עדיין אין תוכנית לפתיחה. עברו למצב תכנון ובקשו מ-Claude תוכנית.' });
+    return this.services.planDocs.open(this.planText);
+  }
+
+  async mentionSearch(query, seq) {
+    const now = Date.now();
+    if (!this.entries || now - this.entriesAt > 10000) {
+      try {
+        this.entries = await mentions.listEntries(this.cwd, this.services.settings.get().respectGitIgnore);
+        this.entriesAt = now;
+      } catch (err) {
+        this.services.logger.warn(`mention listing failed: ${err.message}`);
+        this.entries = [];
+      }
+    }
+    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(this.entries, query) });
+  }
+
+  // Files dragged in with Shift arrive as URIs and become @path mentions (a PDF is read by the CLI itself).
+  dropUris(uris) {
+    const parts = [];
+    for (const raw of Array.isArray(uris) ? uris.slice(0, 20) : []) {
+      let uri;
+      try {
+        uri = vscode.Uri.parse(String(raw));
+      } catch {
+        continue;
+      }
+      if (uri.scheme !== 'file') continue;
+      parts.push(mentions.mentionText(mentions.toSlashes(vscode.workspace.asRelativePath(uri, false))));
+    }
+    if (parts.length) this.insertText(`${parts.join(' ')} `);
+  }
+
+  insertText(text) {
+    this.post({ type: 'insertText', text });
+    this.post({ type: 'focus' });
+  }
+
+  openTerminal() {
+    vscode.commands.executeCommand('claude-local.terminal.open');
   }
 
   openLink(url) {

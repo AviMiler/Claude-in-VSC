@@ -97,7 +97,10 @@ function createStreamTranslator() {
     switch (msg.type) {
       case 'system':
         if (msg.subtype === 'init') {
-          return [{ kind: 'session', sessionId: msg.session_id, model: msg.model, permissionMode: msg.permissionMode, cwd: msg.cwd }];
+          const ev = { kind: 'session', sessionId: msg.session_id, model: msg.model, permissionMode: msg.permissionMode, cwd: msg.cwd };
+          if (Array.isArray(msg.skills)) ev.skills = msg.skills.map(String);
+          if (Array.isArray(msg.terminal_slash_commands)) ev.terminalOnly = msg.terminal_slash_commands.map(String);
+          return [ev];
         }
         if (msg.subtype === 'status' && msg.status) return [{ kind: 'status', status: msg.status }];
         return [];

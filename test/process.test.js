@@ -99,3 +99,16 @@ test('a missing executable reports a spawn error on exit', async () => {
   const info = await new Promise((resolve) => proc.on('exit', resolve));
   assert.ok(info.error);
 });
+
+test('env passed to CliProcess reaches the child', async () => {
+  const proc = new CliProcess({
+    claudePath: process.execPath,
+    args: ['-e', 'process.stdout.write(JSON.stringify({type:"x",v:process.env.CL_TEST_VAR+"|"+process.env.CLAUDE_CODE_ENTRYPOINT})+"\\n")'],
+    cwd: process.cwd(),
+    env: { ...process.env, CL_TEST_VAR: 'hello' },
+  });
+  const msgs = [];
+  proc.on('message', (m) => msgs.push(m));
+  await waitFor(proc, msgs, (m) => m.length > 0);
+  assert.strictEqual(msgs[0].v, 'hello|claude-local-vscode');
+});

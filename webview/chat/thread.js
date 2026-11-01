@@ -7,6 +7,7 @@
   const threadEl = document.getElementById('thread');
 
   let turn = null;          // the current assistant turn container
+  let turnTexts = [];       // its text blocks, for the copy button
   const blocks = new Map(); // key -> {node, body, type, text, raf}
   const tools = new Map();  // toolUseId -> {node, name, input, result}
 
@@ -22,22 +23,66 @@
     threadEl.scrollTop = threadEl.scrollHeight;
   }
 
+  // Queued ("ממתין") bubbles stay last; everything else is inserted before the first of them.
+  function place(node) {
+    const firstQueued = itemsEl.querySelector('.msg-queued');
+    if (firstQueued) itemsEl.insertBefore(node, firstQueued);
+    else itemsEl.append(node);
+  }
+
+  function addCard(node) {
+    endTurn();
+    place(node);
+    showEmpty(false);
+  }
+
+  function addQueued(item, onCancel) {
+    const node = el('div', { class: 'msg-queued', 'data-queue-id': String(item.id) },
+      el('span', { class: 'queued-badge', text: 'ממתין' }),
+      el('span', { class: 'queued-text', dir: 'auto', text: item.text }),
+      el('button', { class: 'queued-cancel', type: 'button', title: 'ביטול', 'aria-label': 'ביטול ההודעה הממתינה', text: '✕', onclick: onCancel }));
+    itemsEl.append(node);
+    showEmpty(false);
+  }
+
+  function removeQueued(id) {
+    const node = itemsEl.querySelector(`.msg-queued[data-queue-id="${id}"]`);
+    if (node) node.remove();
+  }
+
+  function clearQueued() {
+    itemsEl.querySelectorAll('.msg-queued').forEach((n) => n.remove());
+  }
+
   function currentTurn() {
     if (!turn) {
       turn = el('div', { class: 'turn' });
-      itemsEl.append(turn);
+      place(turn);
       showEmpty(false);
     }
     return turn;
   }
 
+  // Closing an answer adds a copy button for all its text blocks.
   function endTurn() {
+    if (turn && turnTexts.length) {
+      const btn = el('button', { class: 'copy-answer', type: 'button', title: 'העתקת התשובה', 'aria-label': 'העתקת התשובה', text: 'העתקה' });
+      const text = turnTexts.map((b) => b.text).join('\n\n');
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = 'הועתק';
+          setTimeout(() => { btn.textContent = 'העתקה'; }, 1400);
+        });
+      });
+      turn.append(el('div', { class: 'turn-actions' }, btn));
+    }
     turn = null;
+    turnTexts = [];
   }
 
   function addUser(text) {
     endTurn();
-    itemsEl.append(el('div', { class: 'msg-user', dir: 'auto', text }));
+    place(el('div', { class: 'msg-user', dir: 'auto', text }));
     showEmpty(false);
   }
 
@@ -63,6 +108,7 @@
     currentTurn().append(node);
     const b = { node, body, type, text: '', raf: 0 };
     blocks.set(key, b);
+    if (type === 'text') turnTexts.push(b);
     return b;
   }
 
@@ -214,5 +260,5 @@
     if (e.target.closest('a[data-link]')) e.preventDefault();
   });
 
-  CL.thread = { apply, addUser, addError, addNode, reset, scrollToBottom, endTurn };
+  CL.thread = { addCard, addQueued, removeQueued, clearQueued, apply, addUser, addError, addNode, reset, scrollToBottom, endTurn };
 })();

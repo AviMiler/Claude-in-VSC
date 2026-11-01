@@ -28,7 +28,7 @@
         "claudeLocal.claudePath": {
           "type": "string",
           "default": "claude",
-          "markdownDescription": "קובץ ההפעלה של Claude Code CLI. שם בלבד (`claude`) מחופש ב-PATH; אפשר גם נתיב מלא ל-`.exe` או `.cmd`."
+          "markdownDescription": "קובץ ההפעלה של Claude Code CLI. שם בלבד (`claude`) מחופש ב-PATH; מומלץ נתיב מלא ל-`claude-bin.exe`. **לא** להפנות ל-`claude.cmd`: העטיפה שואלת \"Select model number\" ומתקעת את התוסף."
         },
         "claudeLocal.allowDangerouslySkipPermissions": {
           "type": "boolean",
@@ -38,7 +38,67 @@
         "claudeLocal.useCtrlEnterToSend": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Ctrl+Enter שולח הודעה, ו-Enter יורד שורה."
+          "markdownDescription": "Ctrl+Enter שולח הודעה, ו-Enter יורד שורה. נשאר לתאימות: חל רק כל עוד `keybindings.send` ו-`keybindings.newLine` בברירת המחדל."
+        },
+        "claudeLocal.environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {
+            "API_TIMEOUT_MS": "1200000",
+            "CLAUDE_ENABLE_STREAM_WATCHDOG": "0",
+            "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "64000"
+          },
+          "markdownDescription": "משתני סביבה לתהליך ה-CLI (גם בצ'אט וגם ב**פתיחה בטרמינל**). הם נוספים מעל הסביבה של VS Code ודורסים משתנה בעל אותו שם. משתני החיבור (`ANTHROPIC_BASE_URL` וכו') נשארים ב-`settings.json` של ה-CLI. נקלט בשיחה הבאה."
+        },
+        "claudeLocal.preferredLocation": {
+          "type": "string",
+          "enum": [
+            "panel",
+            "sidebar"
+          ],
+          "default": "panel",
+          "enumDescriptions": [
+            "לשונית עורך",
+            "סרגל צד"
+          ],
+          "markdownDescription": "איפה נפתח הצ'אט מהכפתור הראשי: `panel` = לשונית עורך, `sidebar` = סרגל הצד."
+        },
+        "claudeLocal.lockEditorGroups": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "נועל את קבוצת העורכים של לשונית הצ'אט, כך ש-VS Code לא יפתח בה קבצים אחרים."
+        },
+        "claudeLocal.useTerminal": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "הכפתור הראשי ו-`Ctrl+Shift+Esc` פותחים את ה-CLI בטרמינל במקום בצ'אט."
+        },
+        "claudeLocal.respectGitIgnore": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
+        },
+        "claudeLocal.enableNewConversationShortcut": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "`Ctrl+N` פותח שיחה חדשה כשהמיקוד בצ'אט. כבוי כברירת מחדל כדי לא לדרוס את \"קובץ חדש\" של VS Code."
+        },
+        "claudeLocal.keybindings.send": {
+          "type": "string",
+          "default": "Enter",
+          "markdownDescription": "שליחת הודעה. קיצור בתוך תיבת ההודעה (לא מ-`keybindings.json` של VS Code; את קיצורי VS Code משנים בפקודה \"קיצורי מקלדת\"). פורמט: `Ctrl+Enter`, או רצף עם רווח: `Escape Escape`."
+        },
+        "claudeLocal.keybindings.newLine": {
+          "type": "string",
+          "default": "Shift+Enter",
+          "markdownDescription": "שורה חדשה. קיצור בתוך תיבת ההודעה (לא מ-`keybindings.json` של VS Code; את קיצורי VS Code משנים בפקודה \"קיצורי מקלדת\"). פורמט: `Ctrl+Enter`, או רצף עם רווח: `Escape Escape`."
+        },
+        "claudeLocal.keybindings.rewind": {
+          "type": "string",
+          "default": "Escape Escape",
+          "markdownDescription": "חזרה לנקודת שמירה (יופעל עם בניית נקודות השמירה). קיצור בתוך תיבת ההודעה (לא מ-`keybindings.json` של VS Code; את קיצורי VS Code משנים בפקודה \"קיצורי מקלדת\"). פורמט: `Ctrl+Enter`, או רצף עם רווח: `Escape Escape`."
         }
       }
     },
@@ -66,6 +126,26 @@
         "category": "Claude Code Local"
       },
       {
+        "command": "claude-local.terminal.open",
+        "title": "פתיחה בטרמינל",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.focusToggle",
+        "title": "מעבר בין העורך לצ'אט",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.keyboardShortcuts",
+        "title": "קיצורי מקלדת",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.insertAtMention",
+        "title": "הוספת הקובץ הפתוח להודעה (@)",
+        "category": "Claude Code Local"
+      },
+      {
         "command": "claude-local.showLogs",
         "title": "הצגת יומן",
         "category": "Claude Code Local"
@@ -81,6 +161,23 @@
         "command": "claude-local.editor.open",
         "key": "ctrl+alt+c",
         "mac": "cmd+alt+c"
+      },
+      {
+        "command": "claude-local.focusToggle",
+        "key": "ctrl+escape",
+        "mac": "cmd+escape"
+      },
+      {
+        "command": "claude-local.insertAtMention",
+        "key": "alt+k",
+        "mac": "cmd+alt+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "claude-local.newConversation",
+        "key": "ctrl+n",
+        "mac": "cmd+n",
+        "when": "config.claudeLocal.enableNewConversationShortcut && (activeWebviewPanelId == 'claudeLocalPanel' || focusedView =~ /^claudeLocalSidebar/)"
       }
     ],
     "menus": {

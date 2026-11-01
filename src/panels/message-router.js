@@ -2,7 +2,8 @@
 
 const ROUTES = {
   ready: (c) => c.onReady(),
-  send: (c, m) => c.send(String(m.text || '')),
+  send: (c, m) => c.send(String(m.text || ''), m.images),
+  dropUris: (c, m) => c.dropUris(m.uris),
   interrupt: (c) => c.interrupt(),
   setMode: (c, m) => c.setMode(String(m.value)),
   setModel: (c, m) => c.setModel(String(m.value)),
@@ -11,6 +12,9 @@ const ROUTES = {
   openSession: (c, m) => c.openSession(String(m.id)),
   newConversation: (c) => c.newConversation(),
   openFile: (c, m) => c.openFile(String(m.path), m.line),
+  mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
+  planCommand: (c, m) => c.planCommand(m.open === true),
+  openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
 };
 

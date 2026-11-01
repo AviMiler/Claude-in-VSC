@@ -79,8 +79,10 @@ class CliProcess extends EventEmitter {
     return true;
   }
 
-  sendUserText(text) {
-    return this.send({ type: 'user', message: { role: 'user', content: [{ type: 'text', text }] } });
+  sendUserText(text, images = []) {
+    const content = images.map((i) => ({ type: 'image', source: { type: 'base64', media_type: i.mediaType, data: i.data } }));
+    content.push({ type: 'text', text });
+    return this.send({ type: 'user', message: { role: 'user', content } });
   }
 
   request(subtype, payload = {}, timeoutMs = 60000) {
