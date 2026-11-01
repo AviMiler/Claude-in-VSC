@@ -15,6 +15,7 @@ const ROUTES = {
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),
   diffCommand: (c) => c.diffCommand(),
+  rewindMenu: (c) => c.rewindMenu(),
   openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
 };

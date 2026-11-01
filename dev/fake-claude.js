@@ -149,6 +149,11 @@ function onControlRequest(msg) {
     reply({});
   } else if (subtype === 'set_model') {
     reply({});
+  } else if (subtype === 'rewind_files') {
+    // Mirrors the real CLI's gate (DEPENDENCIES.md finding 23); nothing is written.
+    if (process.env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING !== '1') {
+      out({ type: 'control_response', response: { subtype: 'error', request_id: msg.request_id, error: 'File rewinding is not enabled' } });
+    } else reply(msg.request.dry_run ? { filesChanged: ['demo.js'] } : {});
   } else {
     out({ type: 'control_response', response: { subtype: 'error', request_id: msg.request_id, error: `unknown ${subtype}` } });
   }
@@ -167,6 +172,8 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   }
   if (msg.type === 'user') {
     const text = msg.message.content.map((b) => b.text || '').join('');
+    // --replay-user-messages echoes the prompt with the uuid that rewind_files takes.
+    if (process.argv.includes('--replay-user-messages')) out({ ...msg, uuid: `fake-uuid-${++msgSeq}`, session_id: SESSION });
     queue = queue.then(() => turn(text));
   }
 }).on('close', () => process.exit(0));

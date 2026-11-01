@@ -1,6 +1,8 @@
 // Bootstraps the chat webview and dispatches host -> webview messages.
 (function () {
   const { post } = CL;
+  // Esc Esc (keybindings.rewind) opens the host's checkpoints menu.
+  CL.composer.onRewind = () => post({ type: 'rewindMenu' });
 
   const spinner = document.getElementById('spinner');
   const spinnerVerb = document.getElementById('spinner-verb');

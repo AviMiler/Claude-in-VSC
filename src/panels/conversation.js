@@ -13,6 +13,8 @@ const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
 const editLog = require('../diff/edit-log');
 const { runDiffCommand } = require('../diff/diff-command');
+const checkpoints = require('../checkpoints/checkpoints');
+const { runRewindMenu } = require('../checkpoints/rewind-menu');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -54,6 +56,7 @@ class Conversation {
     this.planText = '';
     this.turnTexts = new Map();
     this.edits = editLog.createEditLog(); // this session's Edit/Write tool calls, for /diff
+    this.checkpoints = checkpoints.createCheckpointList(); // prompts sent in this process, for rewind
     this.entries = null;
     this.subs = [
       webview.onDidReceiveMessage((msg) => {
@@ -107,20 +110,20 @@ class Conversation {
     }
   }
 
-  startProcess({ resume } = {}) {
+  startProcess({ resume, fork = false } = {}) {
     const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
     const args = buildArgs({
       permissionMode: this.permissionMode,
       resume,
       model: this.model !== 'default' ? this.model : undefined,
       allowBypass: allowDangerouslySkipPermissions,
-    });
+    }).concat(checkpoints.checkpointArgs({ fork: fork && Boolean(resume) }));
     this.services.logger.info(`spawn ${claudePath} ${args.join(' ')} (cwd ${this.cwd})`);
     const proc = new CliProcess({
       claudePath,
       args,
       cwd: this.cwd,
-      env: mergeEnv(process.env, environmentVariables),
+      env: { ...mergeEnv(process.env, environmentVariables), ...checkpoints.CHECKPOINT_ENV },
       log: (t) => this.log(t),
     });
     const translate = createStreamTranslator();
@@ -128,6 +131,7 @@ class Conversation {
 
     proc.on('message', (msg) => {
       if (proc !== this.proc) return;
+      checkpoints.addCheckpoint(this.checkpoints, msg);
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
         if (ev.kind === 'session') {
@@ -333,6 +337,7 @@ class Conversation {
     this.hasMessages = events.length > 0;
     this.edits = editLog.createEditLog();
     for (const ev of events) editLog.addEvent(this.edits, ev);
+    this.checkpoints = checkpoints.createCheckpointList();
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
@@ -366,6 +371,7 @@ class Conversation {
     this.sessionId = null;
     this.hasMessages = false;
     this.edits = editLog.createEditLog();
+    this.checkpoints = checkpoints.createCheckpointList();
     this.setTitle('Claude');
     this.post({ type: 'reset' });
     this.startProcess();
@@ -405,6 +411,22 @@ class Conversation {
   async diffCommand() {
     const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
+  }
+
+  // Esc Esc / the rewind shortcut: the checkpoints menu (src/checkpoints/rewind-menu.js).
+  rewindMenu() {
+    return runRewindMenu(this);
+  }
+
+  // Fork: restart with --resume <id> --fork-session; the CLI gives a new session id with the same
+  // context and the original transcript stays as it was. The thread on screen is kept.
+  forkSession() {
+    if (!this.sessionId || this.busy) return this.post({ type: 'notice', text: 'אפשר לפצל רק שיחה קיימת, כש-Claude לא עובד.' });
+    this.killProcess();
+    // Whether the forked process accepts the old prompts' uuids is unverified, so they are dropped.
+    this.checkpoints = checkpoints.createCheckpointList();
+    this.startProcess({ resume: this.sessionId, fork: true });
+    return this.post({ type: 'notice', text: 'השיחה פוצלה: ההמשך נשמר כשיחה חדשה, והמקורית נשארת כמו שהיא.' });
   }
 
   async mentionSearch(query, seq) {

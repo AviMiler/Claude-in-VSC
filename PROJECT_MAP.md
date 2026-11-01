@@ -40,6 +40,10 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `status-bar.js` — the "✻ Claude" item.
 - `index.js` — `register` for the panels feature.
 
+## src/checkpoints/ — rewind code and fork
+- `checkpoints.js` — pure: `CHECKPOINT_ENV`, `checkpointArgs({fork})`, `checkpointFrom`/`addCheckpoint` from replayed user lines, `filesChangedCount`. Test: `test/checkpoints.test.js`.
+- `rewind-menu.js` — Esc Esc QuickPick of this process's prompts, then rewind code (dry run, confirm, real) or fork.
+
 ## src/diff/ — shared diff view and `/diff`
 - `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
 - `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; reused by package F and `openDiff`.

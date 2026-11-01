@@ -2,6 +2,11 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-01 (package B2, part 2: checkpoints)
+- **Built:** Esc Esc (package A's `onRewind` hook) opens a QuickPick of this process's prompts; "rewind code" (`rewind_files` dry run, modal confirm, real) or "fork" (`--resume <id> --fork-session`, thread kept on screen). All spawns get `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` and `--replay-user-messages`. New `src/checkpoints/` (`checkpoints.js`, `rewind-menu.js`), `test/checkpoints.test.js`; changed `conversation.js`, `message-router.js`, `webview/chat/app.js`, `dev/fake-claude.js`. Tests 69/69.
+- **Deviation (narrowed):** rewinding the conversation to a point and "both" are not offered, since that CLI message was never captured. Prompts from loaded transcripts are not checkpoints (uuid from an earlier process unverified).
+- **Not verified:** the real CLI's `rewind_files` from the extension, response shape beyond `filesChanged`, fork + replay together, real VS Code. **Pending from B2:** background tasks, `/loop`, agent cards, task list.
+
 ## 2026-11-01 (package B2, part 1: `/diff` and the shared diff-view module)
 - **Built:** `/diff` (extension-side, never sent, like `/plan`): QuickPick of files changed by this conversation's Edit/MultiEdit/Write calls, opening a VS Code diff of old to new fragments (Write: empty to content). No git, no disk writes. Shared module `src/diff/` (`edit-log.js`, `diff-view.js`, `diff-command.js`) for reuse by package F and `openDiff`.
 - **Why:** `PLAN.md` package B ("`/diff` with the shared diff-view module that F reuses").

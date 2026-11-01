@@ -161,6 +161,7 @@ Plateau test (`/v1/chat/completions`, a prompt of N words; the method is in `dev
 | Item | State |
 |---|---|
 | IDE server (lock-file format, protocol, whether the CLI connects) | Not verified; a prototype by me; fallback: chips |
+| Rewinding the conversation to a point (and "both") | The CLI message for it was never captured, so the extension offers only `rewind_files` (code) and fork. Also unverified: the `rewind_files` response shape beyond `filesChanged`, fork together with `--replay-user-messages`, rewinding to a uuid from an earlier process |
 | `qwen3.8:27b` is loaded with 64,000 | Inferred from `gemma4:26b` and the plateau test (at least 50,000); to be confirmed with `/api/ps` while it is loaded |
 | Real capabilities of each model (`/api/show` on port 11435) | Not verified |
 | Vision and tools on the other models | Only `qwen3.8:27b`, `gemma4:26b` (with Bash/OK) and `gemma3:27b` (fails) were tested; vision only on `qwen3.8:27b` |
