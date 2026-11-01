@@ -102,6 +102,8 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 אם החלון קטן מכ-25 אלף טוקנים, ההוראות של Claude Code נחתכות בשקט, ויש לבקש ממנהל השרת להגדיל אותו (`PARAMETER num_ctx` ב-Modelfile).
 
+**עדכון 1.11.2026:** `GET http://172.27.5.5:11435/api/ps` הראה `context_length: 64000` למודל הטעון (`gemma4:26b`), והגדרת השער (`num_ctx: 12288`) אינה נאכפת. הערך הזמני ל-`CLAUDE_CODE_MAX_CONTEXT_TOKENS` הוא `64000`, בכפוף לאישור על `qwen3.8:27b` (לשלוח הודעה ואז להריץ שוב `Invoke-RestMethod http://172.27.5.5:11435/api/ps | ConvertTo-Json -Depth 5`).
+
 ### 5.5 בחירת מודל
 
 העטיפה מגדירה את שלושת `ANTHROPIC_DEFAULT_*_MODEL` ואת `--model` לפי הבחירה. בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). להחלפת מודל בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר מודל בתוסף יצריך שליפה של הרשימה הזו (החלטה פתוחה, ראה `docs/features-plan.md`).
