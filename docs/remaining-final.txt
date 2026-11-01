@@ -97,8 +97,8 @@
     הבלוק האחרון מנצח, ו-CLAUDE_CODE_MAX_OUTPUT_TOKENS אובד).
  2. הוספה ל-env: API_TIMEOUT_MS=1200000 ו-CLAUDE_ENABLE_STREAM_WATCHDOG=0.
  3. אחרי חלק ב: הוספה ל-env של CLAUDE_CODE_MAX_CONTEXT_TOKENS עם הערך הנכון.
- 4. החזרת ההגדרה הקבועה שאינה עוזרת:
-        & "C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe" -p "/config checkpoints=false"
+ 4. ההגדרה checkpoints=true: אין צורך לשנות. היא לא משפיעה על התוסף (הוא מפעיל rewind
+    בעצמו), והערך המקורי שלה לא היה ידוע. בטרמינל היא בדרך כלל פעילה כברירת מחדל.
  (הפירוט המלא בקובץ SETUP.md, סעיף 5.)
 
 

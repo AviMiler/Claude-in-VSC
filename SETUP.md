@@ -110,7 +110,9 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 ### 5.6 הגדרת checkpoints
 
-במהלך הבדיקות הורצה `claude -p "/config checkpoints=true"`, והיא משנה הגדרה קבועה של ה-CLI. בבדיקה (1.11.2026) התברר שהיא **לא** מפעילה rewind בהרצה של התוסף: `rewind_files` עבד רק כשהתהליך הופעל עם המשתנה `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` והדגל `--replay-user-messages`, והתוסף יעשה זאת בעצמו. אפשר להחזיר את ההגדרה: `claude -p "/config checkpoints=false"`.
+ההגדרה "Rewind code (checkpoints)" של ה-CLI שומרת עותק של קובץ לפני כל עריכה של Claude, כדי שאפשר יהיה לחזור לאחור (`/rewind` בטרמינל). במהלך הבדיקות הורצה `claude -p "/config checkpoints=true"`. בבדיקה (1.11.2026) התברר שהיא **לא** מפעילה rewind בהרצה של התוסף: `rewind_files` עבד רק כשהתהליך הופעל עם המשתנה `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` והדגל `--replay-user-messages`, והתוסף יעשה זאת בעצמו.
+
+**אין צורך לשנות אותה.** הערך המקורי לפני הבדיקה לא היה ידוע, ובטרמינל אינטראקטיבי ההגדרה בדרך כלל פעילה כברירת מחדל, ולכן `true` כנראה זהה למה שהיה. אין נזק בהשארתה (רק עותקים קטנים של קבצים שנערכים). מי שרוצה לכבות: `claude -p "/config checkpoints=false"`.
 
 ### 5.7 החלפת מודל
 
