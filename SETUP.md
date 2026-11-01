@@ -67,7 +67,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 ### 5.2 משתני סביבה שהעטיפה מגדירה והתוסף לא
 
-העטיפה מגדירה גם `API_TIMEOUT_MS=1200000` ו-`CLAUDE_ENABLE_STREAM_WATCHDOG=0`. בלעדיהם, עם מודל מקומי איטי (זמן עד הטוקן הראשון כ-15 שניות), תשובה ארוכה עלולה להיכשל בגלל timeout. מוסיפים אותם לבלוק `env` בקובץ ההגדרות של ה-CLI.
+העטיפה מגדירה גם `API_TIMEOUT_MS=1200000` ו-`CLAUDE_ENABLE_STREAM_WATCHDOG=0`. בלעדיהם, עם מודל מקומי איטי (זמן עד הטוקן הראשון כ-15 שניות), תשובה ארוכה עלולה להיכשל בגלל timeout. מוסיפים אותם לבלוק `env` בקובץ ההגדרות של ה-CLI (פתרון זמני: לפי ההחלטה הסופית התוסף יעביר אותם בעצמו דרך `claudeLocal.environmentVariables`, ראה `docs/final-plan.md` סעיף 3, החלטה 5).
 
 ### 5.3 קובץ ההגדרות מכיל שני בלוקי `"env"`
 
@@ -108,7 +108,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 ### 5.5 בחירת מודל
 
-העטיפה מגדירה את שלושת `ANTHROPIC_DEFAULT_*_MODEL` ואת `--model` לפי הבחירה. בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). להחלפת מודל בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר מודל בתוסף יצריך שליפה של הרשימה הזו (החלטה פתוחה, ראה `docs/final-plan.md`).
+העטיפה מגדירה את שלושת `ANTHROPIC_DEFAULT_*_MODEL` ואת `--model` לפי הבחירה. בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). להחלפת מודל בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר המודל בתוסף שולף את הרשימה הזו בעצמו (הוחלט, ראה `docs/final-plan.md` סעיף 3, החלטה 1).
 
 ### 5.6 הגדרת checkpoints
 

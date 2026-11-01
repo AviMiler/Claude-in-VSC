@@ -23,7 +23,7 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Why:** Complete Markdown and code coloring is the core of "render all formatting"; hand-writing it is large and error-prone, while vendored files keep the offline, no-build constraint. Raw HTML from Markdown is escaped because `marked` does not sanitize.
 
 ## [2026-10-30] One long-lived CLI process per conversation over stream-json
-**Decision:** `claude -p --input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-prompt-tool stdio --permission-mode <mode>` (+ `--resume <id>`, `--model <m>`), with the control protocol on stdio (`initialize`, `interrupt`, `set_permission_mode`, `set_model`; incoming `can_use_tool`). `.cmd` paths run through `cmd.exe`. The stop button sends `interrupt`.
+**Decision:** `claude -p --input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-prompt-tool stdio --permission-mode <mode>` (+ `--resume <id>`, `--model <m>`), with the control protocol on stdio (`initialize`, `interrupt`, `set_permission_mode`, `set_model` (superseded for model switching by the 2026-11-01 restart decision); incoming `can_use_tool`). `.cmd` paths run through `cmd.exe`. The stop button sends `interrupt`.
 **Alternatives considered:** One short process per message (`claude -p` each turn); running the CLI in a terminal and scraping it.
 **Why:** The control protocol gives streaming, permissions, interrupt and live mode/model changes from the real program without parsing terminal output.
 
@@ -82,7 +82,7 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 ## [2026-10-30] Stop never hangs and never shows an error
 **Decision:** Stop = deny pending cards, send `interrupt`, show "■ הופסק". If no `result` arrives within 4 s of the interrupt acknowledgement the turn is closed locally; a process still alive after 6 s is killed (`taskkill /T /F`).
 **Alternatives considered:** Wait for the CLI's `result` only; kill the process immediately.
-**Why:** Killing at once loses the process (and its session continuity); waiting forever can leave the stop button stuck. Real CLI behaviour after `interrupt` is not yet verified (CLI not logged in).
+**Why:** Killing at once loses the process (and its session continuity); waiting forever can leave the stop button stuck. Real CLI behaviour after `interrupt` was verified on 2026-11-01: the `result` arrives in about 0.5 s and the process stays alive, so the 4 s wait is only a fallback.
 
 ## [2026-10-30] Small build-time deviations kept
 **Decision:** (1) History groups are היום / אתמול / השבוע / קודם. (2) No `icon` in `package.json` (no PNG; the SVG is used for commands and containers). (3) Ctrl+Shift+Esc stays as specified although Windows normally takes it for Task Manager. (4) `engines.vscode` was `^1.94.0` at build time and was lowered to `^1.91.0` on 2026-11-01 (VS Code 1.91.1 would not load it); the the secondary sidebar is used from 1.106 (the official extension's threshold). (5) `scripts/package.ps1` is deferred. (6) A dev-only browser preview (`dev/preview-*`) was added to check the UI without VS Code.

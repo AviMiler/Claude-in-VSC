@@ -19,7 +19,7 @@ Every section is "planned" until code ships; when it ships the section is update
 - Language: plain JavaScript only. CommonJS (`require`) in the extension host, plain `<script>` files in the webview. No TypeScript, no `npm install`, no build step, no bundler.
 - The only third-party code allowed is vendored, plain-JS, self-running files saved in the repo at a pinned version with their license files: `marked` (Markdown to HTML) and `highlight.js` (common-languages bundle) under `webview/vendor/`. Everything else is hand-written.
 - `engines.vscode`: `^1.91.0` (lowered from ^1.94.0 on 2026-11-01: VS Code 1.91.1 on the user's machine did not load the extension; it now runs there). Secondary-sidebar placement needs a newer VS Code; older versions fall back to the activity bar (see "Placement").
-- The CLI is not bundled. It comes from `claudeLocal.claudePath` (default `claude`). Target CLI: 2.1.181 (verified on this machine) or newer. A bare name is resolved on PATH by scanning PATH x PATHEXT; a `.cmd`/`.bat` is run through `cmd.exe /d /s /c`.
+- The CLI is not bundled. It comes from `claudeLocal.claudePath` (default `claude`). Target CLI: 2.1.181 or newer (built against 2.1.181; the user's machine runs 2.1.246). A bare name is resolved on PATH by scanning PATH x PATHEXT; a `.cmd`/`.bat` is run through `cmd.exe /d /s /c`.
 - `capabilities.untrustedWorkspaces.supported: false`: the extension does not run in Restricted Mode.
 - Ids are renamed so the extension installs side by side with the official one: commands `claude-local.*`, settings `claudeLocal.*`, views `claudeLocal*`, view containers `claude-local-*`, context keys `claude-local.*`.
 - Code is separated by feature: a folder per topic under `src/` and `webview/`, no cross-feature spaghetti.
@@ -75,7 +75,7 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
 - Failures add a Hebrew error to the conversation: spawn failure ("לא ניתן להפעיל את Claude (…). בדוק את ההגדרה claudeLocal.claudePath."), unknown option ("גרסת Claude Code לא מכירה אחד הדגלים שהתוסף שלח."), else exit code + the last 3000 characters of stderr.
 - Every line in and out is logged at debug level to the OutputChannel, message contents cut to 500 characters.
 - Lifetime: killed when its panel or view is disposed or the extension deactivates.
-- Not verified: a real model turn (the CLI is not logged in on this machine), so the stream events were exercised only through the fake CLI and the CLI's own transcripts; real CLI behaviour after `interrupt`; the exact `can_use_tool` response fields (`updatedInput`, `updatedPermissions`, deny `message`) against a real permission request.
+- Not verified: a real model turn (at build time the CLI on the build machine was not logged in; on the user's machine a local model answers, see the status update at the top), so the stream events were exercised only through the fake CLI and the CLI's own transcripts; real CLI behaviour after `interrupt`; the exact `can_use_tool` response fields (`updatedInput`, `updatedPermissions`, deny `message`) against a real permission request.
 - Code (as built): `src/cli/` (`args.js`, `spawn.js`, `process.js` with `send`/`request`/`respond`/`respondError`/`interrupt`/`kill`, `content.js`), `dev/fake-claude.js` (+ `.cmd`; scenarios `tool`, `שאלה`, `slow`; `FAKE_CLAUDE_INTERRUPT=no-result|error`; rejects bypass without `--allow-dangerously-skip-permissions` like the real CLI), `test/args.test.js`, `test/process.test.js`.
 
 ## Chat webview
@@ -117,7 +117,7 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
   - Errors in Hebrew (see "Process & protocol").
   - During a turn a spinner with a Hebrew verb ("חושב…") and the stop button.
 - Composer: Enter sends, Shift+Enter is a new line; with `claudeLocal.useCtrlEnterToSend` Ctrl+Enter sends and Enter is a new line. While a turn runs the send button becomes stop. Footer: mode selector, model picker.
-- Model picker: the models from the `initialize` response (`displayName`, `description` as hint); a change sends `set_model`. The first choice is the CLI default (no `--model`).
+- Model picker: the models from the `initialize` response (`displayName`, `description` as hint); a change sends `set_model`. The first choice is the CLI default (no `--model`). **Superseded (decided 2026-11-01, not built yet):** the list comes from the gateway (`GET /v1/models`) and a change restarts the process with `--model` and `--resume` instead of `set_model` (see DECISIONS.md and `docs/final-plan.md` section 3).
 - Known limits: no image paste, attachments, @-mentions, editor context, thinking toggle, focus view, timestamps (later milestones).
 - Verified: in a browser preview (`dev/preview-*`, simulated host) in dark and light themes — streaming Markdown, tables, highlighted code, tool rows with an Edit diff, permission approve, the `/` menu, the mode menu, the history panel, loading a past session.
 - Not verified: the CSP and `localResourceRoots` in a real VS Code webview; a real model reply; high-contrast theme; Hebrew/English mixed text in the real webview.
@@ -132,7 +132,7 @@ The CLI's transcripts are the only store; the extension reads them read-only (us
 - Read-only guarantee: the extension never writes, renames, deletes or archives a transcript.
 - The cwd encoding rule was checked on this machine ("C:\AI projects\X" becomes "C--AI-projects-X").
 - Verified: listing and loading a past session in the browser preview; `test/transcripts.test.js` on fixture files.
-- Not verified: resuming a past conversation with `--resume` against the real CLI inside VS Code (needs `claude auth login`).
+- Not verified: resuming a past conversation with `--resume` against the real CLI inside VS Code (on the user's machine this was later confirmed to work; a local model needs no login).
 - Code (as built): `src/history/` (`transcripts.js` with `listSessions` / `readSession` / `sessionTitle`, `transcript-events.js`), `src/cli/content.js`, `webview/chat/history.js`, `test/transcripts.test.js`.
 
 ## Skills / commands menu
@@ -174,11 +174,11 @@ Later milestones, per `plan.md`: native diff review, editor context / @-mentions
 6. Permission cards and mode selector; `/` menu; model picker; history list and resume.
 7. Manual pass in the Extension Development Host against the real CLI; `scripts/package.ps1`.
 Each step goes through the enforcing-coding-workflow stages; this spec is updated from "planned" to "as built" per section when it ships.
-Status: steps 1-6 built and verified as far as the "Status" line at the top says; step 7 is pending (manual pass needs `claude auth login`; `scripts/package.ps1` not built).
+Status: steps 1-6 built and verified as far as the "Status" line at the top says; step 7 is pending (the full manual pass has not been run; a local model needs no `claude auth login`; `scripts/package.ps1` not built).
 
 ## Testing
 - Automated: `node --test "test/*.test.js"` (run in PowerShell; Node 22 needs the glob, a bare folder does not work); 22/22 pass. Tests: `args`, `process`, `event-translator`, `transcripts`, `conversation` (with a stub `vscode` module). `dev/fake-claude.js` (+ `.cmd`) is a fake stream-json CLI that answers `initialize` (commands, models), streams a reply with partial messages, asks `can_use_tool`, and honours `interrupt`; selected with `claudeLocal.claudePath`. Units: args building, process/control protocol over a pipe to the fake CLI, transcript reading, the event translator.
 - `node --check` on every `.js` file and a JSON check of `package.json`.
 - Manual: Extension Development Host (`code --extensionDevelopmentPath=<repo>`), first against the fake CLI, then the real CLI. Checklist: open a tab, the sidebar and the status-bar item; Ctrl+Shift+Esc; a question streams and renders Markdown, a table, highlighted code with copy; thinking collapses; a tool row expands; a permission card (allow, always, deny); mode and model change; stop; "past conversations" lists this folder's chats, opening one shows its earlier messages and a new message continues it; `/` menu lists the CLI's commands; Hebrew text and mixed English render correctly in RTL; light and dark themes.
 - Browser preview (dev-only, no VS Code): `dev/preview-server.js` + `dev/preview-host.js` serve the webview with a simulated host (`.claude/launch.json` "chat-preview"); used to check rendering and layout.
-- Not verified: the whole manual checklist above inside VS Code, and anything that needs a real model reply (the CLI is not logged in). Manual checks are reported as not done until they actually run.
+- Not verified: the whole manual checklist above inside VS Code, and anything that needs a real model reply on the build machine (on the user's machine replies work). Manual checks are reported as not done until they actually run.
