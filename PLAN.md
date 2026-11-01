@@ -12,7 +12,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | The CLI | Claude Code 2.1.246 (`claude-bin.exe`) | checks |
 | VS Code | 1.91.1 (no secondary side bar; every API must fit) | checks |
 | Principles | The extension stores no data; the CLI is the source of truth; plain JS with no build and no npm; every user-facing string in Hebrew | `spec.md` |
-| Real context window | **64,000** (`/api/ps`; no plateau up to 50,000 in the test). The gateway setting (12,288) is not enforced | 🔧 |
+| Real context window | **64,000 measured for `gemma4:26b`** (`/api/ps`); for `qwen3.8:27b` **at least 50,000 measured** (no plateau), and 64,000 is an **assumption** (the window is probably set at server level, so it applies to all models) to be confirmed with `/api/ps` at the start of package D. The gateway setting (12,288) is not enforced. Claude Code itself sends about 25,000 tokens for a simple message, so the context meter starts at roughly 40% | 🔧 |
 | Cold model load | 285 seconds; keep-alive about 5 minutes | 🔧 |
 
 ## 2. Decisions by topic
@@ -80,7 +80,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | MCP | **A full management dialog, including add and remove from the UI** (list + status, enable/disable, reconnect). OAuth: no | Verified: `mcp_status`, `mcp_reconnect`, `mcp_toggle` work, and so do `claude mcp add/remove` | 👤 + 🔧 |
 | Plugins and Mods | **Skip** | Marketplaces on GitHub, does not work offline | 👤 |
 | Git | **No change** (through Bash); no PR status | Already works, and the status needs GitHub | 👤 |
-| Session usage line | **Tokens only, no cost.** A full `/usage` dialog: no. Git status in the box line: no | The cost the CLI reports is meaningless (`costBasis: unknown`), and nothing costs money here. Confirmed by the user on 2026-11-01 | 👤 + 🔧 |
+| Session usage line | **Tokens only, no cost.** A full `/usage` dialog: no. Git status in the box line: no. **Separate from the context meter**: the meter (package D) shows the window fill now ("הקשר: 23,400 / 64,000"); the usage line shows the last turn ("תור: קלט · פלט"). **Removing the cost is done in package D** (one line in the existing result line), not in E (decided 2026-11-01) | The cost the CLI reports is meaningless (`costBasis: unknown`), and nothing costs money here. The two components come from different sources (`get_context_usage` vs the `result` message) | 👤 + 🔧 |
 
 ### Stage 6: display, accessibility, settings, shortcuts
 
@@ -110,7 +110,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | Commands not supported in stream-json | **Greyed out in the `/` menu, in a separate group labelled "בטרמינל בלבד"**; choosing one shows a Hebrew card ("זמינה רק בטרמינל") with an "open in terminal" button and is **never sent to the model**. Based on `terminal_slash_commands` (today `doctor`, `color`). Package C (decided 2026-11-01) | `/compact`, `/rename`, `/loop` are handled in stream-json and stay available | 👤 + 🔧 |
 | Message queue, Ctrl+Enter, prompt history (up arrow) | **Yes**, in memory only. **A visible queue** (grey bubbles marked "ממתין" with a cancel button, using `interrupt_cancel_queued_v1`) and **history per conversation** (up arrow browses that conversation's sent messages only). Package C (decided 2026-11-01) | Verified: a message mid-turn is accepted and handled after the first. Cancelling matters with a slow cold-loading model | 👤 + 🔧 |
 | Switching model/mode mid-work | **Mode: the permission-mode picker is also disabled during an active turn** (decided 2026-11-01, replaces the earlier "Mode: yes"; the safety rules for auto/no-permissions then only apply between turns). **Model: the picker is disabled during an active turn, with a "stop and switch" button** whose Hebrew text explains in detail what is lost: the partial answer, a running tool cut mid-way (a file may be left half-written), a pending permission request | The model is switched by a restart (see below). Decided by the user on 2026-11-01 | 👤 + 🔧 |
-| `/diff` panel | **Yes** | Chosen | 👤 |
+| `/diff` panel | **Yes. Built from the session's `Edit`/`Write` tool calls** (a list of changed files; choosing one opens a comparison of the edited fragments in the editor through a virtual-document diff view). **No git involved at all** (decided 2026-11-01). The diff-view module is **built once in package B** and reused by package F (per-block approval) and by the IDE server's `openDiff`. Limit: fragments (`old_string`/`new_string`), not the whole file | The CLI does not support `/diff` in stream-json, so the extension implements it. Independent of git, shows only what Claude did | 👤 |
 | Claude's task list | **A checklist pinned above the prompt box** ("3/5 הושלמו", expandable, updated in place), built on `TaskCreate`/`TaskUpdate` calls collected into one in-memory list. Package B, which starts with a short check that the local model uses these tools; if it does not, postpone (decided 2026-11-01) | There is no `TodoWrite` in this CLI (the existing `TodoWrite` rendering in `webview/chat/tools.js` is never triggered) | 👤 + 🔧 |
 | Shell mode with `!` | **Cancelled** (see decision 2) | The CLI does not handle it; the model interprets it | 👤 |
 | Next-prompt suggestion, emoji, automatic `/recap` | **No** | Rejected | 👤 |
@@ -162,17 +162,17 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | Package | Content | Depends on |
 |---|---|---|
 | **A** | Settings, rebindable shortcuts **(including Ctrl+Esc, tested on the user's machine for the Start-menu conflict)**, Open in Terminal, `environmentVariables`, launching `claude-bin.exe` | – |
-| **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff`, `/loop` indicator, **agent cards, Claude's pinned task list** (both start with a check that the local model uses sub-agents / `TaskCreate`) | A |
+| **B** | Sessions: Activity Bar, filters, rename, Ctrl+Shift+T, colour dots, Checkpoints, background + tasks, `/diff` **(with the shared diff-view module that F reuses)**, `/loop` indicator, **agent cards, Claude's pinned task list** (both start with a check that the local model uses sub-agents / `TaskCreate`) | A |
 | **C** | Prompt box: Auto, grouped `/` menu **(with terminal-only commands greyed out)**, @-mentions, **Alt+K (`@path`)**, images, message queue **(visible, cancellable)** **+ per-conversation prompt history**, copy, `/btw`, plan in the editor | A |
-| **D** | Model picker, context meter, filtering, restart with `--resume` | A, C |
-| **E** | MCP, usage line, sign-in error card, URI | A |
-| **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff, autosave | A, IDE prototype |
+| **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |
+| **E** | MCP, sign-in error card, URI (the usage line moved to D) | A |
+| **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
 | **G** | Display and accessibility (Focus view, timestamps, screen reader) | – |
 
 ## 6. What is open
 
 1. The IDE server prototype (me). Until then the editor context falls back to chips. Tip: if you ever have a machine with the official Claude Code extension, copy one `.lock` file from `%USERPROFILE%\.claude\ide\`; it shows the exact format of the lock file (on this machine the folder does not exist).
-2. Direct confirmation of 64,000 for `qwen3.8:27b` with `/api/ps` (a window of at least 50,000 was already measured through the gateway, so it is not blocking), and a check of `POST :11435/api/show` for capabilities (not blocking).
+2. Direct confirmation of 64,000 for `qwen3.8:27b` with `/api/ps` while it is loaded (a window of at least 50,000 was measured, so it is not blocking). **Scheduled at the start of package D** (decided 2026-11-01). If windows differ between models, add a `modelContextWindows` setting. `POST :11435/api/show` is no longer needed for vision (images are not gated by model) and stays a non-blocking check for tools capability.
 3. The plan-approval buttons: check at the end.
 4. Check the following versions inside VS Code 1.91.1 after every package, and update `spec.md`, `PROJECT_MAP.md`, `CHANGELOG.md`, `AGENT_CONTEXT.md` at the end of every package.
 5. When updating `spec.md` at the end of each package: also update the "Settings", "Placement" and "History" sections and "Verification status" according to what was built.
