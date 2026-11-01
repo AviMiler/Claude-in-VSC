@@ -211,6 +211,12 @@
     currentTurn().append(node);
   }
 
+  // The row element of a tool call, for cards that attach to it (agent cards).
+  function toolNode(id) {
+    const t = tools.get(id);
+    return t ? t.node : null;
+  }
+
   function apply(events) {
     const stick = nearBottom();
     for (const ev of events) {
@@ -259,5 +265,5 @@
     if (e.target.closest('a[data-link]')) e.preventDefault();
   });
 
-  CL.thread = { addCard, addQueued, removeQueued, clearQueued, apply, addUser, addError, addNode, reset, scrollToBottom, endTurn };
+  CL.thread = { addCard, addQueued, removeQueued, clearQueued, apply, addUser, addError, addNode, toolNode, reset, scrollToBottom, endTurn };
 })();

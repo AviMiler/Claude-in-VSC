@@ -68,6 +68,13 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 ## src/tasks/ — Claude's task list
 - `claude-tasks.js` — pure: `TaskCreate`/`TaskUpdate`/`TaskList` results to a task list. Test: `test/claude-tasks.test.js`. UI: `webview/chat/tasks.js` (collapsible checklist).
 
+## src/agents/ — agent cards
+- `agent-map.js` — pure: raw CLI lines (`Agent`/`Task` tool_use and result, inner lines by `parent_tool_use_id`, `task_started`/`task_progress`/`task_updated`/`task_notification`) to cards. Test: `test/agent-map.test.js`.
+- `agent-cards.js` — host: feeds lines to the map, posts `agentCards`, `[agents]` logs. UI: `webview/chat/agent-cards.js` + `agent-cards.css`.
+
+## src/loop/ — /loop indicator
+- `loop-jobs.js` — pure: `CronCreate`/`CronList`/`CronDelete` to jobs; `stopPrompt`. `self-turn.js` — pure: detects a top-level `message_start`/`assistant` while not busy. `loop-host.js` — `trackLoop`/`resetLoop`/`stopLoop` (ignores late lines 10 s after a forced stop). Test: `test/loop.test.js`. UI: `webview/chat/loop-bar.js` (`#loop-jobs`), `cron-next.js` (pure next-run).
+
 ## src/checkpoints/ — rewind code and fork
 - `checkpoints.js` — pure: `CHECKPOINT_ENV`, `checkpointArgs({fork})`, `checkpointFrom`/`addCheckpoint` from replayed user lines, `filesChangedCount`. Test: `test/checkpoints.test.js`.
 - `rewind-menu.js` — Esc Esc QuickPick of this process's prompts, then rewind code (dry run, confirm, real) or fork.
@@ -88,6 +95,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `mcp-dialog.js` (MCP dialog) with `mcp.css`; `error-card.js` (CLI-failure card); `app.js` (wiring, messages from host).
 - `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `display-logic.js` (pure: spinner verb, time format, speaker label, heading text); `display.js` (applies display settings as body attributes, speaker headings); `a11y.js` (screen-reader announcer); `a11y.css` (focus view, reduced motion, daltonized palette, sr-only); `app.js` (wiring, messages from host).
 - `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `context-meter.js` (window fill, click = /compact); `model-picker.js` (picker, "stop and switch" button); `app.js` (wiring, messages from host).
+- Added by B2: `agent-cards.js` + `agent-cards.css` (agent cards after the tool row; `thread.js` has `CL.thread.toolNode(id)`), `loop-bar.js` (`/loop` bar), `cron-next.js` (pure, UMD), `tasks-bar.js`, `tasks.js`; `app.js` also handles `agentCards`, `loopJobs`, `selfTurn`.
 
 ## webview/vendor/
 - `marked.umd.js`, `marked.LICENSE.md`, `highlight.min.js`, `powershell.min.js`, `highlight.LICENSE` — see DEPENDENCIES.md.
@@ -100,7 +108,8 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`).
 - `check-context-window.txt` — Hebrew `/api/ps` check of the 64,000 window, for the user.
-- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`).
+- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`). Supersedes the older line above.
+- `manual-tests.html` — Hebrew manual test checklist.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host.
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
 - `probe4-standalone.js` — self-contained probe: background tasks, Task tools, sub-agents, cron tools.
@@ -111,6 +120,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `display.test.js`.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `models.test.js`.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario).
+- B2 also: `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`. The four lines above are per-package variants of the same list.
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

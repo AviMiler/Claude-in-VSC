@@ -22,6 +22,7 @@ const ROUTES = {
   diffCommand: (c) => c.diffCommand(),
   rewindMenu: (c) => c.rewindMenu(),
   stopTask: (c, m) => c.stopTask(String(m.id || '')),
+  stopLoop: (c, m) => c.stopLoop(String(m.id || '')),
   openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
   mcp: (c, m) => handleMcp(c, m),

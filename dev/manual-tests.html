@@ -37,9 +37,8 @@
   <li><code>/btw</code> (שאלה צדדית)</li>
   <li>תצוגת LaTeX</li>
   <li>F: הקשר העורך (בחירת שורות ב-Alt+K; כרגע נכנס רק <code>@path</code> של הקובץ)</li>
-  <li>כרטיסי סוכנים (sub-agents)</li>
-  <li>מחוון <code>/loop</code></li>
-  <li>חזרה לנקודה בשיחה עצמה (rewind-to-point): רק שחזור קוד ופיצול שיחה</li>
+  <li>חזרה לנקודה בשיחה עצמה (rewind-to-point) ו"שחזור קוד ושיחה" (both): רק שחזור קוד ופיצול שיחה. הודעת ה-CLI המתאימה מעולם לא נקלטה.</li>
+  <li>כפתור "העבר לרקע" למשימה שרצה בחזית: לא אפשרי, ל-CLI אין בקשה כזו.</li>
 </ul>
 
 <script>
@@ -141,16 +140,16 @@ t('16.1', 'vscode://local.claude-local/open', ['פתחו בדפדפן/Win+R: <co
 
 g('17. נקודות שחזור');
 t('17.1', 'Esc Esc: שחזור קוד ופיצול', ['בקשו מ-Claude ליצור/לשנות קובץ.', 'לחצו Esc Esc.', 'בחרו הודעה ו"שחזור הקוד" - אשרו.', 'שוב Esc Esc ו"פיצול השיחה".'], 'רשימת הודעות; שחזור מראה כמה קבצים ושואל; הקובץ חוזר. פיצול ממשיך בשיחה חדשה והמקורית נשמרת.',
-  ['<code>[checkpoint] rewind menu (N checkpoints)</code>', '<code>[control] request ext-N rewind_files</code>', '<code>[checkpoint] fork session &lt;id&gt;</code>', '<code>[spawn] start … --resume … --fork-session …</code>'], PASTE_STD);
+  ['<code>[checkpoint] rewind menu (&lt;n&gt; checkpoints)</code>', '<code>[checkpoint] picked &lt;uuid&gt; action=code</code> (או <code>action=fork</code>)', '<code>[checkpoint] rewind_files dry run &lt;uuid&gt;: files=&lt;n&gt;</code>', '<code>[control] request ext-N rewind_files</code>', 'אם סירבתם באישור: <code>[checkpoint] rewind &lt;uuid&gt; cancelled at confirm</code>; אם אישרתם: <code>[checkpoint] rewind_files done &lt;uuid&gt;</code>', 'בפיצול: <code>[checkpoint] fork session &lt;id&gt;</code> ואז <code>[spawn] start … --resume … --fork-session …</code>'], PASTE_STD);
 
 g('18. /diff');
-t('18.1', 'שינויים בשיחה', ['לאחר שClaude שינה קבצים הקלידו <code>/diff</code>.', 'בחרו קובץ.', 'נסו בשיחה בלי שינויים.'], 'QuickPick של הקבצים ו-diff לקריאה בלבד. בלי שינויים - הודעה בעברית. לא נשלח ל-CLI.', ['<code>[diff] command</code>'], PASTE_STD);
+t('18.1', 'שינויים בשיחה', ['לאחר שClaude שינה קבצים הקלידו <code>/diff</code>.', 'בחרו קובץ.', 'נסו בשיחה בלי שינויים.'], 'QuickPick של הקבצים ו-diff לקריאה בלבד. בלי שינויים - הודעה "Claude עוד לא שינה קבצים בשיחה הזו.". לא נשלח ל-CLI. עם fake-claude: שלחו "edit" ואז <code>/diff</code>.', ['<code>[diff] command</code>', '<code>[diff] files 2</code>', 'אחרי בחירת קובץ: <code>[diff] open diff (שינוי אחד)</code>', 'בשיחה בלי שינויים: <code>[diff] files 0</code>'], PASTE_STD);
 
 g('19. משימות רקע');
-t('19.1', 'משימת רקע ועצירה', ['בקשו: "הרץ ברקע sleep 60".', 'צפו בסרגל מעל התיבה; לחצו עצירה.'], 'משימה רצה מופיעה עם כפתור עצירה; אחרי עצירה היא מסומנת כעצורה ונשארת עד אתחול התהליך.', ['<code>[background] tasks now 1</code>', '<code>[tasks] stop_task &lt;id&gt;</code>', '<code>[control] request ext-N stop_task</code>'], PASTE_STD);
+t('19.1', 'משימת רקע ועצירה', ['בקשו: "הרץ ברקע sleep 60".', 'צפו בסרגל מעל התיבה; לחצו עצירה.'], 'משימה רצה מופיעה עם כפתור עצירה; אחרי עצירה היא מסומנת כעצורה ונשארת עד אתחול התהליך.', ['<code>[background] tasks now 1</code>', 'בלחיצה על עצירה: <code>[background] stop_task bg_fake_1</code> (עם ה-CLI האמיתי: מזהה אחר), <code>[control] request ext-N stop_task</code>, ואז <code>[background] tasks now 1</code> (המשימה מוצגת כעצורה)', '<i>עם fake-claude שלחו "background"</i>'], PASTE_STD);
 
 g('20. רשימת המשימות של Claude');
-t('20.1', 'צ\'קליסט', ['בקשו משימה רב-שלבית ("תכנן וצור 3 קבצים, עם רשימת משימות").'], 'רשימה מתקפלת "המשימות של Claude (done/total)" עם ○ ◐ ✓.', [], PASTE_STD);
+t('20.1', 'צ\'קליסט', ['בקשו משימה רב-שלבית ("תכנן וצור 3 קבצים, עם רשימת משימות").'], 'רשימה מתקפלת "המשימות של Claude (done/total)" עם ○ ◐ ✓. עם fake-claude שלחו "tasks".', ['<code>[tasks] list now 1 (done 0)</code>', '… (עדכונים בהמשך התור)', '<code>[tasks] list now 2 (done 1)</code> (בסוף)'], PASTE_STD);
 
 g('21. תצוגה');
 t('21.1', 'הגדרות תצוגה', ['הפעילו בזה אחר זה: <code>focusView</code>, <code>showMessageTimestamps</code>, <code>prefersReducedMotion</code>, <code>colorMode</code> = daltonized.', 'שנו <code>spinnerVerbs</code>.'], 'תצוגת מיקוד מסתירה שורות כלים/חשיבה; חותמות זמן על הודעות חדשות; אנימציות מופחתות; פלטה מותאמת לעיוורון צבעים. ההגדרות חלות מיד.',
@@ -158,6 +157,36 @@ t('21.1', 'הגדרות תצוגה', ['הפעילו בזה אחר זה: <code>fo
 
 g('22. נגישות');
 t('22.1', 'קורא מסך (NVDA/Narrator)', ['הפעילו קורא מסך, נווטו בכותרות (H).', 'שלחו הודעה וחכו לתשובה; הפעילו בקשת הרשאה.'], 'לפני כל הודעה כותרת "אתה"/"Claude". מוכרזים: תחילת/סוף עבודה, בקשת הרשאה, שגיאה (בלי הכרזה כפולה של התשובה).', [], 'איזה קורא מסך + מה לא הוכרז');
+
+g('23. כרטיסי סוכנים');
+t('23.1', 'כרטיס סוכן (fake-claude)', [
+  'הגדירו <code>claudeLocal.claudePath</code> ל-<code>dev\\fake-claude.cmd</code> ופתחו שיחה חדשה.',
+  'שלחו הודעה שמכילה "agent".',
+  'צפו בכרטיס מיד אחרי שורת הכלי "Agent": קודם מצב "רץ", ואז "הסתיים".',
+  'פתחו את הכרטיס (לחיצה).',
+  'לחצו "+" (שיחה חדשה), ואחר כך טענו שיחה קודמת מהרשימה.'
+], 'מיד אחרי שורת הכלי "Agent" מופיע כרטיס מתקפל "general-purpose · רשימת קבצים" במצב "רץ" ואז "הסתיים", עם מטא כמו "כלי אחד · 1.5 שנ׳". בפתיחה: הכלי "Glob" עם "*" ו-✓, והסיכום "נמצאו שני קבצים: a.js, b.js" (תוצאת כלי ה-Agent עצמה היא "(no content)"). שיחה חדשה וטעינת שיחה קודמת מנקות את הכרטיסים (חי בלבד, לא נבנה מחדש מתמלולים).',
+  ['<code>[agents] card toolu_fake_agent_&lt;n&gt; started (subagent=general-purpose, background=false)</code>', '<code>[agents] card toolu_fake_agent_&lt;n&gt; done (tools=1, ms=1500, summary=yes)</code>'], PASTE_STD);
+
+g('24. מחוון /loop');
+t('24.1', 'יצירה, תור עצמאי ועצירה (fake-claude)', [
+  'עם fake-claude שלחו "loop" (אשרו את בקשת ההרשאה ל-CronCreate אם מופיעה).',
+  'צפו בסרגל מעל התיבה.',
+  'חכו כ-3 שניות; בזמן הזה הקלידו ושלחו הודעה (היא אמורה להיות בתור).',
+  'לחצו "עצירה" בסרגל כש-Claude לא עובד.'
+], 'מעל התיבה סרגל "משימות מתוזמנות (/loop)" עם שורה "🔁 Every minute · Reply with the single word PING", "הבא: HH:MM" (הדקה השלמה הבאה) וכפתור "עצירה". כעבור כ-3 שניות מתחיל תור עצמאי: שורה "⏰ Claude התחיל תור בעצמו (למשל משימה מתוזמנת של /loop)", התשובה "PING", והתור מסתיים כרגיל; הודעה שהוקלדה בינתיים ממתינה בתור ונשלחת אחריו. בעצירה: הודעה "ביקשתי מ-Claude לבטל את המשימה המתוזמנת.", שורת כלי CronDelete, והסרגל נעלם.',
+  ['<code>[loop] jobs now 1 (fakejob1 "*/1 * * * *")</code>', '<code>[loop] self-started turn (no user message)</code>', '<code>[loop] stop requested for job fakejob1 (asks Claude to run CronDelete)</code>', '<code>[loop] jobs now 0</code>'], PASTE_STD);
+t('24.2', 'עצירה בזמן עבודה והחלפת מודל', [
+  'צרו משימה (שלחו "loop").',
+  'בזמן ש-Claude עובד (תור עצמאי או כל תור ארוך) לחצו "עצירה" בסרגל.',
+  'כש-Claude לא עובד, החליפו מודל בבורר (זה מפעיל מחדש את ה-CLI).'
+], 'בעצירה בזמן עבודה מוצגת ההודעה "אפשר לעצור את המשימה המתוזמנת כש-Claude לא עובד. נסו שוב בסיום התור." והמשימה נשארת. אחרי החלפת המודל הסרגל נעלם.',
+  ['<code>[loop] jobs cleared (new CLI process)</code>'], PASTE_STD);
+t('24.3', '/loop עם ה-CLI האמיתי (לא מאומת)', [
+  'עם <code>claude-bin.exe</code> אמיתי שלחו <code>/loop 1m Reply with the single word PING</code>.',
+  'חכו לתור העצמאי, ואז לחצו "עצירה".'
+], 'לא מאומת מול ה-CLI האמיתי: רצף התור העצמאי, פירוש cron בשעון מקומי, והאם המודל מציית לבקשת הביטול. רשמו מה קרה בפועל.',
+  ['אותן שורות <code>[loop] …</code> כמו ב-24.1'], PASTE_STD);
 
 const KEY = 'cl-manual-tests-v1';
 let S = {};

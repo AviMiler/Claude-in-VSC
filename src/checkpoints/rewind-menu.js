@@ -30,6 +30,7 @@ async function runRewindMenu(conv) {
   if (!cp) return undefined;
   const action = await vscode.window.showQuickPick(ACTIONS, { placeHolder: cp.preview });
   if (!action) return undefined;
+  conv.services.logger.info('checkpoint', `picked ${cp.id} action=${action.id}`);
   if (action.id === 'fork') return conv.forkSession();
   return rewindCode(conv, cp);
 }
@@ -40,12 +41,17 @@ async function rewindCode(conv, cp) {
   try {
     const dry = await proc.request('rewind_files', { user_message_id: cp.id, dry_run: true }, 30000);
     const count = filesChangedCount(dry);
+    conv.services.logger.info('checkpoint', `rewind_files dry run ${cp.id}: files=${count === null ? '?' : count}`);
     const what = count === null ? 'הקבצים ששונו' : count === 1 ? 'קובץ אחד' : `${count} קבצים`;
     if (count === 0) return conv.post({ type: 'notice', text: 'אין שינויי קבצים לשחזר מאז ההודעה הזו.' });
     const ok = await vscode.window.showWarningMessage(`לשחזר ${what} למצב שלפני "${cp.preview}"?`, { modal: true }, 'שחזור');
-    if (ok !== 'שחזור') return undefined;
+    if (ok !== 'שחזור') {
+      conv.services.logger.info('checkpoint', `rewind ${cp.id} cancelled at confirm`);
+      return undefined;
+    }
     if (conv.proc !== proc) return conv.post({ type: 'notice', text: 'התהליך של Claude הופעל מחדש בינתיים; השחזור בוטל.' });
     await proc.request('rewind_files', { user_message_id: cp.id }, 30000);
+    conv.services.logger.info('checkpoint', `rewind_files done ${cp.id}`);
     return conv.post({ type: 'notice', text: `הקוד שוחזר (${what}).` });
   } catch (err) {
     return conv.notifyFailure('rewind_files', err);

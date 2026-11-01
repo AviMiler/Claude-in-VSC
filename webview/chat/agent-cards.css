@@ -1,0 +1,13 @@
+/* Agent cards (webview/chat/agent-cards.js). */
+.agent-card { margin: 2px 0 6px; font-size: 12px; border: 1px solid var(--cl-border); border-radius: 4px; padding: 4px 8px; }
+.agent-card summary { cursor: pointer; display: flex; gap: 6px; align-items: baseline; }
+.agent-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-meta { color: var(--cl-muted); margin-inline-start: auto; white-space: nowrap; }
+.agent-card.error .agent-state { color: var(--vscode-errorForeground); }
+.agent-tools { list-style: none; margin: 4px 0 0; padding: 0; }
+.agent-tool { display: flex; gap: 6px; padding: 1px 0; }
+.agent-tool-name { font-weight: 600; }
+.agent-tool-summary { color: var(--cl-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-tool.err .agent-tool-icon { color: var(--vscode-errorForeground); }
+.agent-empty { color: var(--cl-muted); margin-top: 4px; }
+.agent-summary { margin-top: 6px; white-space: pre-wrap; border-top: 1px solid var(--cl-border); padding-top: 4px; }

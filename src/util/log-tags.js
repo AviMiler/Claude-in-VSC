@@ -16,6 +16,8 @@ const TAGS = Object.freeze({
   DIFF: 'diff',
   TASKS: 'tasks',
   BACKGROUND: 'background',
+  AGENTS: 'agents',
+  LOOP: 'loop',
   DISPLAY: 'display',
   SETTINGS: 'settings',
   CONTROL: 'control',

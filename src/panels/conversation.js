@@ -21,6 +21,8 @@ const checkpoints = require('../checkpoints/checkpoints');
 const { runRewindMenu } = require('../checkpoints/rewind-menu');
 const taskMap = require('../background/task-map');
 const claudeTasks = require('../tasks/claude-tasks');
+const agentCards = require('../agents/agent-cards');
+const loopHost = require('../loop/loop-host');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -66,6 +68,7 @@ class Conversation {
     this.edits = editLog.createEditLog(); // this session's Edit/Write tool calls, for /diff
     this.checkpoints = checkpoints.createCheckpointList(); // prompts sent in this process, for rewind
     this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
+    this.agents = agentCards.createAgentCards(); // one card per sub-agent call (live only)
     this.entries = null;
     this.models = new ModelSwitcher(this);
     this.subs = [
@@ -145,16 +148,22 @@ class Conversation {
     const hadTasks = this.tasks && this.tasks.tasks.size > 0;
     this.tasks = taskMap.createTaskMap();
     if (hadTasks) this.post({ type: 'backgroundTasks', tasks: [] });
+    loopHost.resetLoop(this);
 
     proc.on('message', (msg) => {
       if (proc !== this.proc) return;
       checkpoints.addCheckpoint(this.checkpoints, msg);
+      loopHost.trackLoop(this, msg);
       if (taskMap.applyMessage(this.tasks, msg)) {
         const tasks = taskMap.backgroundTasks(this.tasks);
         this.services.logger.info('background', `tasks now ${tasks.length}`);
         this.post({ type: 'backgroundTasks', tasks });
       }
-      if (claudeTasks.applyMessage(this.claudeTasks, msg)) this.post({ type: 'claudeTasks', tasks: claudeTasks.listTasks(this.claudeTasks) });
+      if (claudeTasks.applyMessage(this.claudeTasks, msg)) {
+        const list = claudeTasks.listTasks(this.claudeTasks);
+        this.services.logger.info('tasks', `list now ${list.length} (done ${list.filter((t) => t.status === 'completed').length})`);
+        this.post({ type: 'claudeTasks', tasks: list });
+      }
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
         if (ev.kind === 'session') {
@@ -165,6 +174,8 @@ class Conversation {
       this.trackPlan(events);
       for (const ev of events) editLog.addEvent(this.edits, ev);
       if (events.length) this.post({ type: 'events', events });
+      // After the events, so the Agent tool row the card attaches to already exists.
+      agentCards.trackAgents(this, this.agents, msg);
     });
     proc.on('controlRequest', (id, req) => this.onControlRequest(proc, id, req));
     proc.on('controlCancel', (id) => {
@@ -208,6 +219,7 @@ class Conversation {
     if (proc !== this.proc) return;
     this.proc = null;
     this.denyAllPending();
+    loopHost.resetLoop(this); // the jobs died with the process
     const wasBusy = this.busy && !this.stopping;
     this.endTurn({});
     if (this.disposed) return;
@@ -259,6 +271,7 @@ class Conversation {
       clearTimeout(this.stopTimer);
       this.stopTimer = setTimeout(() => {
         if (proc !== this.proc || !this.stopping) return;
+        this.forcedEndAt = Date.now(); // late lines of this turn must not look self-started (loop-host.js)
         this.post({ type: 'events', events: [this.endTurn({ kind: 'result' })] });
       }, STOP_RESULT_WAIT_MS);
     });
@@ -377,6 +390,7 @@ class Conversation {
     for (const ev of events) editLog.addEvent(this.edits, ev);
     this.checkpoints = checkpoints.createCheckpointList();
     this.claudeTasks = claudeTasks.createClaudeTasks();
+    this.agents = agentCards.createAgentCards();
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
@@ -414,6 +428,7 @@ class Conversation {
     this.edits = editLog.createEditLog();
     this.checkpoints = checkpoints.createCheckpointList();
     this.claudeTasks = claudeTasks.createClaudeTasks();
+    this.agents = agentCards.createAgentCards();
     this.setTitle('Claude');
     this.post({ type: 'reset' });
     this.post({ type: 'context', used: null, max: null });
@@ -453,7 +468,7 @@ class Conversation {
   // `/diff`: the files this session's Edit/Write tool calls changed (no git).
   async diffCommand() {
     this.services.logger.info('diff', 'command');
-    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd);
+    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd, this.services.logger);
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
   }
 
@@ -461,8 +476,13 @@ class Conversation {
   // the task as stopped through the usual system lines.
   stopTask(id) {
     if (!this.proc || !id) return;
-    this.services.logger.info('tasks', `stop_task ${id}`);
+    this.services.logger.info('background', `stop_task ${id}`);
     this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
+  }
+
+  // The stop button of the /loop bar (src/loop/loop-host.js).
+  stopLoop(id) {
+    return loopHost.stopLoop(this, id);
   }
 
   // Esc Esc / the rewind shortcut: the checkpoints menu (src/checkpoints/rewind-menu.js).
