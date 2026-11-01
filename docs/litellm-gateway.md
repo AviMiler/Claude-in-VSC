@@ -49,3 +49,43 @@ Invoke-RestMethod http://172.27.5.5:11436/routes -Headers $h
 ## ממצא נוסף (1.11.2026)
 `gemma3:27b` נדחה בשער עם `litellm.BadRequestError: ... does not support tools`, ושם מודל שאינו קיים עם `Invalid model name passed`. כלומר השער יודע מי תומך בכלים, והנקודות `/v1/model/info` ו-`/model_group/info` עשויות לחשוף זאת (למשל `supports_function_calling`). זה הופך אותן לחשובות במיוחד לבורר המודל. `/api/show` של Ollama אינו חשוף דרך השער (404).
 
+---
+
+## תוצאות הבדיקה מתוך VS Code (1.11.2026)
+
+הרצה מתוך ה-Extension Host של VS Code 1.91.1 (Node 20.9.0, Electron 29.4.0, בלי פרוקסי, `http.proxySupport: override`). **התוסף יכול לגשת לשער**, גם דרך `http` של Node וגם דרך `fetch`, ובמהירות (15 עד 250 מילישניות).
+
+| נקודה | תוצאה |
+|---|---|
+| `GET /v1/models` | 200, עשרה מודלים. **עובד בלי מפתח** וגם עם מפתח |
+| `GET /v1/model/info` | 200 (29 KB). השדות `model_info.*` ריקים (`null`), אבל `litellm_params` מכיל את ההגדרות של כל מודל (ראה למטה) |
+| `GET /model_group/info` | 200. `supports_vision`, `supports_function_calling`, `supports_reasoning` הם `false` לכל המודלים, וגם ל-`qwen3.8:27b` שמזהה תמונות ומפעיל כלים. **לא אמין** |
+| `GET /public/model_hub` | 200, ריק |
+| `GET /utils/supported_openai_params` | 400 `Could not map model=qwen3.8:27b` (LiteLLM לא מכיר את המודל) |
+| `POST /utils/token_counter` | 200: `total_tokens: 9` ל-`hello world`, עם `tokenizer_type: openai_tokenizer`. **ספירה משוערת בלבד** (לא המפענח של המודל) |
+| `GET /routes` | 200, 422 נתיבים. כולל `/v1/messages` ו-`/v1/messages/count_tokens` (נתיבי Anthropic שבהם ה-CLI משתמש), `/health`, `/anthropic/{endpoint}` |
+
+### הגדרות כל מודל בשער (`litellm_params`)
+כל המודלים מגיעים ל-`api_base: http://localhost:11435/v1` (שרת תואם OpenAI על אותו מחשב, פורט 11435), עם `extra_body.num_ctx`:
+
+| מודל | `num_ctx` | `max_input_tokens` | `max_tokens` (פלט) | הערות |
+|---|---|---|---|---|
+| qwen3.8:27b | **12288** | 8192 | 4096 | `stop_sequences: ["</block>"]`, `output_config.effort: high` |
+| qwen3:latest | 12288 | 8192 | 4096 | |
+| gemma4:26b | 12288 | 8192 | 4096 | `effort: high` |
+| gemma3:27b | 12288 | 8192 | 4096 | **לא תומך בכלים** (נבדק) |
+| gemma4:31b | 12288 | 8192 | 4096 | **פלט JSON כפוי** `{"title": string}` |
+| qwen2.5-coder:7b | 16384 | 12288 | 4096 | **פלט JSON כפוי** `{"title": string}` |
+| qwen2.5:7b | 16384 | 12288 | 4096 | |
+| gpt-oss:20b | 16384 | 12288 | 4096 | |
+| llama3.1:70b | 8192 | 4096 | 4096 | timeout 900 |
+| gpt-oss:120b | 6144 | 4096 | 2048 | timeout 1200 |
+
+### מסקנות
+1. **גישה מהתוסף אפשרית טכנית.** נשארת רק ההחלטה אם זה מותר מבחינת הכללים.
+2. **יכולות המודל לא נקראות מהשער.** `model_group/info` אומר `false` לכל, ו-`litellm_params.model_info` אומר `supports_function_calling: true` לכל (כולל `gemma3:27b` שנכשל). לכן סינון לפי יכולות צריך להתבסס על **רשימה ידנית** (הגדרה בתוסף, כמו `modelDenylist`) או על זיהוי שגיאת "does not support tools" אחרי ניסיון.
+3. **שני מודלים מוגדרים לפלט JSON של כותרת בלבד** (`qwen2.5-coder:7b`, `gemma4:31b`; `output_config.format` עם סכמה `{title}`), כנראה לצורך יצירת כותרות. הם לא מתאימים לשיחה. אפשר לזהות אותם אוטומטית לפי הנוכחות של `extra_body.output_config.format`.
+4. **`effort: high` קבוע בהגדרת השער** ל-`qwen3.8:27b`, ולכן בחירת Effort בתוסף אינה משפיעה (תואם לבדיקה שלא הראתה הבדל). שורת Effort נשארת מחוץ לתוכנית.
+5. **חלון ההקשר המוגדר הוא 12288 טוקנים** (`num_ctx`) ל-`qwen3.8:27b`, ו-`max_input_tokens` 8192. אבל Claude Code שולח כ-24,700 טוקנים להודעה פשוטה. **לא ידוע אם ההגדרה נאכפת**: אם כן, ההוראות נחתכות בשקט (ובכך אולי מוסבר חלק מההתנהגות המוזרה של המודל, כמו מצב התכנון). בדיקת הפלאטו של `prompt_tokens` (`docs/remaining-checks-round3.txt`, חלק ג) מכריעה. אם החלון קטן מכ-32 אלף, מומלץ לבקש ממנהל השרת להגדיל `num_ctx` ל-`qwen3.8:27b`.
+6. **ערך ל-`CLAUDE_CODE_MAX_CONTEXT_TOKENS`:** `num_ctx` המוגדר (12288) הוא ההנחה הטובה ביותר כרגע, אחרי שתאומת מול בדיקת הפלאטו.
+
