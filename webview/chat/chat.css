@@ -652,6 +652,8 @@ svg { display: block; }
 .chip span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .cwd-note { font-size: 11px; color: var(--cl-warn); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .spacer { flex: 1; }
+.chip:disabled { opacity: 0.5; cursor: default; background: none; }
+.context-meter { font-variant-numeric: tabular-nums; }
 .send-btn {
   flex: none;
   width: 28px;

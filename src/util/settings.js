@@ -16,6 +16,8 @@ function read() {
     lockEditorGroups: c.get('lockEditorGroups') === true,
     useTerminal: c.get('useTerminal') === true,
     respectGitIgnore: c.get('respectGitIgnore') !== false,
+    gatewayUrl: String(c.get('gatewayUrl') || ''),
+    modelDenylist: Array.isArray(c.get('modelDenylist')) ? c.get('modelDenylist') : [],
     keybindings: {
       send: c.get('keybindings.send'),
       newLine: c.get('keybindings.newLine'),

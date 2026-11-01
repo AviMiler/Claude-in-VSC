@@ -7,6 +7,7 @@ const ROUTES = {
   interrupt: (c) => c.interrupt(),
   setMode: (c, m) => c.setMode(String(m.value)),
   setModel: (c, m) => c.setModel(String(m.value)),
+  stopAndSwitchModel: (c, m) => c.stopAndSwitchModel(String(m.value)),
   permissionAnswer: (c, m) => c.answerPermission(m),
   listHistory: (c) => c.listHistory(),
   openSession: (c, m) => c.openSession(String(m.id)),

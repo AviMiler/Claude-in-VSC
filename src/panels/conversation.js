@@ -11,6 +11,9 @@ const { routeMessage } = require('./message-router');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
+const { modelEnv } = require('../models/launch');
+const { ModelSwitcher } = require('./model-switch');
+const { refreshContextMeter } = require('./context-meter');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -52,6 +55,7 @@ class Conversation {
     this.planText = '';
     this.turnTexts = new Map();
     this.entries = null;
+    this.models = new ModelSwitcher(this);
     this.subs = [
       webview.onDidReceiveMessage((msg) => {
         routeMessage(this, msg);
@@ -117,7 +121,7 @@ class Conversation {
       claudePath,
       args,
       cwd: this.cwd,
-      env: mergeEnv(process.env, environmentVariables),
+      env: mergeEnv(process.env, { ...environmentVariables, ...modelEnv(this.model) }),
       log: (t) => this.log(t),
     });
     const translate = createStreamTranslator();
@@ -150,6 +154,7 @@ class Conversation {
         this.postInitInfo(info);
         // `auto` is not a launch flag value we rely on; re-apply it with the verified control request.
         if (this.permissionMode === 'auto') this.setMode('auto');
+        refreshContextMeter(this);
       },
       (err) => this.services.logger.warn(`initialize failed: ${err.message}`),
     );
@@ -158,7 +163,7 @@ class Conversation {
 
   postInitInfo(info) {
     this.post({ type: 'commands', commands: info.commands || [] });
-    this.post({ type: 'models', models: info.models || [], current: this.model });
+    this.models.postList();
   }
 
   // A turn's result; when the user pressed stop it is shown as "stopped", not as an error.
@@ -167,6 +172,8 @@ class Conversation {
     this.busy = false;
     this.stopping = false;
     clearTimeout(this.stopTimer);
+    this.models.onTurnEnd(ev);
+    if (ev.kind === 'result') setImmediate(() => refreshContextMeter(this));
     return stopped ? { ...ev, isError: false, errorText: '', interrupted: true } : ev;
   }
 
@@ -229,6 +236,10 @@ class Conversation {
   }
 
   setMode(value) {
+    if (this.busy) {
+      this.post({ type: 'notice', text: 'לא ניתן להחליף מצב הרשאות בזמן ש-Claude עובד.' });
+      return this.post({ type: 'mode', value: this.permissionMode });
+    }
     const previous = this.permissionMode;
     this.permissionMode = value;
     if (!this.proc) return this.post({ type: 'mode', value });
@@ -242,18 +253,13 @@ class Conversation {
     );
   }
 
+  // A model switch restarts the CLI (model-switch.js).
   setModel(value) {
-    const previous = this.model;
-    this.model = value;
-    if (!this.proc) return this.post({ type: 'model', value });
-    this.proc.request('set_model', { model: value }, 10000).then(
-      () => this.post({ type: 'model', value }),
-      (err) => {
-        this.notifyFailure('set_model', err);
-        this.model = previous;
-        this.post({ type: 'model', value: previous });
-      },
-    );
+    this.models.switchTo(value);
+  }
+
+  stopAndSwitchModel(value) {
+    this.models.stopAndSwitch(value);
   }
 
   onControlRequest(proc, id, req) {
@@ -361,6 +367,7 @@ class Conversation {
     this.hasMessages = false;
     this.setTitle('Claude');
     this.post({ type: 'reset' });
+    this.post({ type: 'context', used: null, max: null });
     this.startProcess();
   }
 

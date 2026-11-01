@@ -174,7 +174,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 ## 6. What is open
 
 1. The IDE server prototype (me). Until then the editor context falls back to chips. Tip: if you ever have a machine with the official Claude Code extension, copy one `.lock` file from `%USERPROFILE%\.claude\ide\`; it shows the exact format of the lock file (on this machine the folder does not exist).
-2. Direct confirmation of 64,000 for `qwen3.8:27b` with `/api/ps` while it is loaded (a window of at least 50,000 was measured, so it is not blocking). **Scheduled at the start of package D** (decided 2026-11-01). If windows differ between models, add a `modelContextWindows` setting. `POST :11435/api/show` is no longer needed for vision (images are not gated by model) and stays a non-blocking check for tools capability.
+2. Direct confirmation of 64,000 for `qwen3.8:27b` with `/api/ps` while it is loaded (a window of at least 50,000 was measured, so it is not blocking). **Scheduled at the start of package D** (decided 2026-11-01). Package D built the user-run check file `dev/check-context-window.txt`; still open until the user runs it. If windows differ between models, add a `modelContextWindows` setting. `POST :11435/api/show` is no longer needed for vision (images are not gated by model) and stays a non-blocking check for tools capability.
 3. The plan-approval buttons: check at the end.
 4. Check the following versions inside VS Code 1.91.1 after every package, and update `spec.md`, `PROJECT_MAP.md`, `CHANGELOG.md`, `AGENT_CONTEXT.md` at the end of every package.
 5. When updating `spec.md` at the end of each package: also update the "Settings", "Placement" and "History" sections and "Verification status" according to what was built.

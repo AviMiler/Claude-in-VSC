@@ -49,7 +49,7 @@
   }
 
   function result() {
-    toWebview({ type: 'events', events: [{ kind: 'result', isError: false, durationMs: 8421, costUsd: 0.0213, inputTokens: 18400, outputTokens: 912 }] });
+    toWebview({ type: 'events', events: [{ kind: 'result', isError: false, durationMs: 8421, inputTokens: 18400, outputTokens: 912 }] });
   }
 
   function turn(text) {
@@ -142,7 +142,7 @@
           { kind: 'block', key: 'h2', blockType: 'text', text: 'כי `spawn` זורק `ENOENT` בלי מטפל. **הוספתי** `child.on(\'error\')`.' },
           { kind: 'tool', key: 'h3', id: 'h3', name: 'Grep', input: { pattern: 'spawn\\(', path: 'C:\\proj\\src' }, final: true },
           { kind: 'toolResult', toolUseId: 'h3', text: 'src/cli/spawn.js:22', isError: false },
-          { kind: 'result', isError: false, durationMs: 15300, costUsd: 0.04 },
+          { kind: 'result', isError: false, durationMs: 15300 },
         ] });
         break;
       case 'newConversation':

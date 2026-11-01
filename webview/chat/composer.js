@@ -280,6 +280,9 @@
   CL.composer = {
     setBusy(on) {
       state.busy = on;
+      // The mode and model pickers are disabled during a turn (PLAN.md section 2, stage 8).
+      modeBtn.disabled = on;
+      modelBtn.disabled = on;
       refreshSend();
     },
     setMode(value) {

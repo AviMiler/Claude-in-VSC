@@ -80,6 +80,17 @@
           "default": true,
           "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
         },
+        "claudeLocal.gatewayUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "כתובת שרת המודלים (LiteLLM) שממנו נטענת רשימת המודלים (`/v1/models`). ריק = נלקח מ-`ANTHROPIC_BASE_URL`."
+        },
+        "claudeLocal.modelDenylist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["gemma3:27b"],
+          "markdownDescription": "מודלים שלא יוצגו בבורר המודלים (למשל מודלים שלא תומכים בכלים)."
+        },
         "claudeLocal.enableNewConversationShortcut": {
           "type": "boolean",
           "default": false,

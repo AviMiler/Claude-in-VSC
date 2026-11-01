@@ -19,6 +19,8 @@
 
   function setBusy(on) {
     CL.composer.setBusy(on);
+    CL.modelPicker.setBusy(on);
+    CL.contextMeter.setBusy(on);
     spinner.hidden = !on;
     clearInterval(verbTimer);
     statusVerb = null;
@@ -69,9 +71,16 @@
     },
     settings: (m) => CL.composer.setSettings(m.settings),
     commands: (m) => CL.slashMenu.setCommands(m.commands),
-    models: (m) => CL.composer.setModels(m.models, m.current),
+    models(m) {
+      CL.composer.setModels(m.models, m.current);
+      CL.modelPicker.setModels(m.models, m.current);
+    },
     mode: (m) => CL.composer.setMode(m.value),
-    model: (m) => CL.composer.setModel(m.value),
+    model(m) {
+      CL.composer.setModel(m.value);
+      CL.modelPicker.setModel(m.value);
+    },
+    context: (m) => CL.contextMeter.set(m.used, m.max),
     events: (m) => onEvents(m.events),
     busy(m) {
       setBusy(m.value);

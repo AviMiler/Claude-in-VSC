@@ -9,7 +9,7 @@
 //   {kind:'tool', key, id, name, input, final}                    a tool call (final has full input)
 //   {kind:'toolResult', toolUseId, text, isError}
 //   {kind:'user', key, text}                                      a user message (transcripts only)
-//   {kind:'result', isError, errorText, durationMs, costUsd, inputTokens, outputTokens}
+//   {kind:'result', isError, errorText, durationMs, inputTokens, outputTokens}
 //   {kind:'status', status}
 
 const { toolResultEvents } = require('../cli/content');
@@ -22,7 +22,6 @@ function resultEvent(msg) {
     isError: msg.is_error === true || msg.subtype !== 'success',
     errorText: msg.is_error ? String(msg.result || (msg.errors || []).join('\n') || msg.subtype) : '',
     durationMs: msg.duration_ms,
-    costUsd: msg.total_cost_usd,
     inputTokens: input || undefined,
     outputTokens: usage.output_tokens || undefined,
   };
