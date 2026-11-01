@@ -1,5 +1,8 @@
 // Webview -> host message table. Each entry maps one `type` to a Conversation method.
 
+const { handleMcp } = require('../mcp/mcp-handler');
+const { openSettings } = require('./settings-actions');
+
 const ROUTES = {
   ready: (c) => c.onReady(),
   send: (c, m) => c.send(String(m.text || ''), m.images),
@@ -16,6 +19,8 @@ const ROUTES = {
   planCommand: (c, m) => c.planCommand(m.open === true),
   openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
+  mcp: (c, m) => handleMcp(c, m),
+  openSettings: (_c, m) => openSettings(String(m.target)),
 };
 
 function routeMessage(conversation, msg) {

@@ -11,6 +11,7 @@ const { routeMessage } = require('./message-router');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
+const { buildErrorCard } = require('./error-card');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -45,6 +46,8 @@ class Conversation {
     this.hasMessages = false;
     this.pending = new Map();
     this.pendingResume = null;
+    this.pendingPrefill = null;
+    this.webviewReady = false;
     this.pendingRename = null;
     this.stopping = false;
     this.stopTimer = null;
@@ -102,6 +105,8 @@ class Conversation {
     } else if (this.initInfo) {
       this.postInitInfo(this.initInfo);
     }
+    this.webviewReady = true;
+    this.flushPrefill();
   }
 
   startProcess({ resume } = {}) {
@@ -183,8 +188,11 @@ class Conversation {
     else if (info.code !== 0 && info.code !== null) text = exitErrorText(info);
     else if (wasBusy) text = 'Claude Code נסגר באמצע תשובה.';
     // The error result already ends the turn in the webview; a second `busy:false` would race with a queued send.
-    if (text) this.post({ type: 'events', events: [{ kind: 'result', isError: true, errorText: text }] });
-    else this.post({ type: 'busy', value: false });
+    if (text) {
+      this.post({ type: 'events', events: [{ kind: 'result', isError: true, errorText: text }] });
+      const env = mergeEnv(process.env, this.services.settings.get().environmentVariables);
+      this.post({ type: 'errorCard', card: buildErrorCard({ claudePath, env }) });
+    } else this.post({ type: 'busy', value: false });
   }
 
   killProcess() {
@@ -422,6 +430,19 @@ class Conversation {
       parts.push(mentions.mentionText(mentions.toSlashes(vscode.workspace.asRelativePath(uri, false))));
     }
     if (parts.length) this.insertText(`${parts.join(' ')} `);
+  }
+
+  // Text from a URI link: placed in the box once the webview is ready; never sent.
+  prefill(text) {
+    this.pendingPrefill = text;
+    if (this.webviewReady) this.flushPrefill();
+  }
+
+  flushPrefill() {
+    if (!this.pendingPrefill) return;
+    const text = this.pendingPrefill;
+    this.pendingPrefill = null;
+    this.insertText(text);
   }
 
   insertText(text) {

@@ -14,7 +14,8 @@
   ],
   "main": "./extension.js",
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onUri"
   ],
   "capabilities": {
     "untrustedWorkspaces": {

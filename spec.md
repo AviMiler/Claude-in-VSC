@@ -23,9 +23,9 @@ What the extension is and does today (the "basic version", v0.1.0). User decisio
 - Code: `package.json`, `extension.js`, `.vscodeignore`, `src/util/vscode-version.js`.
 
 ## Manifest & package layout
-- `package.json`: `name: claude-local`, version 0.1.0, `publisher: local`, `displayName: "Claude Code Local"`, `main: ./extension.js`, `categories: ["AI", "Chat"]`. No `icon` field (no PNG exists; the SVG logo is used for the commands and view containers). `activationEvents`: `onStartupFinished` (the status-bar item and the context keys must exist before anything is opened; commands and views activate implicitly). Declared `contributes` keys: `configuration`, `commands`, `keybindings`, `viewsContainers`, `views`, `menus`.
+- `package.json`: `name: claude-local`, version 0.1.0, `publisher: local`, `displayName: "Claude Code Local"`, `main: ./extension.js`, `categories: ["AI", "Chat"]`. No `icon` field (no PNG exists; the SVG logo is used for the commands and view containers). `activationEvents`: `onUri` (URI links) and `onStartupFinished` (the status-bar item and the context keys must exist before anything is opened; commands and views activate implicitly). Declared `contributes` keys: `configuration`, `commands`, `keybindings`, `viewsContainers`, `views`, `menus`.
 - `extension.js` only wires features: `activate(context)` builds the shared services (logger, settings reader, panel registry) and calls each feature's `register(context, services)`; `deactivate()` kills every CLI process.
-- The tree, one line per file: `PROJECT_MAP.md`. Folders: `src/cli/` (the CLI process), `src/panels/` (one webview bound to one process), `src/history/` (read-only transcripts), `src/util/`, `webview/chat/`, `webview/vendor/`, `resources/claude-logo.svg` (hand-drawn spark), `dev/` (fake CLI, browser preview, probes; `dev/README.md`), `test/`.
+- The tree, one line per file: `PROJECT_MAP.md`. Folders: `src/cli/` (the CLI process), `src/panels/` (one webview bound to one process), `src/history/` (read-only transcripts), `src/mcp/` (MCP management), `src/uri/` (URI handler), `src/util/`, `webview/chat/`, `webview/vendor/`, `resources/claude-logo.svg` (hand-drawn spark), `dev/` (fake CLI, browser preview, probes; `dev/README.md`), `test/`.
 - Not built yet: `scripts/package.ps1`, `resources/claude-logo.png`.
 
 ## Placement
@@ -59,10 +59,10 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
 - `cwd`: the first workspace folder. No folder open: the user's home folder, and the composer shows "לא נפתחה תיקייה – Claude עובד בתיקיית הבית".
 - Environment: `process.env`, then `claudeLocal.environmentVariables` merged over it (default `API_TIMEOUT_MS=1200000`, `CLAUDE_ENABLE_STREAM_WATCHDOG=0`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`; values coerced to strings, invalid entries ignored; applies from the next process start), then `CLAUDE_CODE_ENTRYPOINT=claude-local-vscode`. The same merged environment is used by Open in Terminal. Model-server variables (`ANTHROPIC_BASE_URL` etc.) stay in the user's own environment or `~/.claude/settings.json`, not in an extension setting (`SETUP.md`). Known limit: VS Code replaces the whole object when the user sets one key, so a user value must list every variable they still want.
 - Start: the process is spawned when the webview sends `ready`, then the extension sends the `initialize` control request (60 s timeout). Its response is the source for the `/` commands, the models, the agents and the account: keys `commands[{name, description, argumentHint}]`, `agents`, `output_style`, `available_output_styles`, `models[{value, displayName, description, ...}]`, `account`, `pid`.
-- Control requests sent: `initialize`, `interrupt`, `set_permission_mode`, `set_model`. Received: `can_use_tool` (permission cards). An unknown incoming request is answered with an error response; an outgoing request the CLI rejects is logged and the UI keeps its previous state.
+- Control requests sent: `initialize`, `interrupt`, `set_permission_mode`, `set_model`, and for MCP management `mcp_status`, `mcp_reconnect` `{serverName}`, `mcp_toggle` `{serverName, enabled}` (see "MCP management"). Received: `can_use_tool` (permission cards). An unknown incoming request is answered with an error response; an outgoing request the CLI rejects is logged and the UI keeps its previous state.
 - Stop button: pending permission cards are denied with "Interrupted by the user" and `interrupt` is sent; a process still alive 6 s later is killed (`taskkill /T /F` on Windows). A stopped turn shows "■ הופסק" (never an error); if the CLI sends no `result` within 4 s after the interrupt acknowledgement, the turn is closed locally so the stop button never hangs. (Against CLI 2.1.246 the `result` arrives in about 0.5 s and the process stays alive, so the 4 s wait is only a fallback.)
 - Bypass mode: switching to `bypassPermissions` works only when the process was launched with `--allow-dangerously-skip-permissions`; `buildArgs` adds that flag when `claudeLocal.allowDangerouslySkipPermissions` is on. A failed `set_permission_mode` / `set_model` shows a Hebrew notice and the UI keeps the previous value.
-- Failures add a Hebrew error to the conversation: spawn failure ("לא ניתן להפעיל את Claude (…). בדוק את ההגדרה claudeLocal.claudePath."), unknown option ("גרסת Claude Code לא מכירה אחד הדגלים שהתוסף שלח."), else exit code + the last 3000 characters of stderr.
+- Failures add a Hebrew error to the conversation: spawn failure ("לא ניתן להפעיל את Claude (…). בדוק את ההגדרה claudeLocal.claudePath."), unknown option ("גרסת Claude Code לא מכירה אחד הדגלים שהתוסף שלח."), else exit code + the last 3000 characters of stderr. When the process exits with an error, a Hebrew error card follows the error line (see "CLI failure card").
 - Every line in and out is logged at debug level to the OutputChannel, message contents cut to 500 characters.
 - Lifetime: killed when its panel or view is disposed or the extension deactivates.
 - Code: `src/cli/` (`args.js`, `spawn.js`, `env.js` (environment merge), `terminal.js`, `process.js` with `send`/`request`/`respond`/`respondError`/`interrupt`/`kill`, `content.js`), `dev/fake-claude.js` (+ `.cmd`; `dev/README.md`), `test/args.test.js`, `test/env.test.js`, `test/process.test.js`.
@@ -95,6 +95,10 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
   | webview -> host | `openFile` | `{path, line?}` (file paths in tool rows) |
   | webview -> host | `openLink` | `{url}` (http/https only) |
   | webview -> host | `newConversation` | — |
+  | webview -> host | `mcp` | `{action: status\|reconnect\|toggle\|add\|remove, ...}` (MCP dialog) |
+  | host -> webview | `mcpState` / `mcpResult` | the normalized server list; the outcome of an action (Hebrew text) |
+  | webview -> host | `openSettings` | opens `settings.json` or the `claudeLocal.claudePath` setting (card buttons) |
+  | host -> webview | `errorCard` | the CLI-failure card data (see "CLI failure card") |
 
 - Thread content:
   - User messages.
@@ -109,6 +113,8 @@ One long-lived CLI process per conversation, spoken to over stdin/stdout with st
 - Model picker: the models from the `initialize` response (`displayName`, `description` as hint); a change sends `set_model`. The first choice is the CLI default (no `--model`). Planned change (decided 2026-11-01, not built): the list comes from the gateway (`GET /v1/models`) and a change restarts the process with `--model` and `--resume` instead of `set_model` (`DECISIONS.md`, `PLAN.md` section 3).
 - Known limits (all planned in `PLAN.md`): no editor context (selected lines), focus view, timestamps, `/btw`, LaTeX rendering.
 - Code: `src/panels/` (`webview-html.js`, `message-router.js`, `event-translator.js`, `conversation.js`, `mentions.js`, `plan-doc.js`), `webview/chat/` (`index.html`, `chat.css`, `highlight-theme.css`, `keys.js` (key-spec parsing and matching), `util.js`, `markdown.js`, `tools.js`, `thread.js`, `cards.js`, `menu.js`, `slash-menu.js`, `mention-menu.js`, `prompt-logic.js`, `composer.js`, `app.js`), `webview/vendor/`.
+- Known limits (all planned in `PLAN.md`): no image paste, attachments, @-mentions, editor context, focus view, timestamps.
+- Code: `src/panels/` (`webview-html.js`, `message-router.js`, `event-translator.js`, `conversation.js`), `webview/chat/` (`index.html`, `chat.css`, `highlight-theme.css`, `keys.js` (key-spec parsing and matching), `util.js`, `markdown.js`, `tools.js`, `thread.js`, `cards.js`, `menu.js`, `composer.js`, `app.js`, plus `mcp-dialog.js`, `mcp.css`, `error-card.js` from package E), `webview/vendor/`.
 
 ## History (past conversations)
 The CLI's transcripts are the only store; the extension reads them read-only (user decisions).
@@ -129,6 +135,20 @@ The CLI's transcripts are the only store; the extension reads them read-only (us
 - The plan (assistant text before `ExitPlanMode`) opens as a read-only virtual Markdown document (`src/panels/plan-doc.js`).
 - Auto mode is in the mode picker with a Hebrew warning.
 - Code: `webview/chat/slash-menu.js` (shared list behaviour in `webview/chat/menu.js`).
+
+## MCP management
+- A header button opens an MCP dialog (`webview/chat/mcp-dialog.js`): the servers with their status, enable/disable, reconnect, and add/remove. No OAuth.
+- Status, reconnect and toggle are control requests through the existing `request`: `mcp_status`, `mcp_reconnect {serverName}`, `mcp_toggle {serverName, enabled}`. The `mcp_status` response is parsed defensively into a server list (`src/mcp/mcp-model.js`).
+- Add/remove run the CLI itself, with the resolved `claudePath`, the cwd and the merged environment: `claude mcp add -s <scope> [--transport http|sse] [-e K=V] name -- target` and `claude mcp remove name [-s scope]`. Arguments containing shell metacharacters are refused. The change lives in the CLI's own MCP config (the extension stores nothing) and applies in a NEW conversation.
+- Code: `src/mcp/` (`mcp-args.js`, `mcp-model.js`, `mcp-cli.js`, `mcp-handler.js`), routed by `src/panels/message-router.js`, `test/mcp.test.js`.
+
+## CLI failure card
+- When the CLI process exits with an error, after the error line the extension posts a Hebrew card (`errorCard`): check `ANTHROPIC_BASE_URL` (the current value is shown without credentials), check that the model server is running, check `claudeLocal.claudePath`; a button opens `settings.json`. When `claudePath` resolves to a `.cmd`/`.bat` wrapper, the card adds a warning (the wrapper asks "Select model number" and hangs the extension) with a button that opens the `claudeLocal.claudePath` setting. There is no sign-in screen (local model, no login).
+- Code: `src/panels/error-card.js`, `src/panels/settings-actions.js`, `webview/chat/error-card.js`, posted from `Conversation.onExit`, `test/error-card-uri.test.js`.
+
+## URI links
+- `vscode://local.claude-local/open` with the parameters `prompt` (max 8000 characters) and `session` (id validated). The user always confirms in a modal dialog first, before anything is placed. The text then goes into the composer through `Conversation.prefill`; it is never sent automatically (prevents prompt injection from an external link). With `session`, an already open panel of that session is reused, otherwise a new panel opens.
+- Code: `src/uri/` (`index.js`, `uri-parse.js`), registered in `extension.js`, activation event `onUri`.
 
 ## Permissions & modes
 The CLI decides; the extension only relays (user decision).
@@ -164,10 +184,11 @@ VS Code settings are user configuration, not conversation data, so they do not c
 
 ## Verification status (2026-11-01)
 - **Verified:**
-  - Unit tests: 60/60 pass (after package B1; adds `session-model`, `panel-registry` and two `conversation` tests). Package B1 (filters, closed list, tab markers, continue suggestion, rename call) is covered by unit tests only; the container, tree, Ctrl+Shift+T, tab title markers and `/rename` as user text against the real CLI are **not verified** in real VS Code. (Previously: 46/46 after package C part 1-3.) Package C logic (grouping, queue, history, mention ranking, image check) is covered by unit tests only. Package A (environment merge, key parsing/matching, process env) is covered by unit tests only.
+  - Unit tests: 72/72 pass (after package E; adds `mcp` and `error-card-uri`). Package E (MCP dialog, error card, URI handler) is covered by unit tests only. (Before that: 60/60 pass after package B1; adds `session-model`, `panel-registry` and two `conversation` tests). Package B1 (filters, closed list, tab markers, continue suggestion, rename call) is covered by unit tests only; the container, tree, Ctrl+Shift+T, tab title markers and `/rename` as user text against the real CLI are **not verified** in real VS Code. (Previously: 46/46 after package C part 1-3.) Package C logic (grouping, queue, history, mention ranking, image check) is covered by unit tests only. Package A (environment merge, key parsing/matching, process env) is covered by unit tests only.
   - The webview in a browser preview (dark and light themes): streaming Markdown, tables, highlighted code, tool rows with an Edit diff, permission approve, the `/` menu, the mode menu, the history panel, loading a past session.
   - On the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b`): the extension loads, runs and answers; against the real CLI (`DEPENDENCIES.md`): `interrupt` (the `result` arrives in about 0.5 s, the process stays alive), `--resume` and `--fork-session`, `AskUserQuestion` answers through `updatedInput.answers`, queued messages, MCP control requests, `get_context_usage`, file rewind, `updatedInput` on Edit, auto mode, `--model` at launch.
 - **Not verified:**
+  - Package E: nothing ran in real VS Code (the MCP dialog, the error card and its buttons, the `onUri` handler with the modal confirm and prefill). Against the real CLI: the `claude mcp add -e K=V name -- cmd` argument order (the `-e` option is variadic) and the live `mcp_status` response shape (parsed defensively only).
   - Package C inside real VS Code and against the real CLI: Auto mode picker, the grouped menu with real `system/init` data, queue/history behaviour, `@` completion, Alt+K, `/plan open` document, image paste and drag/drop, whether the CLI expands `@path` in stream-json. Not built: `/btw`, LaTeX.
   - Package A inside real VS Code: all the new `vscode`-API commands (terminal, `lockEditorGroup`, `focusToggle`, `keyboardShortcuts`), the Ctrl+N `when` clause (`activeWebviewPanelId` / `focusedView`), forwarding of webview keys, and the Ctrl+Esc conflict with the Windows Start menu (a user item: `SETUP.md` section 7).
   - Inside VS Code: the full manual checklist above; the CSP and `localResourceRoots` in a real webview; the high-contrast theme; Hebrew/English mixed text; what happens to a chat tab after Reload Window (no serializer); the sidebar view and status-bar item in every case.

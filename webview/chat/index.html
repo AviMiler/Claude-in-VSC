@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{chat}}/chat.css">
   <link rel="stylesheet" href="{{chat}}/highlight-theme.css">
+  <link rel="stylesheet" href="{{chat}}/mcp.css">
   <title>Claude Code Local</title>
 </head>
 <body>
@@ -18,7 +19,11 @@
       <button id="new-btn" class="ghost icon-btn" title="שיחה חדשה" aria-label="שיחה חדשה">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
+      <button id="mcp-btn" class="ghost icon-btn" title="שרתי MCP" aria-label="שרתי MCP">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2v4M11 2v4M3.5 6h9v2.5a4.5 4.5 0 0 1-9 0zM8 13v1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <div id="history-panel" class="popover history-panel" hidden></div>
+      <div id="mcp-dialog" class="popover mcp-dialog" hidden></div>
     </header>
 
     <main id="thread" class="thread" aria-live="polite">
@@ -73,6 +78,8 @@
   <script nonce="{{nonce}}" src="{{chat}}/mention-menu.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/composer.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/history.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/mcp-dialog.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/error-card.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/app.js"></script>
 </body>
 </html>

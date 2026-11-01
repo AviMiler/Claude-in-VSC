@@ -38,8 +38,20 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `chat-panel.js` — editor-tab conversation (`claudeLocalPanel`).
 - `sidebar-view.js` — sidebar/activity-bar conversation.
 - `commands.js` — `claude-local.*` commands (main button follows `preferredLocation` / `useTerminal`; `focusToggle`, `keyboardShortcuts`, `terminal.open`).
+- `error-card.js` — builds the Hebrew CLI-failure card (connection checklist, `.cmd`/`.bat` warning).
+- `settings-actions.js` — opens `settings.json` or a given setting from the card buttons.
 - `status-bar.js` — the "✻ Claude" item.
 - `index.js` — `register` for the panels feature.
+
+## src/mcp/ — MCP management (host side)
+- `mcp-args.js` — builds and validates `claude mcp add/remove` arguments (refuses shell metacharacters).
+- `mcp-model.js` — normalizes the `mcp_status` response into a server list (defensive parsing).
+- `mcp-cli.js` — runs `claude mcp add/remove` via `runClaude` with the resolved `claudePath` and merged environment.
+- `mcp-handler.js` — handles the webview `mcp` message (status, reconnect, toggle, add, remove).
+
+## src/uri/ — URI handler
+- `index.js` — registers the handler for `vscode://local.claude-local/open`: modal confirm, prefill, open or reuse a panel.
+- `uri-parse.js` — pure: parses and validates `prompt` (max 8000) and `session`.
 
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
@@ -49,7 +61,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel), `settings.js` (`claudeLocal.*` + change events), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
 
 ## webview/chat/ — plain scripts loaded by `index.html`
-- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `app.js` (wiring, messages from host).
+- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `mcp-dialog.js` (MCP dialog) with `mcp.css`; `error-card.js` (CLI-failure card); `app.js` (wiring, messages from host).
 
 ## webview/vendor/
 - `marked.umd.js`, `marked.LICENSE.md`, `highlight.min.js`, `powershell.min.js`, `highlight.LICENSE` — see DEPENDENCIES.md.
@@ -66,7 +78,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`.
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.
