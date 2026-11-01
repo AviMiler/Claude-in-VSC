@@ -23,6 +23,18 @@ const report = { claudePath, sandbox, startedAt: new Date().toISOString(), probe
 const save = () => fs.writeFileSync(outFile, JSON.stringify(report, null, 2));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Safety filters for the auto-answered permission requests.
+// Bash: only a single harmless command (ping/sleep/echo/timeout) with no shell operators.
+const isSafeBash = (cmd) => {
+  const c = String(cmd || '').trim().replace(/^!/, '');
+  return c.length > 0 && c.length < 120 && /^(ping|sleep|echo|timeout)(\s|$)/i.test(c) && !/[&|;<>`$()\r\n]/.test(c);
+};
+// Edits: only the probe's own a.txt inside the throw-away folder.
+const isProbeFile = (p) => {
+  try { return path.resolve(String(p || '')) === path.join(sandbox, 'a.txt') || path.resolve(sandbox, String(p || '')) === path.join(sandbox, 'a.txt'); }
+  catch { return false; }
+};
+
 // Starts one process; every non-control message is kept in `seen`. Tool permission requests are
 // recorded and answered by `onPermission(input request) -> response`.
 function start(permissionMode, onPermission) {
@@ -189,7 +201,7 @@ const probes = {
     const file = path.join(sandbox, 'a.txt');
     fs.writeFileSync(file, 'one\ntwo\nthree\n');
     const h = start('default', (req) => {
-      if (req.tool_name === 'Edit' || req.tool_name === 'Write' || req.tool_name === 'MultiEdit') {
+      if (req.tool_name === 'Edit' && isProbeFile(req.input && req.input.file_path)) {
         const input = { ...req.input };
         if ('new_string' in input) input.new_string = 'PROBE_CHANGED';
         return { behavior: 'allow', updatedInput: input };
@@ -212,8 +224,7 @@ const probes = {
   // Checks 7, 12: TodoWrite events, `!` shell lines, and background-task events.
   async p7_todo_shell_background() {
     const h = start('default', (req) => {
-      const cmd = String((req.input && req.input.command) || '');
-      if (req.tool_name === 'Bash' && cmd.length < 200 && /^(ping|sleep|echo|timeout|!?echo)\b/i.test(cmd.trim())) {
+      if (req.tool_name === 'Bash' && isSafeBash(req.input && req.input.command)) {
         return { behavior: 'allow', updatedInput: req.input };
       }
       return { behavior: 'deny', message: 'probe: denied' };
