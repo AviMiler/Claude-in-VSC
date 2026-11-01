@@ -58,7 +58,7 @@ Result (2026-11-01): all endpoints reachable from the extension host in 15-250 m
 
 ## Chat UI without VS Code
 
-- `fake-claude.js` / `fake-claude.cmd`: a fake stream-json CLI for tests and for trying the UI without a model (`claudeLocal.claudePath` = `dev/fake-claude.cmd`). Scenario by keyword in the message: `tool` (Bash permission), `שאלה` (AskUserQuestion), `slow` (long reply, for the stop button), `edit` (Edit and Write tool calls, for `/diff`), `background` (a background task and the `stop_task` sequence); otherwise a Markdown reply. `FAKE_CLAUDE_INTERRUPT=no-result|error` changes what follows an interrupt. It rejects `bypassPermissions` unless started with `--allow-dangerously-skip-permissions`, like the real CLI.
+- `fake-claude.js` / `fake-claude.cmd`: a fake stream-json CLI for tests and for trying the UI without a model (`claudeLocal.claudePath` = `dev/fake-claude.cmd`). Scenario by keyword in the message: `tool` (Bash permission), `שאלה` (AskUserQuestion), `slow` (long reply, for the stop button), `edit` (Edit and Write tool calls, for `/diff`), `background` (a background task and the `stop_task` sequence), `tasks` (TaskCreate/TaskUpdate calls for the pinned list); otherwise a Markdown reply. `FAKE_CLAUDE_INTERRUPT=no-result|error` changes what follows an interrupt. It rejects `bypassPermissions` unless started with `--allow-dangerously-skip-permissions`, like the real CLI.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css`: the chat webview in a normal browser with a simulated host and VS Code theme variables: `node dev/preview-server.js [port]` (default 5199), or the "chat-preview" entry in `.claude/launch.json`.
 
 ## Reference

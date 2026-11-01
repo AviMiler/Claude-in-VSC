@@ -16,6 +16,7 @@ const { runDiffCommand } = require('../diff/diff-command');
 const checkpoints = require('../checkpoints/checkpoints');
 const { runRewindMenu } = require('../checkpoints/rewind-menu');
 const taskMap = require('../background/task-map');
+const claudeTasks = require('../tasks/claude-tasks');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -58,6 +59,7 @@ class Conversation {
     this.turnTexts = new Map();
     this.edits = editLog.createEditLog(); // this session's Edit/Write tool calls, for /diff
     this.checkpoints = checkpoints.createCheckpointList(); // prompts sent in this process, for rewind
+    this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
     this.entries = null;
     this.subs = [
       webview.onDidReceiveMessage((msg) => {
@@ -138,6 +140,7 @@ class Conversation {
       if (proc !== this.proc) return;
       checkpoints.addCheckpoint(this.checkpoints, msg);
       if (taskMap.applyMessage(this.tasks, msg)) this.post({ type: 'backgroundTasks', tasks: taskMap.backgroundTasks(this.tasks) });
+      if (claudeTasks.applyMessage(this.claudeTasks, msg)) this.post({ type: 'claudeTasks', tasks: claudeTasks.listTasks(this.claudeTasks) });
       const events = translate(msg).map((ev) => (ev.kind === 'result' ? this.endTurn(ev) : ev));
       for (const ev of events) {
         if (ev.kind === 'session') {
@@ -344,6 +347,7 @@ class Conversation {
     this.edits = editLog.createEditLog();
     for (const ev of events) editLog.addEvent(this.edits, ev);
     this.checkpoints = checkpoints.createCheckpointList();
+    this.claudeTasks = claudeTasks.createClaudeTasks();
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
@@ -378,6 +382,7 @@ class Conversation {
     this.hasMessages = false;
     this.edits = editLog.createEditLog();
     this.checkpoints = checkpoints.createCheckpointList();
+    this.claudeTasks = claudeTasks.createClaudeTasks();
     this.setTitle('Claude');
     this.post({ type: 'reset' });
     this.startProcess();

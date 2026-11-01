@@ -84,6 +84,7 @@
     history: (m) => CL.history.show(m.items, m.currentId),
     sessionLoaded(m) {
       CL.thread.reset();
+      CL.claudeTasks.render([]); // the task list is live only, not rebuilt from transcripts
       CL.composer.resetConversation(m.events.filter((ev) => ev.kind === 'user').map((ev) => ev.text));
       CL.history.setCurrent(m.id);
       setTitle(m.title);
@@ -94,6 +95,7 @@
     },
     reset() {
       CL.thread.reset();
+      CL.claudeTasks.render([]);
       CL.composer.resetConversation([]);
       setTitle('');
       setBusy(false);
@@ -107,6 +109,7 @@
     },
     focus: () => CL.composer.focus(),
     backgroundTasks: (m) => CL.tasksBar.render(m.tasks),
+    claudeTasks: (m) => CL.claudeTasks.render(m.tasks),
   };
 
   window.addEventListener('message', (e) => {

@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-01 (package B2, part 4: Claude's pinned task list)
+- **Built:** a collapsible checklist above the background bar, from `TaskCreate`/`TaskUpdate`/`TaskList` (changes only on a non-error result, skips sub-agent lines). New `src/tasks/claude-tasks.js`, `webview/chat/tasks.js`, `test/claude-tasks.test.js`; changed `index.html`, `chat.css`, `app.js`, `conversation.js`, `dev/fake-claude.js` ("tasks" scenario). Live only, not rebuilt from transcripts. Tests 78/78.
+- **Not verified:** the stream field name of the structured result (`tool_use_result` vs `toolUseResult`; the code reads both), real VS Code. **Not built, stopped for budget:** agent cards (5b) and the `/loop` indicator (4).
+
 ## 2026-11-01 (package B2, part 3: background tasks)
 - **Built:** a task bar above the composer with a stop button per running task (`stop_task {task_id}`); finished tasks stay listed until the process restarts. New `src/background/task-map.js`, `webview/chat/tasks-bar.js`, `test/task-map.test.js`, `dev/probe4-standalone.js`; changed `index.html`, `chat.css`, `app.js`, `conversation.js`, `message-router.js`, `dev/fake-claude.js` ("background" scenario). Tests 73/73. Probe4 findings added to `DEPENDENCIES.md`.
 - **Deviation from `PLAN.md` row 73 (pending the user's decision):** no "move to background" button, because the CLI has no such control request (probe4: four candidate subtypes all unsupported). The PLAN row is unchanged. See `DECISIONS.md`.

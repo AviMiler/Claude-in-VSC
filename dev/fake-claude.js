@@ -4,6 +4,7 @@
 // Keywords in the user message pick a scenario:
 //   "tool"   -> a Bash tool call that asks permission
 //   "edit"   -> fake Edit + Write calls (for /diff; nothing is written)
+//   "tasks"  -> TaskCreate / TaskUpdate calls (Claude's pinned task list)
 //   "background" -> a background Bash task (task_started / background_tasks_changed) until stop_task
 //   "שאלה"   -> an AskUserQuestion card
 //   "slow"   -> a long, slow reply (to try the stop button)
@@ -76,7 +77,8 @@ async function streamText(text, delay) {
   out({ type: 'assistant', message: { id, role: 'assistant', model: 'fake', content: [{ type: 'text', text }] }, parent_tool_use_id: null, session_id: SESSION });
 }
 
-async function toolCall(name, input) {
+// `reply` (optional) overrides the success result: { text, toolUseResult } as the real CLI sends.
+async function toolCall(name, input, reply) {
   const id = `msg_fake_${++msgSeq}`;
   const toolUseId = `toolu_fake_${msgSeq}`;
   out({ type: 'stream_event', event: { type: 'message_start', message: { id } }, session_id: SESSION });
@@ -92,8 +94,9 @@ async function toolCall(name, input) {
     });
   }
   const ok = decision.behavior === 'allow';
-  const text = ok ? (name === 'AskUserQuestion' ? `answers: ${JSON.stringify(decision.updatedInput.answers)}` : 'hi') : decision.message || 'denied';
-  out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: text, is_error: !ok }] }, parent_tool_use_id: null, session_id: SESSION });
+  let text = ok ? (name === 'AskUserQuestion' ? `answers: ${JSON.stringify(decision.updatedInput.answers)}` : 'hi') : decision.message || 'denied';
+  if (ok && reply) text = reply.text;
+  out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: text, is_error: !ok }] }, tool_use_result: ok && reply ? reply.toolUseResult : undefined, parent_tool_use_id: null, session_id: SESSION });
   return decision;
 }
 
@@ -110,6 +113,16 @@ async function turn(text) {
     out({ type: 'system', subtype: 'task_started', ...task, tool_use_id: 'toolu_fake_bg', is_backgrounded: true, session_id: SESSION });
     out({ type: 'system', subtype: 'background_tasks_changed', tasks: [task], session_id: SESSION });
     await streamText('הפקודה רצה ברקע.', 5);
+  } else if (/tasks/.test(text)) {
+    // Claude's own task list, in the probe4 shapes.
+    const create = (id, subject) => toolCall('TaskCreate', { subject, description: subject }, { text: `Task #${id} created successfully: ${subject}`, toolUseResult: { task: { id, subject } } });
+    const update = (id, from, to) => toolCall('TaskUpdate', { taskId: id, status: to }, { text: `Updated task #${id} status`, toolUseResult: { success: true, taskId: id, updatedFields: ['status'], statusChange: { from, to } } });
+    await create('1', 'לקרוא את הקוד');
+    await create('2', 'לכתוב בדיקות');
+    await update('1', 'pending', 'in_progress');
+    await update('1', 'in_progress', 'completed');
+    await update('2', 'pending', 'in_progress');
+    await streamText('עבדתי לפי רשימת משימות.', 5);
   } else if (/edit/.test(text)) {
     // Fake Edit/Write calls for /diff (nothing is written to disk).
     await toolCall('Edit', { file_path: `${process.cwd()}/demo.js`, old_string: 'const a = 1;', new_string: 'const a = 2;' });
