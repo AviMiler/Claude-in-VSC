@@ -5,6 +5,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 ## Root
 - `extension.js` — entry: builds logger, settings, registry; sets the secondary-sidebar context key; calls `panels.register`.
 - `package.json` — manifest: 9 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 2 view containers + 2 views, 12 settings.
+- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 3 view containers (chat sidebar, fallback, sessions list) + 3 views, 12 settings.
 - `.vscodeignore` — keeps dev/, test/, .claude/ out of the package.
 - `AGENT_CONTEXT.md` — entry point for an agent: what to read, current state, working agreements, git rules.
 - `spec.md` — what the extension does today (as built) and its verification status.
@@ -31,7 +32,9 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
-- `panel-registry.js` — in-memory list of open conversations.
+- `panel-registry.js` — in-memory list of open conversations, closed list (max 10), open states, change listener.
+- `session-model.js` — pure: classify/filter sessions, continue-last suggestion, tab tracker, title marker, closed-list push.
+- `history-tree.js` — Activity Bar TreeView `claudeLocalHistory` and its commands (filter, rename, reopen closed, continue last).
 - `chat-panel.js` — editor-tab conversation (`claudeLocalPanel`).
 - `sidebar-view.js` — sidebar/activity-bar conversation.
 - `commands.js` — `claude-local.*` commands (main button follows `preferredLocation` / `useTerminal`; `focusToggle`, `keyboardShortcuts`, `terminal.open`).
@@ -63,7 +66,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`.
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

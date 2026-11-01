@@ -15,6 +15,7 @@ function createProvider(services) {
         services,
         setTitle: (t) => { view.description = t && t !== 'Claude' ? t : undefined; },
         openInNewTab: (id) => openChatPanel(services, { resume: id }),
+        onActivity: () => services.registry.changed(),
       });
       const reg = services.registry.add({
         conversation,

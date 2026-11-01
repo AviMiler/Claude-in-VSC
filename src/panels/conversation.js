@@ -18,6 +18,7 @@ const INTERRUPTED = 'Interrupted by the user';
 // within this time the turn is closed locally so the stop button never hangs.
 const STOP_RESULT_WAIT_MS = 4000;
 const TITLE_MAX = 40;
+const RENAME_MAX = 100;
 
 function spawnErrorText(err, claudePath) {
   return `לא ניתן להפעיל את Claude (${err.code || err.message}). בדוק את ההגדרה claudeLocal.claudePath (כרגע: ${claudePath}).`;
@@ -29,11 +30,13 @@ function exitErrorText({ code, stderrTail }) {
 }
 
 class Conversation {
-  constructor({ webview, services, setTitle, openInNewTab }) {
+  constructor({ webview, services, setTitle, openInNewTab, onActivity }) {
     this.webview = webview;
     this.services = services;
     this.setTitle = setTitle || (() => {});
     this.openInNewTab = openInNewTab;
+    // Called after every message to or from the webview, so tab markers and the sessions list can refresh.
+    this.onActivity = onActivity || (() => {});
     this.proc = null;
     this.sessionId = null;
     this.permissionMode = 'default';
@@ -42,6 +45,7 @@ class Conversation {
     this.hasMessages = false;
     this.pending = new Map();
     this.pendingResume = null;
+    this.pendingRename = null;
     this.stopping = false;
     this.stopTimer = null;
     this.disposed = false;
@@ -49,7 +53,10 @@ class Conversation {
     this.turnTexts = new Map();
     this.entries = null;
     this.subs = [
-      webview.onDidReceiveMessage((msg) => routeMessage(this, msg)),
+      webview.onDidReceiveMessage((msg) => {
+        routeMessage(this, msg);
+        this.onActivity();
+      }),
       services.settings.onDidChange((s) => {
         this.post({ type: 'settings', settings: this.webviewSettings(s) });
         if (this.proc) this.post({ type: 'notice', text: 'ההגדרה תחול בשיחה הבאה.' });
@@ -63,7 +70,9 @@ class Conversation {
   }
 
   post(msg) {
-    if (!this.disposed) this.webview.postMessage(msg);
+    if (this.disposed) return;
+    this.webview.postMessage(msg);
+    this.onActivity();
   }
 
   webviewSettings(s = this.services.settings.get()) {
@@ -321,6 +330,28 @@ class Conversation {
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
     this.startProcess({ resume: id });
+    if (this.pendingRename) {
+      const title = this.pendingRename;
+      this.pendingRename = null;
+      this.renameSession(title);
+    }
+  }
+
+  // Rename goes through the CLI's own /rename (it writes `custom-title` to the transcript);
+  // the extension never writes the file itself.
+  renameSession(rawTitle) {
+    const title = String(rawTitle || '').replace(/\s+/g, ' ').trim().slice(0, RENAME_MAX);
+    if (!title || !this.sessionId) return false;
+    if (this.busy) {
+      this.post({ type: 'notice', text: 'לא ניתן לשנות שם בזמן ש-Claude עובד. נסו שוב בסיום.' });
+      return false;
+    }
+    if (!this.proc) this.startProcess({ resume: this.sessionId });
+    this.busy = true;
+    this.post({ type: 'busy', value: true });
+    this.setTitle(title.slice(0, TITLE_MAX));
+    this.proc.sendUserText(`/rename ${title}`, []);
+    return true;
   }
 
   newConversation() {

@@ -94,6 +94,11 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Alternatives considered:** Copy every feature of the official extension; add only what is cheap; keep the basic version unchanged.
 **Why:** The machine is offline with a local model and the extension keeps no data of its own, so features that need Anthropic's cloud or extension-side storage do not apply. Items that depend on unverified CLI behaviour were marked "check against the real CLI first", and the checks were run on 2026-11-01 (see `PLAN.md`, `AGENT_CONTEXT.md`).
 
+## [2026-11-01] Sessions list (package B1): rename through the CLI, scoped Ctrl+Shift+T
+**Decision:** The Activity Bar sessions list supersedes the 2026-10-30 "no separate sessions panel" decision. Rename sends `/rename <title>` as ordinary user text (a closed session is resumed first), so the CLI writes the title and the extension never writes a transcript. Ctrl+Shift+T is bound only when `claude-local:hasClosed && (activeWebviewPanelId == 'claudeLocalPanel' || activeEditor == '')`. Tab markers (blue = waiting for permission, orange = finished while hidden) are an emoji prefix in the panel title, in memory only.
+**Alternatives considered:** Writing the custom title into the jsonl ourselves; renames kept in the extension (storage); binding Ctrl+Shift+T unconditionally; colour via API (none exists in VS Code).
+**Why:** The CLI must stay the only writer and the only store. The `when` clause leaves VS Code's own "reopen closed editor" working for files. Not yet tried against the real CLI or VS Code.
+
 ## [2026-11-01] Extension runs the real binary and supplies the CLI environment itself
 **Decision:** `claudeLocal.claudePath` must point to `claude-bin.exe`, not to the `claude.cmd` wrapper; the extension's `environmentVariables` setting will carry `API_TIMEOUT_MS`, `CLAUDE_ENABLE_STREAM_WATCHDOG` and `CLAUDE_CODE_MAX_CONTEXT_TOKENS`.
 **Alternatives considered:** Point `claudePath` at the wrapper; feed the wrapper its model choice on stdin; leave the timeouts at their defaults.
