@@ -15,6 +15,7 @@ function read() {
     preferredLocation: c.get('preferredLocation') === 'sidebar' ? 'sidebar' : 'panel',
     lockEditorGroups: c.get('lockEditorGroups') === true,
     useTerminal: c.get('useTerminal') === true,
+    respectGitIgnore: c.get('respectGitIgnore') !== false,
     keybindings: {
       send: c.get('keybindings.send'),
       newLine: c.get('keybindings.newLine'),

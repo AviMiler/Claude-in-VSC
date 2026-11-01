@@ -1,9 +1,12 @@
 // The panels feature: editor tabs, sidebar views, commands and the status-bar item.
 const { registerCommands } = require('./commands');
+const { createPlanDocs } = require('./plan-doc');
 const { registerSidebar } = require('./sidebar-view');
 const { registerStatusBar } = require('./status-bar');
 
 function register(context, services) {
+  services.planDocs = createPlanDocs();
+  context.subscriptions.push(services.planDocs);
   registerCommands(context, services);
   registerSidebar(context, services);
   registerStatusBar(context);

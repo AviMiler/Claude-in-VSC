@@ -95,6 +95,11 @@
       CL.composer.focus();
     },
     notice: (m) => showNotice(m.text),
+    mentionResults: (m) => CL.mentions.setResults(m.items, m.seq),
+    insertText: (m) => CL.composer.insertText(m.text),
+    planReady() {
+      CL.thread.addNode(CL.el('button', { class: 'info-card-btn plan-open', type: 'button', text: 'פתיחת התוכנית בעורך', onclick: () => post({ type: 'planCommand', open: true }) }));
+    },
     focus: () => CL.composer.focus(),
   };
 

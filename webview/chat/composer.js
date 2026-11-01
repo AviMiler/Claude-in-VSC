@@ -100,6 +100,12 @@
     if (CL.prompt.isTerminalOnly(text, CL.slashMenu.getMeta())) return showTerminalCard(text);
     CL.slashMenu.close();
     history.add(text);
+    // /plan and /plan open are the extension's own commands: never sent to the model.
+    const plan = /^\/plan(\s+open)?\s*$/i.exec(text.trim());
+    if (plan) {
+      post({ type: 'planCommand', open: Boolean(plan[1]) });
+      return clearInput();
+    }
     clearInput();
     if (state.busy) enqueue(text);
     else dispatch(text);
@@ -128,15 +134,37 @@
     });
   }
 
+  // "@" menu: the word being typed right before the caret starts with "@".
+  function updateMention() {
+    const before = input.value.slice(0, input.selectionStart);
+    const m = /(^|\s)@([^\s@]*)$/.exec(before);
+    if (!m) return CL.mentions.close();
+    const start = before.length - m[2].length - 1;
+    CL.mentions.request(m[2], (item) => {
+      const text = /\s/.test(item.path) ? `@"${item.path}"` : `@${item.path}`;
+      insertAt(start, input.selectionStart, item.isDir ? text : `${text} `);
+      CL.mentions.close();
+    });
+  }
+
+  function insertAt(from, to, text) {
+    input.setRangeText(text, from, to, 'end');
+    input.focus();
+    autoresize();
+    refreshSend();
+    input.dispatchEvent(new Event('input'));
+  }
+
   input.addEventListener('input', () => {
     autoresize();
     refreshSend();
     updateSlash();
+    updateMention();
   });
 
   input.addEventListener('keydown', (e) => {
     if (e.isComposing) return;
-    if (CL.slashMenu.onKey(e)) {
+    if (CL.mentions.onKey(e) || CL.slashMenu.onKey(e)) {
       e.preventDefault();
       return;
     }
@@ -170,7 +198,7 @@
     }
   });
 
-  input.addEventListener('blur', () => setTimeout(() => CL.slashMenu.close(), 100));
+  input.addEventListener('blur', () => setTimeout(() => { CL.slashMenu.close(); CL.mentions.close(); }, 100));
 
   sendBtn.addEventListener('click', () => {
     if (state.busy) post({ type: 'interrupt' });
@@ -228,6 +256,9 @@
       input.focus();
     },
     sendNextQueued,
+    insertText(text) {
+      insertAt(input.selectionStart, input.selectionEnd, text);
+    },
     // A new or loaded conversation starts with its own history and an empty queue.
     resetConversation(sentTexts) {
       history.reset(sentTexts);

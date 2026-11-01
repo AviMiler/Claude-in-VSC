@@ -6,6 +6,7 @@ const { supportsSecondarySidebar } = require('../util/vscode-version');
 const { mergeEnv } = require('../cli/env');
 const { terminalLaunch } = require('../cli/terminal');
 const { workspaceCwd } = require('../util/workspace');
+const { mentionText, toSlashes } = require('./mentions');
 
 function sidebarViewId() {
   return supportsSecondarySidebar() ? VIEW_IDS[0] : VIEW_IDS[1];
@@ -72,6 +73,17 @@ function registerCommands(context, services) {
     'claude-local.terminal.open': openTerminal,
     'claude-local.focusToggle': focusToggle,
     'claude-local.keyboardShortcuts': () => vscode.commands.executeCommand('workbench.action.openGlobalKeybindings', 'claude-local'),
+    // Alt+K: put @path of the open file into the chat box (selected lines are package F).
+    'claude-local.insertAtMention': () => {
+      const editor = vscode.window.activeTextEditor;
+      const last = registry.lastTab();
+      if (!editor || editor.document.uri.scheme !== 'file') return undefined;
+      if (!last) return openChatPanel(services);
+      const rel = toSlashes(vscode.workspace.asRelativePath(editor.document.uri, false));
+      last.conversation.insertText(`${mentionText(rel)} `);
+      last.reveal();
+      return undefined;
+    },
     'claude-local.showLogs': () => logger.show(),
   };
   for (const [id, fn] of Object.entries(commands)) {

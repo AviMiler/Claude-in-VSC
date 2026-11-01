@@ -11,6 +11,8 @@ const ROUTES = {
   openSession: (c, m) => c.openSession(String(m.id)),
   newConversation: (c) => c.newConversation(),
   openFile: (c, m) => c.openFile(String(m.path), m.line),
+  mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
+  planCommand: (c, m) => c.planCommand(m.open === true),
   openTerminal: (c) => c.openTerminal(),
   openLink: (c, m) => c.openLink(String(m.url)),
 };

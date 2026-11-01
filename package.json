@@ -75,6 +75,11 @@
           "default": false,
           "markdownDescription": "הכפתור הראשי ו-`Ctrl+Shift+Esc` פותחים את ה-CLI בטרמינל במקום בצ'אט."
         },
+        "claudeLocal.respectGitIgnore": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
+        },
         "claudeLocal.enableNewConversationShortcut": {
           "type": "boolean",
           "default": false,
@@ -136,6 +141,11 @@
         "category": "Claude Code Local"
       },
       {
+        "command": "claude-local.insertAtMention",
+        "title": "הוספת הקובץ הפתוח להודעה (@)",
+        "category": "Claude Code Local"
+      },
+      {
         "command": "claude-local.showLogs",
         "title": "הצגת יומן",
         "category": "Claude Code Local"
@@ -156,6 +166,12 @@
         "command": "claude-local.focusToggle",
         "key": "ctrl+escape",
         "mac": "cmd+escape"
+      },
+      {
+        "command": "claude-local.insertAtMention",
+        "key": "alt+k",
+        "mac": "cmd+alt+k",
+        "when": "editorTextFocus"
       },
       {
         "command": "claude-local.newConversation",

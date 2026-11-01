@@ -9,6 +9,7 @@ const { buildArgs } = require('../cli/args');
 const { createStreamTranslator } = require('./event-translator');
 const { routeMessage } = require('./message-router');
 const transcripts = require('../history/transcripts');
+const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
 
 const INTERRUPTED = 'Interrupted by the user';
@@ -43,6 +44,9 @@ class Conversation {
     this.stopping = false;
     this.stopTimer = null;
     this.disposed = false;
+    this.planText = '';
+    this.turnTexts = new Map();
+    this.entries = null;
     this.subs = [
       webview.onDidReceiveMessage((msg) => routeMessage(this, msg)),
       services.settings.onDidChange((s) => {
@@ -118,6 +122,7 @@ class Conversation {
           if (ev.permissionMode) this.permissionMode = ev.permissionMode;
         }
       }
+      this.trackPlan(events);
       if (events.length) this.post({ type: 'events', events });
     });
     proc.on('controlRequest', (id, req) => this.onControlRequest(proc, id, req));
@@ -330,6 +335,46 @@ class Conversation {
     vscode.window.showTextDocument(uri, options).then(undefined, () => {
       vscode.window.showWarningMessage(`לא ניתן לפתוח את ${filePath}`);
     });
+  }
+
+  // The plan is the assistant's text of the turn that ends in ExitPlanMode (its `input.plan` arrives empty).
+  trackPlan(events) {
+    for (const ev of events) {
+      if (ev.kind === 'block' && ev.blockType === 'text') this.turnTexts.set(ev.key, ev.text);
+      else if (ev.kind === 'tool' && ev.name === 'ExitPlanMode') {
+        const text = [...this.turnTexts.values()].join('\n\n').trim();
+        if (text) {
+          this.planText = text;
+          this.post({ type: 'planReady' });
+        }
+      } else if (ev.kind === 'result') this.turnTexts.clear();
+    }
+  }
+
+  // `/plan` switches to plan mode; `/plan open` shows the last plan as a read-only document.
+  planCommand(open) {
+    if (!open) return this.setMode('plan');
+    if (!this.planText) return this.post({ type: 'notice', text: 'עדיין אין תוכנית לפתיחה. עברו למצב תכנון ובקשו מ-Claude תוכנית.' });
+    return this.services.planDocs.open(this.planText);
+  }
+
+  async mentionSearch(query, seq) {
+    const now = Date.now();
+    if (!this.entries || now - this.entriesAt > 10000) {
+      try {
+        this.entries = await mentions.listEntries(this.cwd, this.services.settings.get().respectGitIgnore);
+        this.entriesAt = now;
+      } catch (err) {
+        this.services.logger.warn(`mention listing failed: ${err.message}`);
+        this.entries = [];
+      }
+    }
+    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(this.entries, query) });
+  }
+
+  insertText(text) {
+    this.post({ type: 'insertText', text });
+    this.post({ type: 'focus' });
   }
 
   openTerminal() {
