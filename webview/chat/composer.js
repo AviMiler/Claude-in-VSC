@@ -11,6 +11,7 @@
   const MODES = [
     { value: 'default', icon: '✎', label: 'ידני', desc: 'Claude יבקש אישור לפני עריכת קבצים והרצת פקודות' },
     { value: 'acceptEdits', icon: '⏵⏵', label: 'עריכה אוטומטית', desc: 'Claude יערוך קבצים בלי לשאול' },
+    { value: 'auto', icon: '✦', label: 'אוטומטי', desc: 'ה-CLI מחליט לבד, המסווג עלול לטעות', warn: true },
     { value: 'plan', icon: '⏸', label: 'תכנון', desc: 'Claude יחקור ויציע תוכנית בלי לשנות דבר' },
     { value: 'bypassPermissions', icon: '⚠', label: 'ללא הרשאות', desc: 'Claude יפעל בלי לבקש שום אישור', danger: true },
   ];
@@ -59,14 +60,57 @@
     chip(modelBtn, '◇', modelLabel(state.model));
   }
 
-  function send() {
-    const text = input.value;
-    if (!text.trim() || state.busy) return;
-    CL.slashMenu.close();
-    post({ type: 'send', text });
-    CL.app.userSent(text);
+  const history = CL.prompt.createHistory();
+  const queue = CL.prompt.createQueue();
+
+  function clearInput() {
     input.value = '';
     autoresize();
+    refreshSend();
+  }
+
+  function dispatch(text) {
+    post({ type: 'send', text });
+    CL.app.userSent(text);
+  }
+
+  // Terminal-only commands are never sent to the model: show the card instead.
+  function showTerminalCard(text) {
+    CL.slashMenu.close();
+    CL.thread.addCard(CL.el('div', { class: 'info-card', role: 'status' },
+      CL.el('div', { class: 'info-card-text', dir: 'auto', text: `הפקודה /${CL.prompt.commandName(text)} זמינה רק בטרמינל` }),
+      CL.el('button', { class: 'info-card-btn', type: 'button', text: 'פתיחה בטרמינל', onclick: () => post({ type: 'openTerminal' }) })));
+    CL.thread.scrollToBottom();
+    clearInput();
+  }
+
+  // While a turn runs a new message waits (in memory) as a grey bubble the user can cancel.
+  function enqueue(text) {
+    const item = queue.push(text);
+    CL.thread.addQueued(item, () => {
+      queue.cancel(item.id);
+      CL.thread.removeQueued(item.id);
+    });
+    CL.thread.scrollToBottom();
+  }
+
+  function send() {
+    const text = input.value;
+    if (!text.trim()) return;
+    if (CL.prompt.isTerminalOnly(text, CL.slashMenu.getMeta())) return showTerminalCard(text);
+    CL.slashMenu.close();
+    history.add(text);
+    clearInput();
+    if (state.busy) enqueue(text);
+    else dispatch(text);
+  }
+
+  function sendNextQueued() {
+    if (state.busy) return;
+    const item = queue.shift();
+    if (!item) return;
+    CL.thread.removeQueued(item.id);
+    dispatch(item.text);
   }
 
   // "/" menu: open while the text is a single "/word" at the very start.
@@ -74,6 +118,7 @@
     const m = /^\/(\S*)$/.exec(input.value.slice(0, input.selectionStart));
     if (!m || input.value.slice(input.selectionStart).trim()) return CL.slashMenu.close();
     CL.slashMenu.update(m[1], (cmd) => {
+      if (cmd.group === 'terminal') return showTerminalCard(`/${cmd.name}`);
       input.value = `/${cmd.name} `;
       CL.slashMenu.close();
       input.focus();
@@ -96,6 +141,25 @@
       return;
     }
     if (rewindSeq.feed(e) && CL.composer.onRewind) CL.composer.onRewind();
+    if (e.key === 'ArrowUp' && !e.shiftKey && input.selectionStart === 0 && input.selectionEnd === 0) {
+      const older = history.prev(input.value);
+      if (older !== null) {
+        e.preventDefault();
+        input.value = older;
+        input.setSelectionRange(0, 0);
+        autoresize();
+        refreshSend();
+      }
+    } else if (e.key === 'ArrowDown' && history.browsing && input.selectionStart === input.value.length) {
+      const newer = history.next();
+      if (newer !== null) {
+        e.preventDefault();
+        input.value = newer;
+        input.setSelectionRange(newer.length, newer.length);
+        autoresize();
+        refreshSend();
+      }
+    }
     if (CL.keys.matches(e, state.keys.send)) {
       e.preventDefault();
       send();
@@ -162,6 +226,13 @@
     },
     focus() {
       input.focus();
+    },
+    sendNextQueued,
+    // A new or loaded conversation starts with its own history and an empty queue.
+    resetConversation(sentTexts) {
+      history.reset(sentTexts);
+      queue.clear();
+      CL.thread.clearQueued();
     },
   };
 

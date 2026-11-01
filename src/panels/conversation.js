@@ -133,6 +133,8 @@ class Conversation {
         if (proc !== this.proc) return;
         this.initInfo = info;
         this.postInitInfo(info);
+        // `auto` is not a launch flag value we rely on; re-apply it with the verified control request.
+        if (this.permissionMode === 'auto') this.setMode('auto');
       },
       (err) => this.services.logger.warn(`initialize failed: ${err.message}`),
     );
@@ -328,6 +330,10 @@ class Conversation {
     vscode.window.showTextDocument(uri, options).then(undefined, () => {
       vscode.window.showWarningMessage(`לא ניתן לפתוח את ${filePath}`);
     });
+  }
+
+  openTerminal() {
+    vscode.commands.executeCommand('claude-local.terminal.open');
   }
 
   openLink(url) {

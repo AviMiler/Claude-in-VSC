@@ -46,13 +46,17 @@
       if (ev.kind === 'session') {
         CL.history.setCurrent(ev.sessionId);
         if (ev.permissionMode) CL.composer.setMode(ev.permissionMode);
+        if (ev.skills || ev.terminalOnly) CL.slashMenu.setMeta({ skills: ev.skills, terminalOnly: ev.terminalOnly });
       } else if (ev.kind === 'status') {
         statusVerb = STATUS_VERBS[ev.status] || null;
         if (!spinner.hidden) setVerb();
       }
     }
     CL.thread.apply(events);
-    if (events.some((ev) => ev.kind === 'result')) setBusy(false);
+    if (events.some((ev) => ev.kind === 'result')) {
+      setBusy(false);
+      CL.composer.sendNextQueued();
+    }
   }
 
   const HANDLERS = {
@@ -75,6 +79,7 @@
     history: (m) => CL.history.show(m.items, m.currentId),
     sessionLoaded(m) {
       CL.thread.reset();
+      CL.composer.resetConversation(m.events.filter((ev) => ev.kind === 'user').map((ev) => ev.text));
       CL.history.setCurrent(m.id);
       setTitle(m.title);
       CL.thread.apply(m.events);
@@ -84,6 +89,7 @@
     },
     reset() {
       CL.thread.reset();
+      CL.composer.resetConversation([]);
       setTitle('');
       setBusy(false);
       CL.composer.focus();

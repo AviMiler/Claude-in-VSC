@@ -33,6 +33,13 @@ test('sub-agent traffic is hidden; synthetic messages are left to the result lin
   assert.strictEqual(r.errorText, 'Not logged in');
 });
 
+test('init line carries skills and terminal-only commands when reported', () => {
+  const t = createStreamTranslator();
+  const [s] = t({ type: 'system', subtype: 'init', session_id: 's', skills: ['review'], terminal_slash_commands: ['doctor'] });
+  assert.deepStrictEqual(s.skills, ['review']);
+  assert.deepStrictEqual(s.terminalOnly, ['doctor']);
+});
+
 test('tool results and the init line', () => {
   const t = createStreamTranslator();
   const [s] = t({ type: 'system', subtype: 'init', session_id: 'sid', model: 'm', permissionMode: 'plan', cwd: 'c' });
