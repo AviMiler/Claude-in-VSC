@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקות ידניות - Claude Code Local</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1b; --muted:#5f6670; --line:#d6dae0; --card:#f6f8fa; --ok:#1a7f37; --bad:#c62828; --accent:#0b5cad; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#16181c; --fg:#e6e8eb; --muted:#9aa3ad; --line:#363b43; --card:#1f2329; --ok:#4cc26a; --bad:#ff6b6b; --accent:#6cb4ff; } }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:15px/1.6 "Segoe UI", Arial, sans-serif; max-width:960px; margin-inline:auto; }
+  h1 { font-size:22px; } h2 { font-size:18px; margin:28px 0 8px; border-bottom:2px solid var(--line); padding-bottom:4px; }
+  code, pre { font-family:Consolas, monospace; direction:ltr; unicode-bidi:embed; } code { background:var(--card); padding:0 4px; border-radius:3px; }
+  pre { background:var(--card); padding:8px; border-radius:6px; overflow-x:auto; margin:4px 0; white-space:pre-wrap; text-align:left; }
+  .test { border:1px solid var(--line); background:var(--card); border-radius:8px; padding:10px 12px; margin:10px 0; }
+  .test.pass { border-inline-start:5px solid var(--ok); } .test.fail { border-inline-start:5px solid var(--bad); }
+  .head { display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .head b { flex:1; }
+  .lbl { color:var(--muted); font-size:13px; margin-top:6px; } ol, ul { margin:2px 0; padding-inline-start:22px; }
+  label { cursor:pointer; user-select:none; } textarea { width:100%; box-sizing:border-box; min-height:34px; margin-top:6px; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:4px; font:inherit; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:6px 14px; font:inherit; cursor:pointer; } button.sec { background:var(--card); color:var(--fg); border:1px solid var(--line); }
+  .bar { position:sticky; top:0; background:var(--bg); padding:8px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--line); z-index:2; }
+  details { margin:6px 0; } summary { cursor:pointer; color:var(--muted); }
+  .warn { background:var(--card); border:1px dashed var(--bad); padding:8px 12px; border-radius:6px; }
+</style>
+</head>
+<body>
+<h1>בדיקות ידניות - Claude Code Local</h1>
+<p>הכל כאן עדיין <b>לא נבדק</b> ב-VS Code אמיתי ומול ה-CLI האמיתי. סמנו לכל בדיקה: עבר / נכשל, והוסיפו הערה. המצב נשמר בדפדפן (localStorage). בסוף לחצו "העתקת תוצאות" והדביקו בשיחה.</p>
+<div class="bar">
+  <button id="copy">העתקת תוצאות</button> <button class="sec" id="reset">איפוס הכל</button>
+  <span id="count" class="lbl"></span> <span id="msg" class="lbl"></span>
+</div>
+<div class="warn">הלוג נמצא ב-Output &gt; "Claude Code Local" (או הפקודה "Claude Code Local: Show Log"). להעתקה: "Claude Code Local: Copy Log". לפירוט מלא הגדירו <code>claudeLocal.logLevel</code> = <code>debug</code>. שורה בלוג: <code>HH:MM:SS.mmm [תגית] טקסט</code>; אזהרות מסומנות <code>WARN</code>. הלוג לא מכיל טקסט הודעות, תוכן קבצים או ערכי משתני סביבה - רק אורכים, שמות ומזהים.</div>
+<div id="root"></div>
+
+<h2>לא נבנה (אל תחפשו)</h2>
+<ul>
+  <li><code>/btw</code> (שאלה צדדית)</li>
+  <li>תצוגת LaTeX</li>
+  <li>F: הקשר העורך (בחירת שורות ב-Alt+K; כרגע נכנס רק <code>@path</code> של הקובץ)</li>
+  <li>כרטיסי סוכנים (sub-agents)</li>
+  <li>מחוון <code>/loop</code></li>
+  <li>חזרה לנקודה בשיחה עצמה (rewind-to-point): רק שחזור קוד ופיצול שיחה</li>
+</ul>
+
+<script>
+const T = [];
+let G = '';
+function g(name) { G = name; }
+function t(id, title, steps, expect, log, paste) { T.push({ id, g: G, title, steps, expect, log, paste }); }
+const PASTE_STD = 'צילום מסך + שורות הלוג מהרגע שהתחלתם את הבדיקה (Copy Log)';
+
+g('1. התקנה והפעלה');
+t('1.1', 'הפעלה עם הכוונת פיתוח', [
+  'סגרו את כל חלונות VS Code.',
+  'בטרמינל: <code>code --extensionDevelopmentPath=&lt;נתיב ל-Claude-in-VSC&gt;</code> (פתחו תיקיית עבודה כלשהי).',
+  'פתחו Output &gt; "Claude Code Local".'
+], 'נפתח חלון Extension Development Host ואין שגיאה. בסרגל הכלים של העורך יש כפתור של התוסף. בפלט יש שורת הפעלה.',
+  ['<code>… [settings] activated (VS Code 1.xx); claudePath=… bypass=false terminal=false location=panel envNames=[API_TIMEOUT_MS,…] …</code>'], 'שורת ה-activated (או היעדרה), והודעת שגיאה מ-Help &gt; Toggle Developer Tools &gt; Console');
+t('1.2', 'claudePath אמיתי', [
+  'Settings: <code>claudeLocal.claudePath</code> = הנתיב המלא ל-<code>claude-bin.exe</code> (לא <code>claude.cmd</code>).',
+  'פתחו צ\'אט (Ctrl+Shift+Esc) ושלחו "שלום".'
+], 'מופיעה תשובה של Claude.',
+  ['<code>[settings] changed: claudePath=…claude-bin.exe …</code>', '<code>[spawn] start …claude-bin.exe --output-format stream-json … (cwd …, resume=false, fork=false)</code>', '<code>[control] request ext-1 initialize</code> ואחריו <code>[control] response ext-1 success</code>', '<code>[stream] send (4 chars, 0 images, session=new)</code>'], PASTE_STD);
+t('1.3', 'חלופה: fake-claude', [
+  'Settings: <code>claudeLocal.claudePath</code> = <code>&lt;repo&gt;\\dev\\fake-claude.cmd</code>.',
+  'פתחו שיחה חדשה ושלחו הודעה.'
+], 'התשובה מגיעה מה-CLI המדומה (בלי מודל אמיתי). מתאים לבדיקת ממשק בלי עלות.',
+  ['<code>[spawn] start …fake-claude.cmd …</code>'], PASTE_STD);
+
+g('2. הגדרות וקיצורים');
+t('2.1', 'קיצורי מקלדת', [
+  'Ctrl+Shift+Esc (וגם Ctrl+Alt+C) - לשונית צ\'אט חדשה.', 'Ctrl+Esc בצ\'אט - חזרה לעורך האחרון; שוב - חזרה לצ\'אט.',
+  'הפקודה "Claude Code Local: Keyboard Shortcuts".'
+], 'כל קיצור עושה את הפעולה. הפקודה פותחת את עורך הקיצורים מסונן.', ['<i>(אין שורת לוג ייעודית; בשיחה חדשה: <code>[spawn] start …</code>)</i>'], 'איזה קיצור לא עבד + מערכת הפעלה');
+t('2.2', 'Ctrl+Esc ותפריט התחל', [
+  'בעורך טקסט לחצו Ctrl+Esc.', 'שימו לב אם תפריט התחל של Windows נפתח.'
+], 'הצ\'אט נפתח/מקבל פוקוס ותפריט התחל <b>לא</b> נפתח. אם נפתח - רשמו (VS Code לא תמיד חוסם אותו; ניתן להגדיר קיצור אחר).', [], 'האם תפריט התחל נפתח; גרסת Windows');
+t('2.3', 'הגדרות', [
+  'שנו <code>claudeLocal.logLevel</code> ל-<code>debug</code> ואז חזרה ל-<code>info</code>.', 'שנו <code>claudeLocal.useTerminal</code> ל-true ולחצו על הכפתור הראשי, ואז החזירו.', 'שנו <code>preferredLocation</code> ל-sidebar.'
+], 'עם debug מופיעות שורות <code>&lt;&lt; …</code>/<code>&gt;&gt; …</code> (סוג וגודל בלבד); עם info הן נעלמות. useTerminal פותח טרמינל; sidebar פותח את סרגל הצד.',
+  ['<code>[settings] changed: … terminal=true …</code>', 'בדיבאג: <code>[stream] &lt;&lt; assistant (1234 chars)</code>'], 'שורות ה-changed');
+t('2.4', 'הפקודות Show Log ו-Copy Log', ['הפקודה "Claude Code Local: Show Log".', 'הפקודה "Claude Code Local: Copy Log", ואז הדביקו במחברת.'], 'Show Log מציג את הפלט. Copy Log מציג הודעה "היומן הועתק ללוח (N שורות)" והדבקה מכילה את כל השורות.', [], 'אם ההדבקה ריקה או חסרה');
+
+g('3. פתיחה בטרמינל');
+t('3.1', 'Open in Terminal', ['הפקודה "Claude Code Local: Open in Terminal".'], 'נפתח טרמינל בשם "Claude Code" עם הממשק המקורי של ה-CLI, באותה תיקייה.', [], 'צילום מסך של הטרמינל');
+
+g('4. צ\'אט בסיסי');
+t('4.1', 'הודעה ותשובה', ['שלחו "ספר לי בדיחה קצרה".', 'במהלך התשובה הסתכלו על הספינר וכפתור העצירה.'], 'התשובה זורמת, Markdown מוצג נכון, בסוף שורת "תור: קלט X · פלט Y". Enter שולח, Shift+Enter שורה חדשה.',
+  ['<code>[stream] send (… chars, 0 images, session=new)</code>', '<code>[context] used=… max=…</code> בסיום התור'], PASTE_STD);
+t('4.2', 'עצירה', ['בקשו תשובה ארוכה ולחצו עצירה (Esc/כפתור).'], 'התור נעצר ומסומן כעצור (לא כשגיאה); אפשר לשלוח שוב.', ['<code>[stream] interrupt (stop pressed)</code>', '<code>[control] request ext-N interrupt</code>'], PASTE_STD);
+t('4.3', 'שיחה חדשה ומצב הרשאות', ['לחצו "+" בכותרת.', 'החליפו מצב בבורר (רגיל / תכנון וכו\').'], 'השיחה מתאפסת. המצב מתחלף (לא בזמן שClaude עובד).', ['<code>[session] new conversation</code>', '<code>[session] set mode default -&gt; plan</code>', '<code>[control] request ext-N set_permission_mode</code>'], PASTE_STD);
+
+g('5. הרשאות');
+t('5.1', 'בקשת הרשאה', ['במצב רגיל בקשו: "צור קובץ test.txt עם המילה hi".', 'בכרטיס ההרשאה לחצו "אישור".', 'חזרו על כך ולחצו "דחייה".', 'פעם נוספת: "אשר תמיד" (אם מוצג).'], 'כרטיס מופיע לפני הכלי; אישור מבצע; דחייה מחזירה הודעת דחייה ל-Claude; "תמיד" לא שואל שוב באותה הצעה.',
+  ['<code>[permission] request req_… tool=Write</code>', '<code>[permission] answer req_… allow</code> / <code>deny</code> / <code>allow (always)</code>'], PASTE_STD);
+t('5.2', 'עצירה בזמן בקשה', ['הפעילו בקשת הרשאה ולחצו עצירה לפני שענו.'], 'הכרטיס נעלם, הבקשה נדחית עם interrupt.', ['<code>[permission] auto-deny req_… (interrupted)</code>'], PASTE_STD);
+
+g('6. תפריט / וקבוצות');
+t('6.1', 'תפריט סלאש', ['הקלידו <code>/</code> בתחילת התיבה.', 'סננו (<code>/co</code>), נווטו בחצים, Enter.', 'בחרו פקודה מקבוצת "בטרמינל בלבד" (למשל <code>/doctor</code>).'], 'קבוצות: פקודות, כישורים, "בטרמינל בלבד" (אפור). פקודה כזו מציגה כרטיס עם כפתור "פתח בטרמינל" ולא נשלחת.',
+  ['בבחירת פקודה רגילה ושליחה: <code>[stream] send …</code>', 'בכרטיס טרמינל-בלבד: אין <code>send</code>'], PASTE_STD);
+
+g('7. הזכרות @');
+t('7.1', '@ קבצים', ['הקלידו <code>@</code> ואותיות משם קובץ.', 'בחרו קובץ ושלחו "מה הקובץ הזה?".'], 'רשימת קבצים ותיקיות מדורגת, קבצי gitignore מוסתרים (כשההגדרה פעילה). נכנס <code>@path</code>.', ['(בכשל) <code>[control] mention listing failed: …</code>'], PASTE_STD);
+t('7.2', 'Alt+K', ['פתחו קובץ בעורך ולחצו Alt+K.'], '<code>@נתיב</code> של הקובץ נכנס לתיבת הצ\'אט. (בחירת שורות לא נבנתה.)', [], 'צילום מסך');
+
+g('8. תמונות');
+t('8.1', 'הדבקה וגרירה', ['הדביקו תמונה (Ctrl+V) לתיבה.', 'גררו קובץ תמונה עם Shift.', 'שלחו "תאר את התמונה".'], 'מופיעה תצוגה מוקדמת; נשלחת כבלוק תמונה; גרירת קובץ רגיל הופכת ל-<code>@path</code>.', ['<code>[stream] send (… chars, 1 images, session=…)</code>'], PASTE_STD);
+
+g('9. תור הודעות');
+t('9.1', 'תור וביטול', ['שלחו בקשה ארוכה.', 'בזמן העבודה שלחו עוד שתי הודעות.', 'בטלו אחת מהן בבועה האפורה.'], 'ההודעות מופיעות כבועות "ממתין". המבוטלת נעלמת; השנייה נשלחת אוטומטית כשהתור מסתיים.',
+  ['<code>[queue] ui: add (N chars, 0 images)</code>', '<code>[queue] ui: cancel</code>', '<code>[queue] ui: send next queued</code>'], PASTE_STD);
+
+g('10. היסטוריית הודעות');
+t('10.1', 'חץ למעלה', ['בתיבה ריקה לחצו חץ למעלה כמה פעמים.'], 'עוברים על ההודעות ששלחתם בשיחה הזו.', [], 'מה הוצג');
+
+g('11. /plan');
+t('11.1', 'תכנון', ['הקלידו <code>/plan</code> ושלחו (Enter).', 'בקשו תוכנית; בסיום לחצו "פתיחת התוכנית בעורך".', '<code>/plan open</code>.'], 'המצב עובר ל-plan ללא שליחת ההודעה ל-CLI. התוכנית נפתחת כמסמך Markdown לקריאה בלבד.', ['<code>[session] set mode … -&gt; plan</code>'], PASTE_STD);
+
+g('12. שיחות קודמות');
+t('12.1', 'Activity Bar', ['פתחו את אייקון Claude בסרגל הפעילות (תצוגת שיחות).', 'החליפו מסנן: הכל / פעילות / ממתינות / הסתיימו.', 'לחצו על שיחה ישנה.'], 'רשימת שיחות התיקייה, החדשות ראשונות; שיחות פתוחות מסומנות. השיחה נפתחת עם ההודעות הקודמות והמשך עם --resume.',
+  ['<code>[history] list: N sessions</code>', '<code>[session] load &lt;id&gt;</code>', '<code>[spawn] start … --resume &lt;id&gt; …</code>'], PASTE_STD);
+t('12.2', 'שינוי שם', ['בשיחה פתוחה: פעולת rename (תפריט הקשר/פקודה) והקלידו שם.'], 'השם מתעדכן (נשלח <code>/rename</code> ל-CLI כהודעה רגילה). התוסף לא כותב קבצי תמלול.', ['<code>[history] rename session &lt;id&gt; (N chars)</code>'], PASTE_STD);
+t('12.3', 'Ctrl+Shift+T וסימוני כרטיסיות', ['סגרו לשונית צ\'אט עם שיחה.', 'לחצו Ctrl+Shift+T.', 'צפו בנקודות הצבע בכותרות כרטיסיות בזמן עבודה / המתנה להרשאה.'], 'השיחה שנסגרה נפתחת מחדש. נקודה צבעונית: עבודה / ממתין להרשאה. בקובץ רגיל Ctrl+Shift+T ממשיך לעבוד כרגיל.', [], 'צילום מסך של הכרטיסיות');
+
+g('13. מודל, הקשר, עצירה והחלפה');
+t('13.1', 'בורר מודלים', ['פתחו את בורר המודלים.', 'בחרו מודל אחר (כשאין עבודה).'], 'רשימה מהשער (gateway) אחרי סינון. ההחלפה מפעילה מחדש את ה-CLI עם <code>--model</code> והודעה "המודל הוחלף".',
+  ['<code>[model-switch] default -&gt; &lt;model&gt;, restart=true</code>', '<code>[spawn] start … --model &lt;model&gt; … resume=true</code>', '(בכשל רשימה) <code>[model-switch] model list failed: …</code>'], PASTE_STD);
+t('13.2', 'מד הקשר', ['שלחו כמה הודעות והסתכלו על "הקשר: X / Y".', 'לחצו עליו.'], 'המספרים מתעדכנים אחרי כל תור; אדום מעל 85%; לחיצה שולחת <code>/compact</code>.', ['<code>[context] used=… max=…</code>'], PASTE_STD);
+t('13.3', 'עצירה והחלפה', ['בזמן עבודה בחרו מודל אחר.', 'לחצו "עצירה והחלפה" ואשרו.'], 'חלון אזהרה; התור נעצר והמודל מוחלף. ללא האישור - אין שינוי.', ['<code>[model-switch] stop-and-switch to … : interrupting</code>', '<code>[stream] interrupt (stop pressed)</code>', '<code>[model-switch] … -&gt; …, restart=true</code>'], PASTE_STD);
+
+g('14. MCP');
+t('14.1', 'דיאלוג MCP', ['פתחו את דיאלוג MCP (כפתור בכותרת).', 'רענון סטטוס; נתקו/חברו שרת; הוסיפו והסירו שרת בדיקה.'], 'רשימת שרתים עם סטטוס. הוספה/הסרה רצות דרך <code>claude mcp</code> ותחולנה בשיחה חדשה. ללא OAuth.',
+  ['<code>[mcp] action status</code>', '<code>[mcp] status: N servers</code>', '<code>[mcp] action toggle server=…</code>', '<code>[mcp] cli mcp add ok=true timedOut=false</code>'], PASTE_STD);
+
+g('15. כרטיס שגיאת CLI');
+t('15.1', 'claudePath שבור', ['שנו <code>claudeLocal.claudePath</code> לנתיב שלא קיים; פתחו שיחה חדשה ושלחו הודעה.', 'נסו גם נתיב ל-<code>claude.cmd</code>.'], 'מופיעה שגיאה וכרטיס עזרה בעברית: רשימת בדיקה, כפתור לפתיחת settings.json; עם <code>.cmd</code> גם אזהרה וכפתור להגדרה.', ['<code>[spawn] exit code=… error=ENOENT</code>', '<code>[error-card] shown for claudePath=… (code=…)</code>'], PASTE_STD);
+
+g('16. קישור URI');
+t('16.1', 'vscode://local.claude-local/open', ['פתחו בדפדפן/Win+R: <code>vscode://local.claude-local/open?prompt=hello</code>.', 'אשרו בחלון; חזרו וסרבו; נסו קישור עם <code>session=&lt;id&gt;</code> תקין ולא תקין.'], 'חלון אישור מודאלי. באישור הטקסט נכנס לתיבה <b>ולא נשלח</b>. בקישור פגום - התעלמות.',
+  ['<code>[uri] received /open (prompt 5 chars, session none)</code>', '<code>[uri] user confirmed</code> / <code>declined</code>', '<code>[uri] ignored … (…)</code>'], PASTE_STD);
+
+g('17. נקודות שחזור');
+t('17.1', 'Esc Esc: שחזור קוד ופיצול', ['בקשו מ-Claude ליצור/לשנות קובץ.', 'לחצו Esc Esc.', 'בחרו הודעה ו"שחזור הקוד" - אשרו.', 'שוב Esc Esc ו"פיצול השיחה".'], 'רשימת הודעות; שחזור מראה כמה קבצים ושואל; הקובץ חוזר. פיצול ממשיך בשיחה חדשה והמקורית נשמרת.',
+  ['<code>[checkpoint] rewind menu (N checkpoints)</code>', '<code>[control] request ext-N rewind_files</code>', '<code>[checkpoint] fork session &lt;id&gt;</code>', '<code>[spawn] start … --resume … --fork-session …</code>'], PASTE_STD);
+
+g('18. /diff');
+t('18.1', 'שינויים בשיחה', ['לאחר שClaude שינה קבצים הקלידו <code>/diff</code>.', 'בחרו קובץ.', 'נסו בשיחה בלי שינויים.'], 'QuickPick של הקבצים ו-diff לקריאה בלבד. בלי שינויים - הודעה בעברית. לא נשלח ל-CLI.', ['<code>[diff] command</code>'], PASTE_STD);
+
+g('19. משימות רקע');
+t('19.1', 'משימת רקע ועצירה', ['בקשו: "הרץ ברקע sleep 60".', 'צפו בסרגל מעל התיבה; לחצו עצירה.'], 'משימה רצה מופיעה עם כפתור עצירה; אחרי עצירה היא מסומנת כעצורה ונשארת עד אתחול התהליך.', ['<code>[background] tasks now 1</code>', '<code>[tasks] stop_task &lt;id&gt;</code>', '<code>[control] request ext-N stop_task</code>'], PASTE_STD);
+
+g('20. רשימת המשימות של Claude');
+t('20.1', 'צ\'קליסט', ['בקשו משימה רב-שלבית ("תכנן וצור 3 קבצים, עם רשימת משימות").'], 'רשימה מתקפלת "המשימות של Claude (done/total)" עם ○ ◐ ✓.', [], PASTE_STD);
+
+g('21. תצוגה');
+t('21.1', 'הגדרות תצוגה', ['הפעילו בזה אחר זה: <code>focusView</code>, <code>showMessageTimestamps</code>, <code>prefersReducedMotion</code>, <code>colorMode</code> = daltonized.', 'שנו <code>spinnerVerbs</code>.'], 'תצוגת מיקוד מסתירה שורות כלים/חשיבה; חותמות זמן על הודעות חדשות; אנימציות מופחתות; פלטה מותאמת לעיוורון צבעים. ההגדרות חלות מיד.',
+  ['<code>[settings] changed: … focusView=true timestamps=true colorMode=daltonized</code>'], PASTE_STD);
+
+g('22. נגישות');
+t('22.1', 'קורא מסך (NVDA/Narrator)', ['הפעילו קורא מסך, נווטו בכותרות (H).', 'שלחו הודעה וחכו לתשובה; הפעילו בקשת הרשאה.'], 'לפני כל הודעה כותרת "אתה"/"Claude". מוכרזים: תחילת/סוף עבודה, בקשת הרשאה, שגיאה (בלי הכרזה כפולה של התשובה).', [], 'איזה קורא מסך + מה לא הוכרז');
+
+const KEY = 'cl-manual-tests-v1';
+let S = {};
+try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { S = {}; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const root = document.getElementById('root');
+let cur = '';
+const list = (a, tag) => a.length ? `<${tag}>${a.map((x) => `<li>${x}</li>`).join('')}</${tag}>` : '<div><i>אין שורה ייעודית</i></div>';
+for (const x of T) {
+  if (x.g !== cur) { cur = x.g; const h = document.createElement('h2'); h.textContent = cur; root.appendChild(h); }
+  const d = document.createElement('div'); d.className = 'test'; d.id = 't' + x.id;
+  d.innerHTML = `<div class="head"><b>${x.id} ${x.title}</b>
+    <label><input type="checkbox" data-k="pass"> עבר</label> <label><input type="checkbox" data-k="fail"> נכשל</label></div>
+    <div class="lbl">צעדים</div>${list(x.steps, 'ol')}
+    <div class="lbl">תוצאה צפויה</div><div>${x.expect}</div>
+    <div class="lbl">שורות לוג צפויות (Output &gt; Claude Code Local)</div>${list(x.log, 'ul')}
+    <div class="lbl">אם נכשל, הדביקו בשיחה</div><div>${x.paste}</div>
+    <textarea data-k="note" placeholder="הערות"></textarea>`;
+  root.appendChild(d);
+  const st = S[x.id] || (S[x.id] = {});
+  d.querySelectorAll('[data-k]').forEach((el) => {
+    const k = el.dataset.k;
+    if (el.type === 'checkbox') el.checked = !!st[k]; else el.value = st.note || '';
+    el.addEventListener('input', () => {
+      if (el.type === 'checkbox') { st[k] = el.checked; if (el.checked) { const o = k === 'pass' ? 'fail' : 'pass'; st[o] = false; d.querySelector(`[data-k=${o}]`).checked = false; } } else st.note = el.value;
+      refresh(d, st); save();
+    });
+  });
+  refresh(d, st);
+}
+function refresh(d, st) {
+  d.classList.toggle('pass', !!st.pass); d.classList.toggle('fail', !!st.fail);
+  const p = T.filter((x) => S[x.id] && S[x.id].pass).length, f = T.filter((x) => S[x.id] && S[x.id].fail).length;
+  document.getElementById('count').textContent = `עברו ${p} · נכשלו ${f} · מתוך ${T.length}`;
+}
+function summary() {
+  return T.map((x) => {
+    const s = S[x.id] || {};
+    const r = s.pass ? 'PASS' : s.fail ? 'FAIL' : 'NOT RUN';
+    return `${x.id} ${x.title}: ${r}${s.note ? ' - ' + s.note.replace(/\s+/g, ' ') : ''}`;
+  }).join('\n');
+}
+function flash(text) { const m = document.getElementById('msg'); m.textContent = text; setTimeout(() => { m.textContent = ''; }, 3000); }
+document.getElementById('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(summary()); flash('הועתק'); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = summary(); document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); flash('הועתק'); } catch (e2) { flash('ההעתקה נכשלה'); } ta.remove(); }
+});
+document.getElementById('reset').addEventListener('click', () => {
+  if (!confirm('לאפס את כל הסימונים וההערות?')) return;
+  S = {}; save(); location.reload();
+});
+</script>
+</body>
+</html>
