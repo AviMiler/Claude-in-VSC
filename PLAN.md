@@ -24,7 +24,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | Open in Terminal | **Yes** | Runs the CLI's original interface in VS Code's terminal; also a fallback for commands the chat does not support | 👤 |
 | Activity Bar icon for a session list | **Yes** (depends on stage 4) | A dedicated list of previous conversations instead of a button inside the chat | 👤 |
 | Open in New Window | **No** | Not chosen; low value when working in one window | 👤 |
-| Sign-in screen / onboarding checklist | **None.** Instead, a Hebrew card in the chat when the CLI fails (check `ANTHROPIC_BASE_URL`, that the server runs, `claudePath`, a button that opens `settings.json`) | Local model, no login; the helpful instructions are the connection settings | 👤 |
+| Sign-in screen / onboarding checklist | **None.** Instead, a Hebrew card in the chat when the CLI fails (check `ANTHROPIC_BASE_URL`, that the server runs, `claudePath`, a button that opens `settings.json`). **Also a warning in the same card when `claudePath` resolves to a `.cmd`/`.bat` wrapper** (it asks "Select model number" and hangs the extension), with a button that opens the setting (decided 2026-11-01) | Local model, no login; the helpful instructions are the connection settings | 👤 |
 | URI links | **Yes, with confirmation before sending** (`vscode://local.claude-local/open`, parameters `prompt`, `session`) | The text goes into the box and is not sent automatically, to prevent prompt injection from an external link | 👤 |
 | Panel placement | Settings `preferredLocation` (tab/sidebar) and `lockEditorGroups` | The user asked to offer both options as settings | 👤 |
 
@@ -80,7 +80,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | MCP | **A full management dialog, including add and remove from the UI** (list + status, enable/disable, reconnect). OAuth: no | Verified: `mcp_status`, `mcp_reconnect`, `mcp_toggle` work, and so do `claude mcp add/remove` | 👤 + 🔧 |
 | Plugins and Mods | **Skip** | Marketplaces on GitHub, does not work offline | 👤 |
 | Git | **No change** (through Bash); no PR status | Already works, and the status needs GitHub | 👤 |
-| Session usage line | **Tokens only.** A full `/usage` dialog: no. Git status in the box line: no | The cost the CLI reports is meaningless (`costBasis: unknown`). **The user chose "tokens/cost"; removing the cost is my adjustment** | 👤 + ⚠️ |
+| Session usage line | **Tokens only, no cost.** A full `/usage` dialog: no. Git status in the box line: no | The cost the CLI reports is meaningless (`costBasis: unknown`), and nothing costs money here. Confirmed by the user on 2026-11-01 | 👤 + 🔧 |
 
 ### Stage 6: display, accessibility, settings, shortcuts
 
@@ -92,7 +92,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
 | `claudeProcessWrapper`, `usePythonEnvironment`, `enableReopenClosedSessionShortcut`, `disableLoginPrompt` | **No** | Not needed (a wrapper is possible in the future; no login; Ctrl+Shift+T is already decided) | 👤 |
 | Shortcuts | **Ctrl+Esc** (editor↔chat) + **Ctrl+Alt+C** to open in a new tab (Ctrl+Shift+Esc stays) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
-| Rebindable shortcuts | **All shortcuts** (as `contributes.keybindings` with a command "Claude Code Local: Keyboard Shortcuts" that opens `workbench.action.openGlobalKeybindings` filtered to `claude-local`). **Shortcuts inside the webview** (Enter, Shift+Enter, Esc Esc): settings `claudeLocal.keybindings.*` or reading VS Code's keybindings.json. **To be decided at implementation time**; limitation: the webview does not see VS Code's keybindings automatically | An explicit requirement | 👤 |
+| Rebindable shortcuts | **All shortcuts** (as `contributes.keybindings` with a command "Claude Code Local: Keyboard Shortcuts" that opens `workbench.action.openGlobalKeybindings` filtered to `claude-local`). **Shortcuts inside the webview** (Enter, Shift+Enter, Esc Esc): **settings `claudeLocal.keybindings.*`** (decided 2026-11-01); limitation: the webview does not see VS Code's keybindings automatically, so these are separate from the VS Code shortcuts editor | An explicit requirement | 👤 |
 
 ### Stage 7: cloud and network features
 
@@ -109,7 +109,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 |---|---|---|---|
 | Commands not supported in stream-json | **Detect and hide/explain** ("זמין בטרמינל בלבד" + an "open in terminal" button) | The `initialize` list holds only what is supported; `terminal_slash_commands` marks terminal commands | 👤 + 🔧 |
 | Message queue, Ctrl+Enter, prompt history (up arrow) | **Yes**, in memory only | Verified: a message mid-turn is accepted and handled after the first | 👤 + 🔧 |
-| Switching model/mode mid-work | Mode: yes. **Model: not in the middle of an active turn** (wait for it to finish) | The model is switched by a restart (see below) | 👤 + ⚠️ |
+| Switching model/mode mid-work | Mode: yes. **Model: the picker is disabled during an active turn, with a "stop and switch" button** whose Hebrew text explains in detail what is lost: the partial answer, a running tool cut mid-way (a file may be left half-written), a pending permission request | The model is switched by a restart (see below). Decided by the user on 2026-11-01 | 👤 + 🔧 |
 | `/diff` panel | **Yes** | Chosen | 👤 |
 | Claude's task list | **Yes**, built on `TaskCreate`/`TaskUpdate` | There is no `TodoWrite` in this CLI | 👤 + 🔧 |
 | Shell mode with `!` | **Cancelled** (see decision 2) | The CLI does not handle it; the model interprets it | 👤 |
@@ -153,7 +153,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | `scrollToBottomOnSend` | boolean | `true` | Scroll to the bottom on send | G | 👤 (value ⚠️) |
 | `prefersReducedMotion` | boolean | `false` | Turn animations off | G | 👤 (value ⚠️) |
 | `colorMode` | enum `default` / `daltonized` | `default` | Colour scheme for colour-blind users | G | 👤 (name and value ⚠️) |
-| `keybindings.*` | string | per the shortcut | Shortcuts inside the webview; **not decided yet** whether as settings or from keybindings.json (see stage 6) | A | 👤 (open) |
+| `keybindings.send`, `keybindings.newLine`, `keybindings.rewind` | string | `Enter`, `Shift+Enter`, `Escape Escape` | Shortcuts inside the webview, as settings (not read from keybindings.json). `useCtrlEnterToSend` stays for compatibility and swaps the `send`/`newLine` defaults | A | 👤 (decided 2026-11-01) |
 
 **VS Code-level keyboard shortcuts** are not settings but `contributes.keybindings`: Ctrl+Shift+Esc and Ctrl+Alt+C (existing), Ctrl+Esc, Ctrl+Shift+T, Alt+K and more.
 
@@ -176,8 +176,9 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 3. The plan-approval buttons: check at the end.
 4. Check the following versions inside VS Code 1.91.1 after every package, and update `spec.md`, `PROJECT_MAP.md`, `CHANGELOG.md`, `AGENT_CONTEXT.md` at the end of every package.
 5. When updating `spec.md` at the end of each package: also update the "Settings", "Placement" and "History" sections and "Verification status" according to what was built.
-6. Two things I adjusted without asking explicitly (⚠️): removing the cost from the usage line (tokens stay), and blocking a model switch in the middle of an active turn. If you disagree, say so.
-7. The defaults marked ⚠️ in the settings table (section 4) are my proposal and need approval before package A. The values that belong to explicit decisions (`attachSelection`, `attachOpenFile`, `autosave`, `modelDenylist`, `environmentVariables`) are not affected.
+6. ~~Cost removal and the mid-turn model switch~~ **Resolved 2026-11-01:** tokens only; the picker is disabled mid-turn with a "stop and switch" button and a detailed Hebrew explanation (see stage 5 and stage 8).
+7. ~~Defaults marked ⚠️ in section 4~~ **Approved 2026-11-01** as proposed. Package A is unblocked.
+8. **IDE lock file vs "the extension writes no files":** deliberately left open until the IDE server work starts (package F). When it does: first test whether an environment variable or `--ide` is enough with no file; otherwise a temporary lock file with cleanup (delete on deactivate, delete stale locks whose pid is dead), recorded as an explicit exception in `DECISIONS.md`.
 
 ## 7. IDE server: design notes
 
