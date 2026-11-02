@@ -7,7 +7,7 @@ const { spawnCli } = require('./spawn');
 
 const KILL_GRACE_MS = 6000;
 
-// Type and size only: stream lines carry message text, which must not reach the log.
+// Type and size at info level. The full text of each message is logged at debug level only (claudeLocal.logLevel = debug).
 function describe(msg, length) {
   const sub = (msg.request && msg.request.subtype) || (msg.response && msg.response.subtype) || msg.subtype;
   return `${msg.type}${sub ? `/${sub}` : ''} (${length} chars)`;
@@ -56,6 +56,7 @@ class CliProcess extends EventEmitter {
       return;
     }
     this.log(`<< ${describe(msg, line.length)}`);
+    this.log(`<< ${line}`, 'stream', 'debug');
     if (msg.type === 'control_response') {
       const { request_id: id, subtype, response, error } = msg.response || {};
       this.log(`response ${id} ${subtype}${error ? `: ${error}` : ''}`, 'control', error ? 'warn' : 'info');
@@ -82,6 +83,7 @@ class CliProcess extends EventEmitter {
     if (this.exited) return false;
     const line = JSON.stringify(obj);
     this.log(`>> ${describe(obj, line.length)}`);
+    this.log(`>> ${line}`, 'stream', 'debug');
     this.child.stdin.write(line + '\n');
     return true;
   }

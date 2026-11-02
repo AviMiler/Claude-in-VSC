@@ -4,7 +4,7 @@ Newest first. Each entry: what changed + why. Dates are commit dates.
 
 ## 2026-11-02 (CLI connection logs: the exact call of every CLI process)
 - **Built:** every CLI process start is logged as the exact call under tag `spawn`: resolved executable, every argument (quoted where it has spaces), working directory. Logged before the process starts, so failed starts are logged too. Covers the chat process (`CliProcess`) and the `claude mcp add/remove` calls (`mcp-cli.js`), both of which go through `spawnCli` in `src/cli/spawn.js`, the only place the CLI is spawned.
-- **Masked:** values after `-e` (`mcp add -e KEY=VALUE`) show as `KEY=***`; the environment is never logged. Message text sent to the CLI (stdin) stays out of the log, as before.
+- **Masked:** values after `-e` (`mcp add -e KEY=VALUE`) show as `KEY=***`; the environment is never logged. Message text is logged in full, both directions (`>>` to the CLI, `<<` from it), at debug level only: set `claudeLocal.logLevel` to `debug`. At info level only type and size are logged, as before. Lines are cut at 500 characters by the logger, and the logger masks token-like values, but file contents and images in the stream can still appear in the debug log.
 - **Replaced:** the old `start ...` line in `conversation.js` (its args were the same, but it was not logged for MCP calls and lacked the resolved executable).
 - **Code:** `src/cli/spawn.js` (`describeCall`, optional `log`), `process.js`, `mcp-cli.js`, `mcp-handler.js`, `conversation.js`; test `test/cli-spawn.test.js` (3 tests).
 - **Not verified:** the MCP call line in real VS Code; the Windows `.cmd` path (the logged call is the resolved executable, then the `cmd.exe` wrapper is not shown).
