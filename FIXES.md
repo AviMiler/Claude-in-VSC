@@ -6,25 +6,14 @@ Problems found by the user while running the manual tests (`dev/manual-tests.htm
 PASS with no complaint: 1.1, 1.2, 3.1, 4.1-4.3, 5.1, 5.2, 6.1, 7.2, 9.1, 10.1, 12.2, 13.1, 13.3, 15.1, 20.1, 21.1, 23.1. **FAIL: 2.2, 7.1, 11.1, 12.3.** PASS with a complaint: 8.1, 13.2, 14.1, 16.1, 17.1, 18.1, 19.1, 24.1. Not run: 1.3, 2.3 (the log shows it worked), 2.4, 22.1, 24.2. 24.3 was run in the CLI terminal, not in the extension, so the `/loop` indicator is still unverified.
 
 ## Order of work (decided by the user, 2026-11-02)
-1. **Fix 1: the basic interface** = F-1 (where every conversation opens, one clear entry point), F-2 (new conversation while one runs) and F-3 (visual design and responsiveness). Nothing else starts before this is agreed and done, because the other fixes touch the same panels. Needs a short design decision with the user first (one rule for placement, which buttons remain), then screenshots from the user for the design pass.
-2. F-4 `@` mentions, F-5 `/plan`, F-6 Ctrl+Shift+T and tab dots, F-7 shortcuts.
-3. F-8 model switch loads two models, F-9 context meter 1,000,000, F-10 meter click.
+1. ~~**Fix 1: the basic interface** = F-1, F-2, F-3~~ **Done 2026-11-02** on branch `fix1-ui-foundation` (also F-10); see `CHANGELOG.md`. Still open from it: real VS Code checks, and screenshots of the official extension during a conversation to finish matching the look.
+2. **Next: Fix 2** = F-4 `@` mentions, F-5 `/plan`, F-6 Ctrl+Shift+T and tab dots, F-7 shortcuts.
+3. F-8 model switch loads two models, F-9 context meter 1,000,000. (F-10 is done.)
 4. F-11 images, F-12 rewind button, F-13 `/` menu, F-14 always-allow, F-15 URI docs, F-16 test page.
 5. F-17 minor items.
-Nothing here is implemented yet. Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requires.
+Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requires. Note for F-6: Ctrl+Shift+T and the tab dots changed in Fix 1 (the dots are now drawer dots, `view.badge` and the tab title marker).
 
 ## P1
-
-### F-1 Conversation placement is confusing (reported 2026-11-02, also 12.1)
-- **Symptom:** several entry points open a conversation, and each time it can open in a different, unpredictable place (editor tab, other editor group, sidebar). "3 different buttons".
-- **Known (from `package.json`):** `claude-local.editor.open` ("פתיחה בלשונית חדשה", Ctrl+Shift+Esc and Ctrl+Alt+C), `claude-local.editor.openLast` ("פתיחת Claude", editor title button), `claude-local.sidebar.open`, `claude-local.newConversation`, `claude-local.history.open`, `claude-local.continueLast`, `claude-local.reopenClosed`; placement also depends on `preferredLocation` and `lockEditorGroups`.
-- **To decide with the user before coding:** one predictable rule for where a conversation opens, and whether to merge the open buttons into one.
-- **Status:** open, not investigated.
-
-### F-2 A new conversation does not open while another is running (reported 2026-11-02)
-- **Symptom:** "שיחה חדשה" does nothing while a conversation is running. Not reproduced yet; candidates: the command is ignored while a turn is active, or it reuses the running panel.
-- **Expected:** a new conversation opens in its own panel without interrupting the running one.
-- **Status:** open. Needs a test and a `[session]` log line for the refused case.
 
 ### F-4 `@` mentions do not work (test 7.1, FAIL)
 - **Symptom:** the model says the file is not found when a file is picked from the list; the model invents a wrong path (`C:\dev\gateway-probe\extension.js`); folders cannot be entered in the `@` list; sometimes a file does attach.
@@ -55,9 +44,6 @@ Nothing here is implemented yet. Fixes run in the usual workflow, one model per 
 
 ## P2
 
-### F-10 Context meter click compacts (test 13.2)
-The user: clicking the meter runs `/compact`, which makes no sense; remove it (the meter should only display; compact stays as `/compact`).
-
 ### F-11 Images and drag (test 8.1)
 Paste works; **drag does not work**; an image cannot be sent without text; models without vision return a server error (shown raw). Fix: allow image-only send, fix drag, show a clear Hebrew message on that server error.
 
@@ -77,9 +63,6 @@ Document what `session` does (opens that past conversation by id) in the test pa
 Test 24.1 did not create a loop (`/loop` was sent without a prompt, so the model asked a question); 24.3 was run in the CLI terminal. Fix the steps to use `/loop 1m Reply with the single word PING` inside the extension chat. Test 22.1 (screen reader): the user does not need it; mark it optional.
 
 ## P3
-
-### F-3 Visual design needs polish (reported 2026-11-02; 1.1, 14.1, 19.1) — part of Fix 1
-Responsiveness problems; the MCP dialog "slightly bad design"; the background-task box and its stop button are "ugly". Needs screenshots or a pass in the browser preview (`.claude/launch.json`, "chat-preview"): RTL spacing, composer, tool rows, cards, history list, tasks / background / `/loop` bars, dark and light themes, narrow widths.
 
 ### F-17 Minor
 - `[agents] card … started (subagent=?` — the sub-agent type is not logged.

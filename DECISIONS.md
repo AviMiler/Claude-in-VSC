@@ -28,6 +28,7 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Why:** The control protocol gives streaming, permissions, interrupt and live mode/model changes from the real program without parsing terminal output.
 
 ## [2026-10-30] Placement: editor tab and secondary-sidebar view, independent conversations
+**(Superseded 2026-11-02 by "Fix 1: one place" below; kept for the history.)**
 **Decision:** An editor-tab `WebviewPanel` (editor/title button, Ctrl+Shift+Esc, status-bar "✻ Claude") and a sidebar view in the secondary sidebar (activity-bar fallback on old VS Code). Each has its own process. Ids renamed (`claude-local.*`, `claudeLocal.*`, `claudeLocal*`) so it installs next to the official extension.
 **Alternatives considered:** Only a tab; only a sidebar view; sharing one conversation between both surfaces.
 **Why:** Matches the official extension's two main surfaces; independent processes avoid shared state.
@@ -59,8 +60,8 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 
 ## [2026-10-30] Spec defaults filled in by the spec writer (not user decisions)
 **Decision:**
-- A past conversation opens in the current panel only when that panel has no messages and no running turn; otherwise it opens in a new editor tab. The same session already open in this window is focused instead.
-- "New conversation" is disabled while a turn runs.
+- A past conversation opens in the current panel only when that panel has no messages and no running turn; otherwise it opens in a new editor tab. The same session already open in this window is focused instead. **(Superseded 2026-11-02: it now opens in the same place, in a new conversation if the current one is not empty.)**
+- "New conversation" is disabled while a turn runs. **(Reversed by the user on 2026-11-02, see the Fix 1 entries at the end.)**
 - No `WebviewPanelSerializer`: after a window reload tabs are not restored (consequence of the no-storage rule).
 - `ExitPlanMode` gets a plan card (needed for plan mode); `AskUserQuestion` is a generic card in this milestone.
 - No capability probing of the CLI (`--version`/`--help`); fixed target CLI 2.1.181+.
@@ -128,4 +129,34 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Decision:** `PLAN.md` fixed only the setting names and defaults, so the build chose: (1) focus view hides tool rows, thinking, the result line and the per-answer actions, leaving user and Claude text; (2) `colorMode: daltonized` overrides the status colours with the Okabe-Ito palette through CSS variables; (3) reduced motion is the setting OR the OS media query `prefers-reduced-motion`; (4) a non-empty `spinnerVerbs` replaces the default verbs, empty keeps them; (5) timestamps are shown in the speaker heading and not for messages loaded from history (no reliable time); (6) the thread's `aria-live` is switched off and a separate polite `role="status"` announcer speaks only turn start/end, permission requests and errors.
 **Alternatives considered:** focus view as hiding the header and composer chrome; a custom hand-picked colour-blind palette; reduced motion by the setting only; extending the default verbs with the user's; leaving `aria-live="polite"` on the thread; timestamps on history messages from the transcript file time.
 **Why:** a polite live region on the whole thread reads every streamed token, which is unusable; Okabe-Ito is a published colour-blind-safe palette, so no palette had to be invented; honouring the OS preference is the accessibility default. Open for the user to change, since none of it was explicitly decided. Screen-reader behaviour is untested (`PLAN.md` says it needs a real screen reader).
+
+## [2026-11-02] Fix 1: one place for the chat, sidebar by default (user decision)
+**Decision:** The chat has one place, chosen by `claudeLocal.preferredLocation`, whose default is now `sidebar`; `panel` (ONE editor tab, never duplicated) stays an option. Every entry point (editor-title button, status bar, Ctrl+Alt+C, Ctrl+Shift+Esc, URI) goes through `places.main()` and reveals/focuses that place. Commands `editor.open`, `editor.openLast` and `sidebar.open` were replaced by the single `claude-local.open`.
+**Alternatives considered:** the editor tab as the default; "focus the existing chat, else open beside" (placement depending on what is open); keeping several open commands.
+**Why:** the user reported "3 different buttons" and an unpredictable place (FIXES F-1). One fixed place plus one entry point is predictable; the sidebar matches the official extension and keeps the editor free.
+
+## [2026-11-02] Fix 1: "New conversation" replaces the view, the other keeps running (user decision; reverses the 2026-10-30 spec default)
+**Decision:** "New conversation" is never refused. It creates a conversation in the same place and shows it; the previous one keeps running in the background (its CLI process is not interrupted). A permission request or question that arrives while hidden stays pending and is signalled (drawer dots, `view.badge`, tab title marker); a turn that ends unseen marks the conversation unread. This reverses "New conversation is disabled while a turn runs" (2026-10-30 spec defaults). Root cause of F-2: `Conversation.newConversation()` returned early when `busy`.
+**Alternatives considered:** a separate panel (tab) per conversation; refusing while busy (the old behaviour); interrupting or killing the running conversation.
+**Why:** a running turn must never be lost or stopped by a navigation action, and the user wanted one view hosting several conversations rather than several panels.
+
+## [2026-11-02] Fix 1: a drawer instead of a popover or an Activity Bar tree (user decision)
+**Decision:** The conversation list is a drawer opened by a ☰ button in the chat header, sliding in from the start side: filter (all / active / waiting / finished), search, open conversations with status dots, rename (through the CLI's `/rename`), close, and past conversations by day. The Activity Bar container `claude-local-history`, the `claudeLocalHistory` TreeView, the commands `history.open/refresh/filter/rename` and the header "שיחות קודמות" button were removed. This supersedes the 2026-11-01 "Sessions list (package B1)" UI; its rename-through-the-CLI and scoped Ctrl+Shift+T decisions stay.
+**Alternatives considered:** the official extension's popover; keeping the Activity Bar tree next to the in-chat list.
+**Why:** the tree only duplicated the list and added a second entry point, against the "one clear entry" goal; a drawer fits a narrow sidebar and shows status dots of hidden conversations in the place the user is already looking at.
+
+## [2026-11-02] Fix 1: how several conversations share one webview (builder decision, constraints from the user's decisions)
+**Decision:** A `ConversationHost` (outliving the `WebviewView`) holds the open `Conversation`s; one is attached to the webview. A hidden conversation records what it would have shown in an in-memory replay log (`replay-log.js`: streamed deltas folded per block, snapshots, agent cards merged); on a switch the webview is redrawn once from that log with a `restore` message. The composer's own state (draft, client-side queue, prompt history) is saved and restored per conversation; the queue of a hidden conversation is sent by the host when its turn ends.
+**Alternatives considered:** one webview per conversation (a `WebviewView` is a single webview, so this would need hidden editor tabs or several views); keeping several conversation threads in the DOM of one webview and toggling them (every webview module assumes one thread, so it needs a rewrite of the thread, bars, cards and composer, and it makes the cost of hidden streaming grow with the DOM).
+**Why:** replay-from-memory keeps one thread in the DOM, the streaming path unchanged (no whole-thread re-render per token), nothing persisted, and the change local to the host plus one `restore` handler.
+
+## [2026-11-02] Fix 1: "stop and switch" folded into the model pill (builder decision)
+**Decision:** During a turn the model pill itself performs "stop and switch" (same modal Hebrew warning, interrupt, switch when the turn ends). The separate "⏹ עצירה והחלפת מודל" chip and `model-picker.js` were removed. The mode picker stays disabled during a turn.
+**Alternatives considered:** keeping the separate chip next to a disabled picker.
+**Why:** one control instead of two in the narrow footer; behaviour unchanged. Not explicitly asked of the user.
+
+## [2026-11-02] Fix 1: context meter only displays; mascot icons (user decisions)
+**Decision:** The context meter shows a percentage with a tooltip and no longer sends `/compact` on click (F-10; `/compact` stays as a typed command). The hand-drawn spark logo was replaced by the Claude Code mascot (`resources/claude-mascot.svg` full colour, `claude-mascot-mono.svg` `currentColor`); `claude-logo.svg` was deleted. The UI follows the official extension's look as closely as the guide and screenshots allow, VS Code theme variables only.
+**Alternatives considered:** keeping the click-to-compact; keeping the spark logo.
+**Why:** a click that silently compacts the conversation "makes no sense" (user, test 13.2); the mascot is what the official extension shows. Open: screenshots of the official extension during a conversation (messages, tool rows, permission prompt) would finish the matching.
 

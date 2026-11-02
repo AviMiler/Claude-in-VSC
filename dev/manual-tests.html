@@ -40,7 +40,8 @@
     <li><b>חלון הפיתוח (Extension Development Host)</b>: חלון VS Code חדש שנפתח אחרי פקודת ההפעלה, ובכותרתו כתוב <code>[Extension Development Host]</code>. <b>כל הבדיקות מתבצעות בו</b>, לא בחלון VS Code הרגיל שלכם. פתחו בו תיקיית עבודה כלשהי (File &larr; Open Folder).</li>
     <li><span class="chip">Command Palette</span> בתוך חלון הפיתוח: <code>Ctrl+Shift+P</code>, מקלידים את שם הפקודה (למשל <code>Claude Code Local: Show Log</code>), בוחרים ו-Enter.</li>
     <li><span class="chip">הגדרות</span> בתוך חלון הפיתוח: <code>Ctrl+,</code> ובשורת החיפוש <code>claudeLocal</code>. לעריכה כקובץ: Command Palette &larr; <code>Preferences: Open User Settings (JSON)</code>.</li>
-    <li><span class="chip">צ'אט</span> הצ'אט של התוסף: כפתור הניצוץ בסרגל הכלים של העורך, או <code>Ctrl+Shift+Esc</code>. כותבים בתיבת ההודעה שלמטה ו-Enter.</li>
+    <li><span class="chip">צ'אט</span> הצ'אט של התוסף: כפתור הדמות הכתומה (Claude) בסרגל הכלים של העורך, הפריט "✻ Claude" בשורת המצב, או <code>Ctrl+Alt+C</code>. כולם פותחים את <b>אותו מקום</b>: סרגל הצד (ברירת מחדל) או לשונית עורך אחת, לפי <code>claudeLocal.preferredLocation</code>. כותבים בתיבת ההודעה שלמטה ו-Enter.</li>
+    <li><span class="chip">רשימת השיחות</span> הכפתור ☰ בפינה הימנית של כותרת הצ'אט: מגירה עם השיחות הפתוחות (גם אלה שעובדות ברקע) והשיחות הקודמות.</li>
     <li><span class="chip">Output</span> הלוג: בתוך חלון הפיתוח, תפריט View &larr; Output, ובתיבת הבחירה שבראש הפאנל בוחרים <code>Claude Code Local</code>. או הפקודה <code>Claude Code Local: Show Log</code>.</li>
     <li><span class="chip">דפדפן</span> הדף הזה. שם מסמנים עבר/נכשל ולוחצים "העתקת תוצאות".</li>
   </ul>
@@ -70,7 +71,7 @@ t('1.1', 'הפעלה עם הכוונת פיתוח', [
   'בטרמינל: <code>code --extensionDevelopmentPath=&lt;נתיב ל-Claude-in-VSC&gt;</code> (פתחו תיקיית עבודה כלשהי).',
   'פתחו Output &gt; "Claude Code Local".'
 ], 'נפתח חלון Extension Development Host ואין שגיאה. בסרגל הכלים של העורך יש כפתור של התוסף. בפלט יש שורת הפעלה.',
-  ['<code>… [settings] activated (VS Code 1.xx); claudePath=… bypass=false terminal=false location=panel envNames=[API_TIMEOUT_MS,…] …</code>'], 'שורת ה-activated (או היעדרה), והודעת שגיאה מ-Help &gt; Toggle Developer Tools &gt; Console');
+  ['<code>… [settings] activated (VS Code 1.xx); claudePath=… bypass=false terminal=false location=sidebar envNames=[API_TIMEOUT_MS,…] …</code>'], 'שורת ה-activated (או היעדרה), והודעת שגיאה מ-Help &gt; Toggle Developer Tools &gt; Console');
 t('1.2', 'claudePath אמיתי', [
   'Settings: <code>claudeLocal.claudePath</code> = הנתיב המלא ל-<code>claude-bin.exe</code> (לא <code>claude.cmd</code>).',
   'פתחו צ\'אט (Ctrl+Shift+Esc) ושלחו "שלום".'
@@ -84,17 +85,25 @@ t('1.3', 'חלופה: fake-claude', [
 
 g('2. הגדרות וקיצורים');
 t('2.1', 'קיצורי מקלדת', [
-  'Ctrl+Shift+Esc (וגם Ctrl+Alt+C) - לשונית צ\'אט חדשה.', 'Ctrl+Esc בצ\'אט - חזרה לעורך האחרון; שוב - חזרה לצ\'אט.',
+  'Ctrl+Alt+C (וגם Ctrl+Shift+Esc אם Windows לא תופס אותו) - פתיחת Claude.', 'Ctrl+Esc בצ\'אט - חזרה לעורך האחרון; שוב - חזרה לצ\'אט.',
   'הפקודה "Claude Code Local: Keyboard Shortcuts".'
-], 'כל קיצור עושה את הפעולה. הפקודה פותחת את עורך הקיצורים מסונן.', ['<i>(אין שורת לוג ייעודית; בשיחה חדשה: <code>[spawn] start …</code>)</i>'], 'איזה קיצור לא עבד + מערכת הפעלה');
+], 'הקיצור פותח את Claude במקום הקבוע (סרגל הצד) או מעביר אליו את המיקוד אם הוא כבר פתוח, בלי לפתוח שיחה נוספת. הפקודה פותחת את עורך הקיצורים מסונן.', ['<i>(אין שורת לוג ייעודית; בפתיחה ראשונה: <code>[session] new conversation c1 in sidebar; …</code>)</i>'], 'איזה קיצור לא עבד + מערכת הפעלה');
 t('2.2', 'Ctrl+Esc ותפריט התחל', [
   'בעורך טקסט לחצו Ctrl+Esc.', 'שימו לב אם תפריט התחל של Windows נפתח.'
 ], 'הצ\'אט נפתח/מקבל פוקוס ותפריט התחל <b>לא</b> נפתח. אם נפתח - רשמו (VS Code לא תמיד חוסם אותו; ניתן להגדיר קיצור אחר).', [], 'האם תפריט התחל נפתח; גרסת Windows');
 t('2.3', 'הגדרות', [
-  'שנו <code>claudeLocal.logLevel</code> ל-<code>debug</code> ואז חזרה ל-<code>info</code>.', 'שנו <code>claudeLocal.useTerminal</code> ל-true ולחצו על הכפתור הראשי, ואז החזירו.', 'שנו <code>preferredLocation</code> ל-sidebar.'
-], 'עם debug מופיעות שורות <code>&lt;&lt; …</code>/<code>&gt;&gt; …</code> (סוג וגודל בלבד); עם info הן נעלמות. useTerminal פותח טרמינל; sidebar פותח את סרגל הצד.',
-  ['<code>[settings] changed: … terminal=true …</code>', 'בדיבאג: <code>[stream] &lt;&lt; assistant (1234 chars)</code>'], 'שורות ה-changed');
+  'שנו <code>claudeLocal.logLevel</code> ל-<code>debug</code> ואז חזרה ל-<code>info</code>.', 'שנו <code>claudeLocal.useTerminal</code> ל-true ולחצו על כפתור Claude, ואז החזירו.', 'שנו <code>preferredLocation</code> ל-<code>panel</code> ולחצו על כפתור Claude פעמיים; החזירו ל-<code>sidebar</code>.'
+], 'עם debug מופיעות שורות <code>&lt;&lt; …</code>/<code>&gt;&gt; …</code> (סוג וגודל בלבד); עם info הן נעלמות. useTerminal פותח טרמינל. עם <code>panel</code> נפתחת <b>לשונית עורך אחת</b> ליד העורך; לחיצה שנייה רק מתמקדת בה (לא לשונית נוספת).',
+  ['<code>[settings] changed: … terminal=true …</code>', '<code>[settings] changed: … location=panel …</code>', '<code>[session] open the editor tab place</code> (פעם אחת בלבד)', 'בדיבאג: <code>[stream] &lt;&lt; assistant (1234 chars)</code>'], 'שורות ה-changed וצילום מסך');
 t('2.4', 'הפקודות Show Log ו-Copy Log', ['הפקודה "Claude Code Local: Show Log".', 'הפקודה "Claude Code Local: Copy Log", ואז הדביקו במחברת.'], 'Show Log מציג את הפלט. Copy Log מציג הודעה "היומן הועתק ללוח (N שורות)" והדבקה מכילה את כל השורות.', [], 'אם ההדבקה ריקה או חסרה');
+
+g('2א. מקום אחד ושיחות במקביל (תיקון 1)');
+t('P.1', 'כלל אחד לפתיחה', ['סגרו את סרגל הצד.', 'לחצו על כפתור Claude בסרגל הכלים של העורך; סגרו שוב את סרגל הצד; לחצו על "✻ Claude" בשורת המצב; ואז Ctrl+Alt+C.', 'פתחו <code>Command Palette</code> והקלידו <code>Claude Code Local</code>.'], 'כל הדרכים פותחות את <b>אותו</b> סרגל צד עם <b>אותה</b> שיחה (לא שיחה חדשה ולא לשונית). בפקודות יש "פתיחת Claude" אחת; אין יותר "פתיחה בלשונית חדשה" / "פתיחה בסרגל הצד" ואין סמל "שיחות Claude" נפרד בסרגל הפעילות.', ['<code>[session] new conversation c1 in sidebar; open 1, running in background: none</code> (רק בפתיחה הראשונה)'], PASTE_STD);
+t('P.2', 'שיחה חדשה בזמן ש-Claude עובד (F-2)', ['בקשו תשובה ארוכה (למשל "כתוב 40 שורות על …"; עם fake-claude: <code>slow</code>).', 'בזמן שהיא נכתבת לחצו "שיחה חדשה".', 'כתבו משהו בשיחה החדשה.', 'פתחו ☰ והסתכלו על השיחה הראשונה; כשהיא מסתיימת חזרו אליה.'], 'נפתחת מיד שיחה חדשה; הראשונה <b>לא נעצרת</b> וממשיכה ברקע (נקודה כתומה מהבהבת "עובדת" ברשימה). כשהיא מסתיימת: הודעה "שיחה ברקע סיימה", נקודה כתומה על ☰ ומספר על סמל סרגל הצד. בחזרה אליה התשובה המלאה מוצגת, כולל מה שנכתב ברקע.', ['<code>[session] new conversation c2 in sidebar; open 2, running in background: c1</code>', '<code>[session] switch c1 -&gt; c2 (c1 keeps running in the background)</code>', '<code>[session] background conversation c1 finished</code>', '<code>[session] switch c2 -&gt; c1 (c2 idle)</code>'], PASTE_STD);
+t('P.3', 'בקשת הרשאה בשיחה ברקע', ['במצב "לשאול לפני עריכה" בקשו "הרץ את הפקודה dir" (עם fake-claude: <code>tool</code>).', 'מיד לחצו "שיחה חדשה" לפני שכרטיס ההרשאה מופיע.', 'חכו כמה שניות; פתחו ☰ ועברו לשיחה הראשונה; ענו "1 כן".'], 'כש-Claude מבקש הרשאה בשיחה המוסתרת: הודעה "שיחה ברקע ממתינה לאישור", נקודה <b>כחולה</b> על ☰ ובשורה ברשימה ("ממתינה לאישור"), מספר על סמל סרגל הצד. בחזרה לשיחה כרטיס ההרשאה מחכה (1/2/3; אפשר גם להקיש 1). אחרי אישור Claude ממשיך.', ['<code>[permission] request &lt;id&gt; tool=Bash (conversation c1 is hidden)</code>', '<code>[session] background conversation c1 waits for permission</code>', '<code>[permission] answer &lt;id&gt; allow</code>'], PASTE_STD);
+t('P.4', 'רשימת השיחות (☰)', ['פתחו ☰. הקלידו בחיפוש חלק משם שיחה; עברו בין הכול / פעילות / ממתינות / הסתיימו.', 'בשיחה פתוחה: כתבו טקסט בתיבה בלי לשלוח, עברו לשיחה אחרת וחזרו.', 'לחצו על העיפרון ליד שיחה שכבר נשלחה בה הודעה, תנו שם חדש ו-Enter.', 'סגרו שיחה בכפתור ✕ (בשיחה שעובדת: "לסגור?" ואישור).', 'Esc סוגר את המגירה; חצים למעלה/למטה עוברים בין שורות.'], 'מגירה נפתחת מימין: "פתוחות" עם נקודות מצב, ומתחת השיחות הקודמות לפי ימים עם זמן קצר. הטקסט שלא נשלח חוזר לתיבה. השם מתעדכן (דרך <code>/rename</code> של ה-CLI). שיחה שנסגרה נעלמת מ"פתוחות" (ה-CLI שלה נעצר).', ['<code>[history] drawer: N open, M past</code>', '<code>[history] rename session &lt;id&gt; (N chars)</code>', '<code>[session] close c2 (busy=false, session=&lt;id&gt;)</code>'], PASTE_STD);
+t('P.5', 'פתיחת שיחה קודמת בלי כפילות', ['ב-☰ לחצו על שיחה קודמת כשהשיחה הנוכחית ריקה.', 'שלחו בה הודעה; פתחו ☰ ולחצו שוב על אותה שיחה (עכשיו תחת "פתוחות").', 'הפקודה "Claude Code Local: המשך את השיחה האחרונה".'], 'בשיחה ריקה השיחה הקודמת נטענת במקומה (בלי שיחה נוספת). שיחה שכבר פתוחה רק מוצגת - לא נפתחת פעם שנייה. "המשך את השיחה האחרונה" פותחת או מציגה אותה באותו סרגל צד.', ['<code>[session] open session &lt;id&gt; in the empty conversation c1</code>', '<code>[session] load &lt;id&gt;</code>', '<code>[spawn] start … --resume &lt;id&gt; …</code>'], PASTE_STD);
+t('P.6', 'תור הודעות בשיחה ברקע', ['בקשו תשובה ארוכה, ובזמן שהיא נכתבת שלחו עוד הודעה (נכנסת לתור "ממתין").', 'לחצו "שיחה חדשה" לפני שהתשובה מסתיימת.', 'חכו לסיום וחזרו לשיחה הראשונה.'], 'ההודעה שבתור נשלחת לבד כשהתור הראשון מסתיים, גם כשהשיחה מוסתרת; בחזרה רואים את שתי התשובות.', ['<code>[queue] add (… chars, 0 images)</code>', '<code>[queue] send next queued (hidden conversation c1, 0 left)</code>'], PASTE_STD);
 
 g('3. פתיחה בטרמינל');
 t('3.1', 'Open in Terminal', ['הפקודה "Claude Code Local: Open in Terminal".'], 'נפתח טרמינל בשם "Claude Code" עם הממשק המקורי של ה-CLI, באותה תיקייה.', [], 'צילום מסך של הטרמינל');
@@ -103,7 +112,7 @@ g('4. צ\'אט בסיסי');
 t('4.1', 'הודעה ותשובה', ['שלחו "ספר לי בדיחה קצרה".', 'במהלך התשובה הסתכלו על הספינר וכפתור העצירה.'], 'התשובה זורמת, Markdown מוצג נכון, בסוף שורת "תור: קלט X · פלט Y". Enter שולח, Shift+Enter שורה חדשה.',
   ['<code>[stream] send (… chars, 0 images, session=new)</code>', '<code>[context] used=… max=…</code> בסיום התור'], PASTE_STD);
 t('4.2', 'עצירה', ['בקשו תשובה ארוכה ולחצו עצירה (Esc/כפתור).'], 'התור נעצר ומסומן כעצור (לא כשגיאה); אפשר לשלוח שוב.', ['<code>[stream] interrupt (stop pressed)</code>', '<code>[control] request ext-N interrupt</code>'], PASTE_STD);
-t('4.3', 'שיחה חדשה ומצב הרשאות', ['לחצו "+" בכותרת.', 'החליפו מצב בבורר (רגיל / תכנון וכו\').'], 'השיחה מתאפסת. המצב מתחלף (לא בזמן שClaude עובד).', ['<code>[session] new conversation</code>', '<code>[session] set mode default -&gt; plan</code>', '<code>[control] request ext-N set_permission_mode</code>'], PASTE_STD);
+t('4.3', 'שיחה חדשה ומצב הרשאות', ['כשאין עבודה, לחצו על כפתור "שיחה חדשה" (בועה עם +) בכותרת.', 'החליפו מצב בכפתור המצב שליד כפתור השליחה (לשאול לפני עריכה / עריכה אוטומטית / מצב תכנון).'], 'נפתחת שיחה ריקה חדשה; הקודמת נשארת ברשימת השיחות (☰). המצב מתחלף (לא בזמן ש-Claude עובד).', ['<code>[session] new conversation c2 in sidebar; open 2, running in background: none</code>', '<code>[session] switch c1 -&gt; c2 (c1 idle)</code>', '<code>[session] set mode default -&gt; plan</code>', '<code>[control] request ext-N set_permission_mode</code>'], PASTE_STD);
 
 g('5. הרשאות');
 t('5.1', 'בקשת הרשאה', ['במצב רגיל בקשו: "צור קובץ test.txt עם המילה hi".', 'בכרטיס ההרשאה לחצו "אישור".', 'חזרו על כך ולחצו "דחייה".', 'פעם נוספת: "אשר תמיד" (אם מוצג).'], 'כרטיס מופיע לפני הכלי; אישור מבצע; דחייה מחזירה הודעת דחייה ל-Claude; "תמיד" לא שואל שוב באותה הצעה.',
@@ -132,16 +141,16 @@ g('11. /plan');
 t('11.1', 'תכנון', ['הקלידו <code>/plan</code> ושלחו (Enter).', 'בקשו תוכנית; בסיום לחצו "פתיחת התוכנית בעורך".', '<code>/plan open</code>.'], 'המצב עובר ל-plan ללא שליחת ההודעה ל-CLI. התוכנית נפתחת כמסמך Markdown לקריאה בלבד.', ['<code>[session] set mode … -&gt; plan</code>'], PASTE_STD);
 
 g('12. שיחות קודמות');
-t('12.1', 'Activity Bar', ['פתחו את אייקון Claude בסרגל הפעילות (תצוגת שיחות).', 'החליפו מסנן: הכל / פעילות / ממתינות / הסתיימו.', 'לחצו על שיחה ישנה.'], 'רשימת שיחות התיקייה, החדשות ראשונות; שיחות פתוחות מסומנות. השיחה נפתחת עם ההודעות הקודמות והמשך עם --resume.',
-  ['<code>[history] list: N sessions</code>', '<code>[session] load &lt;id&gt;</code>', '<code>[spawn] start … --resume &lt;id&gt; …</code>'], PASTE_STD);
-t('12.2', 'שינוי שם', ['בשיחה פתוחה: פעולת rename (תפריט הקשר/פקודה) והקלידו שם.'], 'השם מתעדכן (נשלח <code>/rename</code> ל-CLI כהודעה רגילה). התוסף לא כותב קבצי תמלול.', ['<code>[history] rename session &lt;id&gt; (N chars)</code>'], PASTE_STD);
-t('12.3', 'Ctrl+Shift+T וסימוני כרטיסיות', ['סגרו לשונית צ\'אט עם שיחה.', 'לחצו Ctrl+Shift+T.', 'צפו בנקודות הצבע בכותרות כרטיסיות בזמן עבודה / המתנה להרשאה.'], 'השיחה שנסגרה נפתחת מחדש. נקודה צבעונית: עבודה / ממתין להרשאה. בקובץ רגיל Ctrl+Shift+T ממשיך לעבוד כרגיל.', [], 'צילום מסך של הכרטיסיות');
+t('12.1', 'שיחות קודמות ב-☰', ['פתחו ☰ (אין יותר תצוגת שיחות נפרדת בסרגל הפעילות).', 'החליפו מסנן: הכול / פעילות / ממתינות / הסתיימו.', 'לחצו על שיחה ישנה.'], 'רשימת שיחות התיקייה, החדשות ראשונות, מקובצות לפי היום / אתמול / השבוע / קודם. השיחה נפתחת עם ההודעות הקודמות (בסרגל הצד) וממשיכה עם --resume.',
+  ['<code>[history] drawer: N open, M past</code>', '<code>[session] load &lt;id&gt;</code>', '<code>[spawn] start … --resume &lt;id&gt; …</code>'], PASTE_STD);
+t('12.2', 'שינוי שם', ['ב-☰ לחצו על העיפרון ליד שיחה (שלא עובדת כרגע), הקלידו שם ו-Enter.'], 'השם מתעדכן ברשימה ובכותרת (נשלח <code>/rename</code> ל-CLI כהודעה רגילה). התוסף לא כותב קבצי תמלול.', ['<code>[history] rename session &lt;id&gt; (N chars)</code>'], PASTE_STD);
+t('12.3', 'Ctrl+Shift+T וסימונים', ['סגרו שיחה שנשלחה בה הודעה (✕ ב-☰).', 'לחצו Ctrl+Shift+T כשהמיקוד בצ\'אט (או הפקודה "פתיחה מחדש של שיחה שנסגרה").', 'עם <code>preferredLocation</code> = <code>panel</code>: הסתירו את הלשונית בזמן שיחה ברקע עובדת / ממתינה.'], 'השיחה שנסגרה נפתחת מחדש באותו מקום. בסרגל הצד: מספר על הסמל ונקודה על ☰. בלשונית עורך: 🔵 / 🟠 בכותרת הלשונית לשיחה מוסתרת שממתינה / שהסתיימה.', ['<code>[session] new conversation c3 in sidebar (resume &lt;id&gt;); …</code>'], 'צילום מסך של הסימונים');
 
 g('13. מודל, הקשר, עצירה והחלפה');
 t('13.1', 'בורר מודלים', ['פתחו את בורר המודלים.', 'בחרו מודל אחר (כשאין עבודה).'], 'רשימה מהשער (gateway) אחרי סינון. ההחלפה מפעילה מחדש את ה-CLI עם <code>--model</code> והודעה "המודל הוחלף".',
   ['<code>[model-switch] default -&gt; &lt;model&gt;, restart=true</code>', '<code>[spawn] start … --model &lt;model&gt; … resume=true</code>', '(בכשל רשימה) <code>[model-switch] model list failed: …</code>'], PASTE_STD);
-t('13.2', 'מד הקשר', ['שלחו כמה הודעות והסתכלו על "הקשר: X / Y".', 'לחצו עליו.'], 'המספרים מתעדכנים אחרי כל תור; אדום מעל 85%; לחיצה שולחת <code>/compact</code>.', ['<code>[context] used=… max=…</code>'], PASTE_STD);
-t('13.3', 'עצירה והחלפה', ['בזמן עבודה בחרו מודל אחר.', 'לחצו "עצירה והחלפה" ואשרו.'], 'חלון אזהרה; התור נעצר והמודל מוחלף. ללא האישור - אין שינוי.', ['<code>[model-switch] stop-and-switch to … : interrupting</code>', '<code>[stream] interrupt (stop pressed)</code>', '<code>[model-switch] … -&gt; …, restart=true</code>'], PASTE_STD);
+t('13.2', 'מד הקשר', ['שלחו כמה הודעות והסתכלו על האחוז ליד כפתור המצב.', 'רחפו עליו; לחצו עליו.'], 'האחוז מתעדכן אחרי כל תור; צהוב מעל 70%, אדום מעל 85%; בריחוף מופיעים המספרים המלאים. <b>לחיצה לא עושה כלום</b> (לכיווץ כותבים <code>/compact</code>).', ['<code>[context] used=… max=…</code>'], PASTE_STD);
+t('13.3', 'עצירה והחלפה', ['בזמן עבודה לחצו על כפתור המודל (הגלולה) ובחרו מודל אחר.', 'אשרו בחלון האזהרה.'], 'כל פריט ברשימה כתוב "עצירת התור והחלפת מודל"; חלון אזהרה; התור נעצר והמודל מוחלף. ללא האישור - אין שינוי.', ['<code>[model-switch] stop-and-switch to … : interrupting</code>', '<code>[stream] interrupt (stop pressed)</code>', '<code>[model-switch] … -&gt; …, restart=true</code>'], PASTE_STD);
 
 g('14. MCP');
 t('14.1', 'דיאלוג MCP', ['פתחו את דיאלוג MCP (כפתור בכותרת).', 'רענון סטטוס; נתקו/חברו שרת; הוסיפו והסירו שרת בדיקה.'], 'רשימת שרתים עם סטטוס. הוספה/הסרה רצות דרך <code>claude mcp</code> ותחולנה בשיחה חדשה. ללא OAuth.',
@@ -151,7 +160,7 @@ g('15. כרטיס שגיאת CLI');
 t('15.1', 'claudePath שבור', ['שנו <code>claudeLocal.claudePath</code> לנתיב שלא קיים; פתחו שיחה חדשה ושלחו הודעה.', 'נסו גם נתיב ל-<code>claude.cmd</code>.'], 'מופיעה שגיאה וכרטיס עזרה בעברית: רשימת בדיקה, כפתור לפתיחת settings.json; עם <code>.cmd</code> גם אזהרה וכפתור להגדרה.', ['<code>[spawn] exit code=… error=ENOENT</code>', '<code>[error-card] shown for claudePath=… (code=…)</code>'], PASTE_STD);
 
 g('16. קישור URI');
-t('16.1', 'vscode://local.claude-local/open', ['פתחו בדפדפן/Win+R: <code>vscode://local.claude-local/open?prompt=hello</code>.', 'אשרו בחלון; חזרו וסרבו; נסו קישור עם <code>session=&lt;id&gt;</code> תקין ולא תקין.'], 'חלון אישור מודאלי. באישור הטקסט נכנס לתיבה <b>ולא נשלח</b>. בקישור פגום - התעלמות.',
+t('16.1', 'vscode://local.claude-local/open', ['פתחו בדפדפן/Win+R: <code>vscode://local.claude-local/open?prompt=hello</code>.', 'אשרו בחלון; חזרו וסרבו.', 'נסו קישור עם <code>session=&lt;id&gt;</code> (מזהה של שיחה קודמת, למשל משם קובץ ה-.jsonl ב-<code>~/.claude/projects/…</code>) תקין ולא תקין.'], 'חלון אישור מודאלי. באישור Claude נפתח במקום הקבוע (סרגל הצד) והטקסט נכנס לתיבה <b>ולא נשלח</b>. עם <code>session</code> נפתחת (או מוצגת, אם כבר פתוחה) השיחה הקודמת בעלת המזהה הזה. בקישור פגום - התעלמות.',
   ['<code>[uri] received /open (prompt 5 chars, session none)</code>', '<code>[uri] user confirmed</code> / <code>declined</code>', '<code>[uri] ignored … (…)</code>'], PASTE_STD);
 
 g('17. נקודות שחזור');
@@ -162,7 +171,7 @@ g('18. /diff');
 t('18.1', 'שינויים בשיחה', ['לאחר שClaude שינה קבצים הקלידו <code>/diff</code>.', 'בחרו קובץ.', 'נסו בשיחה בלי שינויים.'], 'QuickPick של הקבצים ו-diff לקריאה בלבד. בלי שינויים - הודעה "Claude עוד לא שינה קבצים בשיחה הזו.". לא נשלח ל-CLI. עם fake-claude: שלחו "edit" ואז <code>/diff</code>.', ['<code>[diff] command</code>', '<code>[diff] files 2</code>', 'אחרי בחירת קובץ: <code>[diff] open diff (שינוי אחד)</code>', 'בשיחה בלי שינויים: <code>[diff] files 0</code>'], PASTE_STD);
 
 g('19. משימות רקע');
-t('19.1', 'משימת רקע ועצירה', ['בקשו: "הרץ ברקע sleep 60".', 'צפו בסרגל מעל התיבה; לחצו עצירה.'], 'משימה רצה מופיעה עם כפתור עצירה; אחרי עצירה היא מסומנת כעצורה ונשארת עד אתחול התהליך.', ['<code>[background] tasks now 1</code>', 'בלחיצה על עצירה: <code>[background] stop_task bg_fake_1</code> (עם ה-CLI האמיתי: מזהה אחר), <code>[control] request ext-N stop_task</code>, ואז <code>[background] tasks now 1</code> (המשימה מוצגת כעצורה)', '<i>עם fake-claude שלחו "background"</i>'], PASTE_STD);
+t('19.1', 'משימת רקע ועצירה', ['בקשו: "הרץ ברקע sleep 60".', 'צפו בסרגל מעל התיבה; לחצו על ריבוע העצירה הקטן.'], 'משימה רצה מופיעה עם נקודה כתומה וכפתור עצירה קטן (ריבוע, אדום בריחוף); אחרי עצירה היא מסומנת "נעצר" ונשארת עד אתחול התהליך.', ['<code>[background] tasks now 1</code>', 'בלחיצה על עצירה: <code>[background] stop_task bg_fake_1</code> (עם ה-CLI האמיתי: מזהה אחר), <code>[control] request ext-N stop_task</code>, ואז <code>[background] tasks now 1</code> (המשימה מוצגת כעצורה)', '<i>עם fake-claude שלחו "background"</i>'], PASTE_STD);
 
 g('20. רשימת המשימות של Claude');
 t('20.1', 'צ\'קליסט', ['בקשו משימה רב-שלבית ("תכנן וצור 3 קבצים, עם רשימת משימות").'], 'רשימה מתקפלת "המשימות של Claude (done/total)" עם ○ ◐ ✓. עם fake-claude שלחו "tasks".', ['<code>[tasks] list now 1 (done 0)</code>', '… (עדכונים בהמשך התור)', '<code>[tasks] list now 2 (done 1)</code> (בסוף)'], PASTE_STD);
