@@ -177,7 +177,7 @@
         "command": "claude-local.open",
         "title": "פתיחת Claude",
         "category": "Claude Code Local",
-        "icon": "resources/claude-mascot.svg"
+        "icon": "resources/claude-logo.svg"
       },
       {
         "command": "claude-local.newConversation",
@@ -273,7 +273,7 @@
         {
           "id": "claude-local-sidebar",
           "title": "Claude Code Local",
-          "icon": "resources/claude-mascot-mono.svg",
+          "icon": "resources/claude-logo-mono.svg",
           "when": "claude-local:doesNotSupportSecondarySidebar"
         }
       ],
@@ -281,7 +281,7 @@
         {
           "id": "claude-local-sidebar-secondary",
           "title": "Claude Code Local",
-          "icon": "resources/claude-mascot-mono.svg",
+          "icon": "resources/claude-logo-mono.svg",
           "when": "!claude-local:doesNotSupportSecondarySidebar"
         }
       ]

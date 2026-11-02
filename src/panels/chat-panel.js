@@ -17,7 +17,7 @@ function openChatPanel(services) {
     { viewColumn: vscode.ViewColumn.Beside, preserveFocus: false },
     { ...webviewOptions(extensionUri), retainContextWhenHidden: true },
   );
-  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'claude-mascot.svg');
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'claude-logo.svg');
   const host = new ConversationHost({
     services,
     kind: 'editor',
