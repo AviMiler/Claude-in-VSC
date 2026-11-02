@@ -21,7 +21,7 @@ class CliProcess extends EventEmitter {
     this.nextId = 1;
     this.stderrTail = '';
     this.exited = false;
-    this.child = spawnCli(claudePath, args, { cwd, env });
+    this.child = spawnCli(claudePath, args, { cwd, env, log });
     this.child.on('error', (err) => this.finish({ code: null, error: err }));
     this.child.on('exit', (code, signal) => this.finish({ code, signal }));
     this.child.stdin.on('error', () => {});

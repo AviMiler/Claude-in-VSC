@@ -25,10 +25,27 @@ function quoteForCmd(arg) {
   return /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg;
 }
 
-function spawnCli(claudePath, args, { cwd, env = process.env } = {}) {
+// The exact call as it is run: resolved executable, arguments (quoted where they contain spaces),
+// working directory. Values after `-e` (`mcp add -e KEY=VALUE`) are masked; the environment is never logged.
+function describeCall(exe, args, cwd) {
+  const shown = [];
+  for (let i = 0; i < args.length; i++) {
+    let a = String(args[i]);
+    if (i > 0 && args[i - 1] === '-e') {
+      const eq = a.indexOf('=');
+      a = eq > 0 ? `${a.slice(0, eq)}=***` : '***';
+    }
+    shown.push(/[\s"]/.test(a) || a === '' ? `"${a.replace(/"/g, '\\"')}"` : a);
+  }
+  return `${[exe, ...shown].join(' ')} (cwd ${cwd || process.cwd()})`;
+}
+
+// log(text, tag, level) is optional; it receives the exact call before the process starts.
+function spawnCli(claudePath, args, { cwd, env = process.env, log } = {}) {
   const exe = resolveExecutable(claudePath, env);
   const childEnv = { ...env, CLAUDE_CODE_ENTRYPOINT: ENTRYPOINT };
   const options = { cwd, env: childEnv, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true };
+  if (log) log(`call ${describeCall(exe, args, cwd)}`, 'spawn', 'info');
   if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(exe)) {
     const line = [exe, ...args].map(quoteForCmd).join(' ');
     return spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `"${line}"`], {
@@ -39,4 +56,4 @@ function spawnCli(claudePath, args, { cwd, env = process.env } = {}) {
   return spawn(exe, args, options);
 }
 
-module.exports = { spawnCli, resolveExecutable, ENTRYPOINT };
+module.exports = { spawnCli, resolveExecutable, describeCall, ENTRYPOINT };

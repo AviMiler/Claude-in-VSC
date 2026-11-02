@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-02 (CLI connection logs: the exact call of every CLI process)
+- **Built:** every CLI process start is logged as the exact call under tag `spawn`: resolved executable, every argument (quoted where it has spaces), working directory. Logged before the process starts, so failed starts are logged too. Covers the chat process (`CliProcess`) and the `claude mcp add/remove` calls (`mcp-cli.js`), both of which go through `spawnCli` in `src/cli/spawn.js`, the only place the CLI is spawned.
+- **Masked:** values after `-e` (`mcp add -e KEY=VALUE`) show as `KEY=***`; the environment is never logged. Message text sent to the CLI (stdin) stays out of the log, as before.
+- **Replaced:** the old `start ...` line in `conversation.js` (its args were the same, but it was not logged for MCP calls and lacked the resolved executable).
+- **Code:** `src/cli/spawn.js` (`describeCall`, optional `log`), `process.js`, `mcp-cli.js`, `mcp-handler.js`, `conversation.js`; test `test/cli-spawn.test.js` (3 tests).
+- **Not verified:** the MCP call line in real VS Code; the Windows `.cmd` path (the logged call is the resolved executable, then the `cmd.exe` wrapper is not shown).
+
 ## 2026-11-02 (Fix 1: one place, several conversations, drawer, redesign; F-1, F-2, F-3, F-10)
 - **F-1 (placement):** one place hosts the chat (`claudeLocal.preferredLocation`, default now `sidebar`; `panel` = ONE editor tab, never duplicated), reached through one command `claude-local.open` (editor-title button, status bar, Ctrl+Alt+C, Ctrl+Shift+Esc, URI) via `places.main()`. Removed commands: `editor.open`, `editor.openLast`, `sidebar.open`, `history.open/refresh/filter/rename`. The Activity Bar container `claude-local-history` and the `claudeLocalHistory` tree were removed; their job moved to the drawer.
 - **F-2 (new conversation while one runs), root cause:** `Conversation.newConversation()` returned early when `this.busy`. Now `ConversationHost` creates a new conversation in the same view and the other keeps running in the background (CLI not interrupted). A permission request or question that arrives while hidden stays pending and is signalled (drawer dots, `view.badge`, tab marker); a turn that ends unseen marks it unread. A hidden conversation records into `replay-log.js` and the webview is redrawn from it in one pass (`restore`); the composer's draft/queue/prompt history are saved per conversation and a hidden conversation's queue is sent by the host. `[session]` log lines for create / switch / background / close; `newConversation`, `openSession`, `listHistory`, `openInNewTab` removed from `Conversation`. Nothing is persisted.

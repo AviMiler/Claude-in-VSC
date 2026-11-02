@@ -34,7 +34,8 @@ async function cliChange(c, built, doneText) {
   if (built.error) return c.post({ type: 'mcpResult', ok: false, text: built.error });
   const { claudePath, environmentVariables } = c.services.settings.get();
   c.post({ type: 'mcpResult', ok: true, text: 'מריץ…', pending: true });
-  const res = await runClaude(claudePath, built.args, { cwd: c.cwd, env: mergeEnv(process.env, environmentVariables) });
+  const log = (text, tag, level) => c.services.logger[level || 'info'](tag, text);
+  const res = await runClaude(claudePath, built.args, { cwd: c.cwd, env: mergeEnv(process.env, environmentVariables), log });
   c.services.logger.info('mcp', `cli ${built.args[0] || ''} ${built.args[1] || ''} ok=${res.ok} timedOut=${Boolean(res.timedOut)}`);
   if (res.ok) c.post({ type: 'mcpResult', ok: true, text: `${doneText} ${APPLY_NOTE}` });
   else c.post({ type: 'mcpResult', ok: false, text: res.timedOut ? 'הפקודה לא הסתיימה בזמן.' : `הפקודה נכשלה: ${res.output || 'ללא פלט'}` });

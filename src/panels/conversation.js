@@ -193,7 +193,6 @@ class Conversation {
       model: this.model !== 'default' ? this.model : undefined,
       allowBypass: allowDangerouslySkipPermissions,
     }).concat(checkpoints.checkpointArgs({ fork: fork && Boolean(resume) }));
-    this.services.logger.info('spawn', `start ${claudePath} ${args.join(' ')} (cwd ${this.cwd}, resume=${Boolean(resume)}, fork=${fork})`);
     const proc = new CliProcess({
       claudePath,
       args,

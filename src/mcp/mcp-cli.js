@@ -4,7 +4,7 @@ const { spawnCli } = require('../cli/spawn');
 const TIMEOUT_MS = 60000;
 const OUTPUT_MAX = 2000;
 
-function runClaude(claudePath, args, { cwd, env }) {
+function runClaude(claudePath, args, { cwd, env, log }) {
   return new Promise((resolve) => {
     let out = '';
     let done = false;
@@ -17,7 +17,7 @@ function runClaude(claudePath, args, { cwd, env }) {
     };
     let child;
     try {
-      child = spawnCli(claudePath, args, { cwd, env });
+      child = spawnCli(claudePath, args, { cwd, env, log });
     } catch (err) {
       out = err.message;
       return finish({ ok: false });

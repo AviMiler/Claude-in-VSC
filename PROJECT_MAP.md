@@ -19,7 +19,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## src/cli/ — the CLI process
 - `args.js` — builds the stream-json argument list (`--resume`, `--model`, bypass flag).
-- `spawn.js` — resolves the executable on PATH x PATHEXT; `.cmd`/`.bat` via `cmd.exe /d /s /c`.
+- `spawn.js` — resolves the executable on PATH x PATHEXT; `.cmd`/`.bat` via `cmd.exe /d /s /c`. Logs the exact call (`describeCall`, `-e` values masked) before every spawn.
 - `env.js` — merges `process.env`, `claudeLocal.environmentVariables` and the entrypoint variable (shared by chat and terminal).
 - `terminal.js` — Open in Terminal: runs the CLI interactively in a VS Code terminal.
 - `process.js` — `CliProcess`: NDJSON over stdio, control protocol, interrupt, kill fallback.
