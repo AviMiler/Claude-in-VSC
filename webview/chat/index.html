@@ -5,6 +5,9 @@
   <meta http-equiv="Content-Security-Policy" content="{{csp}}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{chat}}/chat.css">
+  <link rel="stylesheet" href="{{chat}}/composer.css">
+  <link rel="stylesheet" href="{{chat}}/drawer.css">
+  <link rel="stylesheet" href="{{chat}}/cards.css">
   <link rel="stylesheet" href="{{chat}}/highlight-theme.css">
   <link rel="stylesheet" href="{{chat}}/mcp.css">
   <link rel="stylesheet" href="{{chat}}/a11y.css">
@@ -14,27 +17,39 @@
 <body>
   <div id="app">
     <header class="header">
-      <button id="history-btn" class="ghost header-title" title="שיחות קודמות">
-        <span id="header-title">שיחות קודמות</span>
-        <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button id="drawer-btn" class="icon-btn drawer-btn" type="button" title="רשימת השיחות" aria-label="רשימת השיחות" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span id="drawer-dot" class="btn-dot" hidden></span>
       </button>
-      <button id="new-btn" class="ghost icon-btn" title="שיחה חדשה" aria-label="שיחה חדשה">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
-      <button id="mcp-btn" class="ghost icon-btn" title="שרתי MCP" aria-label="שרתי MCP">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2v4M11 2v4M3.5 6h9v2.5a4.5 4.5 0 0 1-9 0zM8 13v1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div id="history-panel" class="popover history-panel" hidden></div>
-      <div id="mcp-dialog" class="popover mcp-dialog" hidden></div>
+      <span id="header-title" class="header-title">שיחה חדשה</span>
+      <span class="header-actions">
+        <button id="mcp-btn" class="icon-btn" type="button" title="שרתי MCP" aria-label="שרתי MCP">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.75v3M10.5 1.75v3M3.75 4.75h8.5v2.5a4.25 4.25 0 0 1-8.5 0zM8 11.5v2.75" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="new-btn" class="icon-btn" type="button" title="שיחה חדשה" aria-label="שיחה חדשה">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.25c3.3 0 5.75 2.1 5.75 4.9S11.3 12 8 12c-.6 0-1.2-.07-1.75-.2L3 13.5l.75-2.75C2.8 9.85 2.25 8.55 2.25 7.15 2.25 4.35 4.7 2.25 8 2.25z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 5v4.25M5.9 7.1h4.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
+      </span>
+      <div id="mcp-dialog" class="popover mcp-dialog" hidden role="dialog" aria-label="שרתי MCP"></div>
     </header>
+
+    <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+    <aside id="drawer" class="drawer" hidden aria-label="רשימת השיחות"></aside>
 
     <main id="thread" class="thread" aria-live="polite">
       <div id="empty" class="empty">
         <div class="wordmark">
-          <svg class="spark" viewBox="0 0 24 24" aria-hidden="true"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="21.5" y2="12"/><line x1="5.3" y1="5.3" x2="18.7" y2="18.7"/><line x1="18.7" y1="5.3" x2="5.3" y2="18.7"/></g></svg>
+          <svg class="mascot" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path class="m-body" d="M3 4h10v7H3zM1 7h2v2H1zM13 7h2v2h-2zM4 11h1v2H4zM6 11h1v2H6zM9 11h1v2H9zM11 11h1v2h-1z"/><path class="m-eyes" d="M5 6h1v2H5zM10 6h1v2h-1z"/></svg>
           <span dir="ltr">Claude Code</span>
         </div>
-        <p class="empty-hint">שאלו כל דבר על הקוד שלכם</p>
+        <div class="empty-card">
+          <div class="empty-card-title">איך מתחילים</div>
+          <ul class="empty-tips">
+            <li>כתבו מה לעשות בקוד – Claude יקרא קבצים ויציע שינויים.</li>
+            <li><kbd>@</kbd> מצרף קובץ או תיקייה, <kbd>/</kbd> פותח פקודות וסקילים.</li>
+            <li>☰ פותח את רשימת השיחות: מעבר בין שיחות, גם כשאחת עובדת ברקע.</li>
+          </ul>
+        </div>
       </div>
       <div id="items" class="items"></div>
       <div id="spinner" class="spinner" hidden>
@@ -47,21 +62,28 @@
       <div id="claude-tasks" class="claude-tasks" hidden></div>
       <div id="bg-tasks" class="bg-tasks" hidden></div>
       <div id="loop-jobs" class="bg-tasks loop-jobs" hidden></div>
-      <div id="notice" class="notice" hidden></div>
+      <div id="notice" class="notice" hidden role="status"></div>
       <div id="mention-menu" class="popover slash-menu" hidden role="listbox"></div>
       <div id="slash-menu" class="popover slash-menu" hidden role="listbox"></div>
       <div id="menu" class="popover menu" hidden role="menu"></div>
       <div class="composer">
         <div id="attachments" class="attachments" hidden></div>
-        <textarea id="input" rows="1" dir="auto" placeholder="כתבו ל-Claude… (הקלידו / לפקודות וסקילים)"></textarea>
+        <textarea id="input" rows="1" dir="auto" placeholder="כתבו ל-Claude… (הקלידו / לפקודות וסקילים)" aria-label="הודעה ל-Claude"></textarea>
         <div class="composer-footer">
-          <button id="mode-btn" class="chip" title="מצב הרשאות"></button>
-          <button id="model-btn" class="chip" title="מודל"></button>
+          <button id="attach-btn" class="tool-btn" type="button" title="צירוף" aria-label="צירוף תמונה או קובץ">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+          <button id="slash-btn" class="tool-btn" type="button" title="פקודות (/)" aria-label="פתיחת תפריט הפקודות">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M9.75 4.75l-3.5 6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </button>
+          <input id="file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+          <button id="model-btn" class="pill" type="button" title="מודל"></button>
           <span id="cwd-note" class="cwd-note" hidden></span>
           <span class="spacer"></span>
-          <button id="send-btn" class="send-btn" title="שליחה" aria-label="שליחה" disabled>
-            <svg class="i-send" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg class="i-stop" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/></svg>
+          <button id="mode-btn" class="mode-btn" type="button" title="מצב הרשאות"></button>
+          <button id="send-btn" class="send-btn" type="button" title="שליחה" aria-label="שליחה" disabled>
+            <svg class="i-send" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="i-stop" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1" fill="currentColor"/></svg>
           </button>
         </div>
       </div>
@@ -82,9 +104,9 @@
   <script nonce="{{nonce}}" src="{{chat}}/slash-menu.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/mention-menu.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/composer.js"></script>
-  <script nonce="{{nonce}}" src="{{chat}}/model-picker.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/context-meter.js"></script>
-  <script nonce="{{nonce}}" src="{{chat}}/history.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/drawer-logic.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/drawer.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/mcp-dialog.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/error-card.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/display-logic.js"></script>
@@ -95,6 +117,7 @@
   <script nonce="{{nonce}}" src="{{chat}}/agent-cards.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/cron-next.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/loop-bar.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/restore.js"></script>
   <script nonce="{{nonce}}" src="{{chat}}/app.js"></script>
 </body>
 </html>

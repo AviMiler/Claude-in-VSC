@@ -93,7 +93,10 @@ class ConversationHost {
   create({ resume, ui, rename } = {}) {
     const conversation = new Conversation({
       services: this.services,
-      onTitle: () => this.refresh(),
+      onTitle: (title) => {
+        if (this.current === conversation) this.postWebview({ type: 'title', text: title });
+        this.refresh();
+      },
       onActivity: () => this.onActivity(conversation),
       isShown: () => this.current === conversation && this.ready && this.isVisible(),
     });

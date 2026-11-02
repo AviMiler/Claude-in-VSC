@@ -1,4 +1,5 @@
-// Bootstraps the chat webview and dispatches host -> webview messages.
+// Bootstraps the chat webview and dispatches host -> webview messages. The webview shows one
+// conversation at a time; `restore` redraws another one after a switch (restore.js).
 (function () {
   const { post } = CL;
   // Esc Esc (keybindings.rewind) opens the host's checkpoints menu.
@@ -11,8 +12,10 @@
 
   const VERBS = ['חושב', 'מעיין', 'בודק', 'מנתח', 'כותב', 'מתכנן', 'שוקל'];
   const STATUS_VERBS = { compacting: 'מכווץ את ההקשר' };
+  const UNTITLED = 'שיחה חדשה';
   let verbTimer = 0;
   let statusVerb = null;
+  let noticeTimer = 0;
 
   function setVerb() {
     const verb = statusVerb || CL.display.verb(VERBS);
@@ -21,8 +24,6 @@
 
   function setBusy(on) {
     CL.composer.setBusy(on);
-    CL.modelPicker.setBusy(on);
-    CL.contextMeter.setBusy(on);
     spinner.hidden = !on;
     clearInterval(verbTimer);
     statusVerb = null;
@@ -36,19 +37,20 @@
 
   function setTitle(text) {
     titled = Boolean(text);
-    headerTitle.textContent = text || 'שיחות קודמות';
+    headerTitle.textContent = text || UNTITLED;
+    headerTitle.title = text || '';
   }
 
   function showNotice(text) {
     notice.textContent = text;
     notice.hidden = false;
-    setTimeout(() => { notice.hidden = true; }, 6000);
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => { notice.hidden = true; }, 6000);
   }
 
   function onEvents(events) {
     for (const ev of events) {
       if (ev.kind === 'session') {
-        CL.history.setCurrent(ev.sessionId);
         if (ev.permissionMode) CL.composer.setMode(ev.permissionMode);
         if (ev.skills || ev.terminalOnly) CL.slashMenu.setMeta({ skills: ev.skills, terminalOnly: ev.terminalOnly });
       } else if (ev.kind === 'status') {
@@ -61,6 +63,23 @@
       setBusy(false);
       CL.composer.sendNextQueued();
     }
+  }
+
+  // Everything one conversation drew; called before another conversation is drawn.
+  function resetView() {
+    CL.thread.reset();
+    CL.claudeTasks.render([]);
+    CL.tasksBar.render([]);
+    CL.loopBar.render([]);
+    CL.agentCards.reset();
+    CL.contextMeter.set(null, null);
+    CL.menu.close();
+    CL.slashMenu.close();
+    CL.mentions.close();
+    CL.mcp.close();
+    notice.hidden = true;
+    setTitle('');
+    setBusy(false);
   }
 
   const HANDLERS = {
@@ -77,15 +96,9 @@
       CL.display.apply(m.settings.display);
     },
     commands: (m) => CL.slashMenu.setCommands(m.commands),
-    models(m) {
-      CL.composer.setModels(m.models, m.current);
-      CL.modelPicker.setModels(m.models, m.current);
-    },
+    models: (m) => CL.composer.setModels(m.models, m.current),
     mode: (m) => CL.composer.setMode(m.value),
-    model(m) {
-      CL.composer.setModel(m.value);
-      CL.modelPicker.setModel(m.value);
-    },
+    model: (m) => CL.composer.setModel(m.value),
     context: (m) => CL.contextMeter.set(m.used, m.max),
     events: (m) => onEvents(m.events),
     busy(m) {
@@ -94,28 +107,24 @@
     },
     permission: (m) => CL.cards.show(m),
     permissionCancelled: (m) => CL.cards.cancel(m.requestId),
-    history: (m) => CL.history.show(m.items, m.currentId),
     sessionLoaded(m) {
       CL.thread.reset();
       CL.claudeTasks.render([]); // the task list is live only, not rebuilt from transcripts
       CL.agentCards.reset(); // so are agent cards
       CL.composer.resetConversation(m.events.filter((ev) => ev.kind === 'user').map((ev) => ev.text));
-      CL.history.setCurrent(m.id);
       setTitle(m.title);
       CL.thread.apply(m.events);
       CL.thread.endTurn();
       CL.thread.scrollToBottom();
       CL.composer.focus();
     },
-    reset() {
-      CL.thread.reset();
-      CL.claudeTasks.render([]);
-      CL.agentCards.reset();
-      CL.composer.resetConversation([]);
-      setTitle('');
-      setBusy(false);
-      CL.composer.focus();
+    // Another conversation of this place is shown (drawer, "new conversation", history).
+    restore(m) {
+      CL.restore.restore(m, { reset: resetView, dispatch, setTitle, setBusy });
     },
+    conversations: (m) => CL.drawer.setList(m),
+    conversationStates: (m) => CL.drawer.setStates(m),
+    title: (m) => setTitle(m.text),
     notice: (m) => showNotice(m.text),
     mentionResults: (m) => CL.mentions.setResults(m.items, m.seq),
     insertText: (m) => CL.composer.insertText(m.text),
@@ -138,12 +147,22 @@
     },
   };
 
-  window.addEventListener('message', (e) => {
-    const handler = e.data && HANDLERS[e.data.type];
-    if (handler) handler(e.data);
-  });
+  function dispatch(msg) {
+    const handler = msg && HANDLERS[msg.type];
+    if (handler) handler(msg);
+  }
 
-  document.getElementById('new-btn').addEventListener('click', () => post({ type: 'newConversation' }));
+  window.addEventListener('message', (e) => dispatch(e.data));
+
+  // A new conversation never stops the visible one: the host keeps it running hidden.
+  function newConversation() {
+    post({ type: 'newConversation', ui: CL.composer.uiState() });
+  }
+  document.getElementById('new-btn').addEventListener('click', newConversation);
+
+  // Ctrl+Esc ("focus toggle") needs to know whether this view has the keyboard focus.
+  window.addEventListener('focus', () => post({ type: 'viewFocus', on: true }));
+  window.addEventListener('blur', () => post({ type: 'viewFocus', on: false }));
 
   // Called by the composer when the user sends; the first message titles the header like the tab.
   function userSent(text, imageCount = 0) {
@@ -153,6 +172,6 @@
     setBusy(true);
   }
 
-  CL.app = { setBusy, userSent, notice: showNotice };
+  CL.app = { setBusy, userSent, notice: showNotice, newConversation };
   post({ type: 'ready' });
 })();

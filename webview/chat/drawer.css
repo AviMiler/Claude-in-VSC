@@ -1,0 +1,164 @@
+/* The conversations drawer (drawer.js): slides in from the start side (right in RTL) over a
+   backdrop; segmented filter, search, "open" and past conversations. Tokens from chat.css. */
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--cl-shadow) 70%, transparent);
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  z-index: 41;
+  width: min(340px, 88vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--cl-menu-bg);
+  color: var(--cl-menu-fg);
+  border-inline-end: 1px solid var(--cl-menu-border);
+  box-shadow: 0 0 24px var(--cl-shadow);
+  transform: translateX(100%);
+  transition: transform .14s ease-out;
+}
+.drawer.open { transform: none; }
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 4px 8px 4px 6px;
+  border-bottom: 1px solid var(--cl-subtle-border);
+}
+.drawer-title { flex: 1; padding: 0 4px; font-weight: 600; }
+
+.drawer-search-wrap {
+  position: relative;
+  margin: 10px 10px 8px;
+}
+.drawer-search-wrap svg {
+  position: absolute;
+  inset-inline-start: 9px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  color: var(--cl-muted);
+  pointer-events: none;
+}
+.drawer-search {
+  width: 100%;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  padding-inline-start: 30px;
+  border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius);
+  background: var(--cl-input-bg);
+  color: var(--cl-input-fg);
+  font: inherit;
+  outline: none;
+}
+.drawer-search:focus { border-color: var(--cl-focus); }
+
+/* segmented control, like the official Local / Web switch */
+.segmented {
+  display: flex;
+  gap: 2px;
+  margin: 0 10px 6px;
+  padding: 2px;
+  border-radius: var(--cl-radius);
+  background: var(--cl-tint);
+}
+.seg {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--cl-radius-s);
+  background: transparent;
+  color: var(--cl-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.seg:hover { color: var(--cl-fg); }
+.seg.on { background: var(--cl-input-bg); color: var(--cl-fg); border-color: var(--cl-strong-border); }
+
+.drawer-list { flex: 1; overflow-y: auto; padding: 0 6px 10px; }
+.drawer-group { padding: 10px 8px 3px; font-size: 11.5px; color: var(--cl-muted); }
+.drawer-empty { padding: 20px 12px; text-align: center; color: var(--cl-muted); }
+
+.drawer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 3px 8px;
+  border-radius: var(--cl-radius-s);
+  cursor: pointer;
+}
+.drawer-row:hover { background: var(--cl-hover-row); }
+.drawer-row:focus-visible { outline: 1px solid var(--cl-focus); outline-offset: -1px; }
+.drawer-row.current { background: var(--cl-sel-bg); color: var(--cl-sel-fg); }
+.row-title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.row-meta { flex: none; font-size: 11.5px; color: var(--cl-muted); }
+.drawer-row.current .row-meta { color: inherit; opacity: .8; }
+.row-meta.s-waiting { color: var(--cl-blue); }
+.row-meta.s-unread { color: var(--cl-orange); }
+
+.row-actions { display: flex; flex: none; gap: 1px; opacity: 0; }
+.drawer-row:hover .row-actions, .drawer-row:focus-within .row-actions, .drawer-row.current .row-actions { opacity: 1; }
+.row-action {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--cl-radius-s);
+  background: transparent;
+  color: inherit;
+  opacity: .75;
+}
+.row-action:hover { opacity: 1; background: var(--cl-hover); }
+.row-action svg { width: 13px; height: 13px; }
+.row-confirm {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--cl-err);
+  border-radius: var(--cl-radius-s);
+  background: transparent;
+  color: var(--cl-err);
+  font-size: 11.5px;
+}
+.drawer-rename {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--cl-focus);
+  border-radius: var(--cl-radius-s);
+  background: var(--cl-input-bg);
+  color: var(--cl-input-fg);
+  font: inherit;
+  outline: none;
+}
+
+/* status dots: running (orange, pulsing), waiting for permission (blue), finished unread (orange) */
+.status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--cl-muted);
+  opacity: .7;
+}
+.status-dot.s-running { border-color: var(--cl-orange); background: var(--cl-orange); opacity: 1; animation: pulse 1.1s ease-in-out infinite; }
+.status-dot.s-waiting { border-color: var(--cl-blue); background: var(--cl-blue); opacity: 1; }
+.status-dot.s-unread { border-color: var(--cl-orange); background: var(--cl-orange); opacity: 1; }

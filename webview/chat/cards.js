@@ -60,10 +60,35 @@
       answer(req.requestId, { behavior: 'allow', always });
       finish(always ? '✓ אושר תמיד בפרויקט הזה' : '✓ אושר', true);
     };
-    actions.append(el('button', { class: 'btn btn-primary', text: 'אישור', onclick: () => allow(false) }));
-    if (req.suggestions) actions.append(el('button', { class: 'btn btn-secondary', text: 'אישור תמיד', onclick: () => allow(true) }));
-    denyControls(req.requestId, actions, finish, { denyLabel: 'דחייה', placeholder: 'מה לעשות במקום? (לא חובה)' });
+    // Numbered options like the official prompt; the digit keys pick them while the card has focus.
+    actions.classList.add('card-options');
+    const options = [option(1, 'כן', () => allow(false), 'btn-primary')];
+    if (req.suggestions) options.push(option(2, 'כן, ואל תשאל שוב בפרויקט הזה', () => allow(true)));
+    const reason = el('input', { class: 'card-input', type: 'text', dir: 'auto', placeholder: 'לא – ומה Claude יעשה אחרת? (Enter)' });
+    const deny = () => {
+      const text = reason.value.trim();
+      answer(req.requestId, { behavior: 'deny', message: text || undefined });
+      finish(text ? `✕ נדחה: ${text}` : '✕ נדחה', false);
+    };
+    reason.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) deny(); });
+    const denyNo = options.length + 1;
+    options.push(el('div', { class: 'opt opt-deny' }, el('button', { class: 'opt-btn', type: 'button', onclick: deny }, el('span', { class: 'opt-num', text: String(denyNo) }), el('span', { text: 'לא' })), reason));
+    actions.append(...options);
+    node.addEventListener('keydown', (e) => {
+      if (e.target === reason || !open.has(req.requestId)) return;
+      const n = Number(e.key);
+      if (n === 1) allow(false);
+      else if (n === 2 && req.suggestions) allow(true);
+      else if (n === denyNo) reason.focus();
+      else return;
+      e.preventDefault();
+    });
     return node;
+  }
+
+  function option(num, label, onclick, extra = '') {
+    return el('div', { class: 'opt' }, el('button', { class: `opt-btn ${extra}`, type: 'button', onclick },
+      el('span', { class: 'opt-num', text: String(num) }), el('span', { dir: 'auto', text: label })));
   }
 
   function planCard(req) {
@@ -134,7 +159,7 @@
     else node = permissionCard(req);
     CL.thread.addNode(node);
     CL.thread.scrollToBottom();
-    const first = node.querySelector('.btn-primary');
+    const first = node.querySelector('.btn-primary, .opt-btn');
     if (first) first.focus({ preventScroll: true });
   }
 
