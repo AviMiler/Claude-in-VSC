@@ -28,9 +28,10 @@
     if (!job.recurring && !next) return null;
     const schedule = job.humanSchedule || job.cron;
     return el('li', { class: 'bg-task running' },
+      el('span', { class: 'bg-task-dot', 'aria-hidden': 'true' }),
       el('span', { class: 'bg-task-label', dir: 'auto', title: job.prompt, text: `${job.recurring ? '🔁' : '⏰'} ${schedule} · ${truncate(job.prompt, 60)}` }),
       el('span', { class: 'bg-task-status', text: next ? `הבא: ${timeText(next)}` : `cron: ${job.cron}` }),
-      el('button', { class: 'bg-task-stop', type: 'button', title: 'מבקש מ-Claude לבטל את המשימה (CronDelete)', text: 'עצירה', onclick: () => CL.post({ type: 'stopLoop', id: job.id }) }));
+      CL.tasksBar.stopButton('עצירה: מבקש מ-Claude לבטל את המשימה (CronDelete)', () => CL.post({ type: 'stopLoop', id: job.id })));
   }
 
   function draw() {
@@ -38,7 +39,7 @@
     box.replaceChildren();
     box.hidden = rows.length === 0;
     if (!rows.length) return;
-    box.append(el('div', { class: 'bg-tasks-title', text: 'משימות מתוזמנות (/loop)' }), el('ul', {}, rows));
+    box.append(el('div', { class: 'bg-tasks-title', text: 'משימות מתוזמנות (\u2066/loop\u2069)' }), el('ul', {}, rows));
   }
 
   function render(list) {

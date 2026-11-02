@@ -39,7 +39,7 @@
 
   // The observer runs after the handler that loads a conversation, so the flag is set from the raw message.
   window.addEventListener('message', (e) => {
-    if (e.data && e.data.type === 'sessionLoaded') {
+    if (e.data && (e.data.type === 'sessionLoaded' || e.data.type === 'restore')) {
       replaying = true;
       setTimeout(() => { replaying = false; }, 0);
     }

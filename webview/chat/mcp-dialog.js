@@ -4,12 +4,14 @@
   const { el, post } = CL;
 
   const root = document.getElementById('mcp-dialog');
+  const opener = document.getElementById('mcp-btn');
   const STATUS_CLASS = { connected: 'ok', failed: 'bad', 'needs-auth': 'bad', pending: 'wait', disabled: 'off' };
   let state = { servers: [], error: '' };
   let result = null;
   let adding = false;
   let confirmRemove = '';
   let pollTimer = 0;
+  let cleanup = null;
 
   const send = (action, extra) => post({ type: 'mcp', action, ...extra });
 
@@ -17,14 +19,22 @@
     return el('button', { class: `mcp-btn ${cls}`, type: 'button', text, onclick });
   }
 
+  function iconButton(label, path, onclick) {
+    const b = el('button', { class: 'icon-btn', type: 'button', title: label, 'aria-label': label, onclick });
+    b.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true">${path}</svg>`;
+    return b;
+  }
+
   function serverRow(s) {
+    const cls = STATUS_CLASS[s.status] || '';
     const removeBtn = confirmRemove === s.name
       ? button('אישור הסרה', () => { confirmRemove = ''; send('remove', { name: s.name, scope: s.scope }); }, 'danger')
       : button('הסרה', () => { confirmRemove = s.name; render(); });
     return el('div', { class: 'mcp-row' },
       el('div', { class: 'mcp-main' },
+        el('span', { class: `mcp-dot ${cls}`, 'aria-hidden': 'true' }),
         el('span', { class: 'mcp-name', dir: 'ltr', text: s.name }),
-        el('span', { class: `mcp-status ${STATUS_CLASS[s.status] || ''}`, text: s.statusText }),
+        el('span', { class: `mcp-status ${cls}`, text: s.statusText }),
         s.toolCount ? el('span', { class: 'mcp-tools', text: `${s.toolCount} כלים` }) : null),
       s.error ? el('div', { class: 'mcp-error', dir: 'auto', text: s.error }) : null,
       el('div', { class: 'mcp-actions' },
@@ -53,23 +63,26 @@
       send('add', { form: { name: name.value, scope: scope.value, transport: transport.value, target: target.value, env: env.value } });
       adding = false;
     };
+    setTimeout(() => name.focus(), 0);
     return el('div', { class: 'mcp-form' },
-      field('שם', name), field('היקף', scope), field('סוג', transport), field('פקודה או כתובת', target), field('משתני סביבה', env),
+      el('div', { class: 'mcp-form-grid' }, field('שם', name), field('היקף', scope)),
+      field('סוג', transport), field('פקודה או כתובת', target), field('משתני סביבה', env),
       el('div', { class: 'mcp-actions' }, button('הוספה', submit, 'primary'), button('ביטול', () => { adding = false; render(); })));
   }
 
   function render() {
     const body = [
       el('div', { class: 'mcp-head' },
-        el('strong', { text: 'שרתי MCP' }),
+        el('span', { class: 'mcp-title', text: 'שרתי MCP' }),
         el('span', { class: 'spacer' }),
-        button('רענון', () => send('status')),
-        button('סגירה', () => hide())),
-      state.error ? el('div', { class: 'mcp-error', dir: 'auto', text: state.error }) : null,
-      !state.error && !state.servers.length ? el('div', { class: 'history-empty', text: 'לא הוגדרו שרתי MCP.' }) : null,
-      ...state.servers.map(serverRow),
-      result ? el('div', { class: `mcp-result ${result.ok ? 'ok' : 'bad'}`, dir: 'auto', text: result.text }) : null,
-      adding ? addForm() : el('div', { class: 'mcp-actions' }, button('הוספת שרת', () => { adding = true; render(); }, 'primary')),
+        iconButton('רענון', '<path d="M13 8a5 5 0 1 1-1.5-3.55M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>', () => send('status')),
+        iconButton('סגירה', '<path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>', () => hide(true))),
+      el('div', { class: 'mcp-body' },
+        state.error ? el('div', { class: 'mcp-error', dir: 'auto', text: state.error }) : null,
+        !state.error && !state.servers.length ? el('div', { class: 'mcp-empty', text: 'לא הוגדרו שרתי MCP.' }) : null,
+        ...state.servers.map(serverRow),
+        result ? el('div', { class: `mcp-result ${result.ok ? 'ok' : 'bad'}`, dir: 'auto', text: result.text }) : null,
+        adding ? addForm() : el('div', { class: 'mcp-actions mcp-add' }, button('+ הוספת שרת', () => { adding = true; render(); }, 'primary'))),
     ];
     root.replaceChildren(...body.filter(Boolean));
   }
@@ -84,16 +97,28 @@
   function show() {
     root.hidden = false;
     result = null;
+    adding = false;
     render();
     send('status');
+    cleanup = CL.onOutsideClick(root, opener, () => hide(false));
   }
 
-  function hide() {
+  function hide(restoreFocus) {
+    if (root.hidden) return;
     root.hidden = true;
     clearTimeout(pollTimer);
+    if (cleanup) cleanup();
+    cleanup = null;
+    if (restoreFocus) opener.focus();
   }
 
-  document.getElementById('mcp-btn').addEventListener('click', () => (root.hidden ? show() : hide()));
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      hide(true);
+    }
+  });
+  opener.addEventListener('click', () => (root.hidden ? show() : hide(false)));
 
   CL.mcp = {
     setState(m) {
@@ -105,5 +130,6 @@
       result = { ok: m.ok, text: m.text };
       if (!root.hidden) render();
     },
+    close: () => hide(false),
   };
 })();

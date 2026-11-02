@@ -1,36 +1,29 @@
-// In-memory list of the open conversations in this window (tabs and sidebar views), plus the
-// recently closed tab conversations (for Ctrl+Shift+T). Nothing here is persisted.
+// In-memory list of the open conversations in this window (in every place, shown or hidden),
+// plus the recently closed ones (for Ctrl+Shift+T). Nothing here is persisted.
 const { pushClosed } = require('./session-model');
 
 function createRegistry() {
   const entries = new Set();
   const listeners = new Set();
-  let lastTab = null;
   let closed = [];
   let lastSig = '';
 
   const emit = () => { for (const fn of [...listeners]) fn(); };
 
   return {
-    // entry: {conversation, reveal(), isTab}
+    // entry: {conversation, host, reveal()}
     add(entry) {
       entries.add(entry);
-      if (entry.isTab) lastTab = entry;
       emit();
       return { dispose: () => this.remove(entry) };
     },
     remove(entry) {
       if (!entries.delete(entry)) return;
-      if (entry.isTab && entry.conversation.sessionId && entry.conversation.hasMessages) {
+      if (entry.conversation.sessionId && entry.conversation.hasMessages) {
         closed = pushClosed(closed, { sessionId: entry.conversation.sessionId });
       }
-      if (lastTab === entry) lastTab = [...entries].reverse().find((e) => e.isTab) || null;
       emit();
     },
-    markActive(entry) {
-      if (entry.isTab) lastTab = entry;
-    },
-    lastTab: () => lastTab,
     findBySession(sessionId) {
       for (const e of entries) if (sessionId && e.conversation.sessionId === sessionId) return e;
       return null;

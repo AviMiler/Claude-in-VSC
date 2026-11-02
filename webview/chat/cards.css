@@ -1,0 +1,152 @@
+/* Cards in the thread: permission (numbered options), plan, question, info and error cards.
+   Tokens from chat.css. */
+
+.card {
+  border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius-l);
+  background: var(--cl-raised);
+  overflow: hidden;
+}
+.card-title { padding: 9px 12px 0; font-weight: 600; margin-bottom: 6px; }
+.card > :not(.card-title):not(.card-actions) { margin-inline: 12px; }
+.card-reason { font-size: 12px; color: var(--cl-muted); margin: -2px 0 6px; }
+.card-pre {
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  max-height: 260px;
+  overflow: auto;
+  border-radius: var(--cl-radius-s);
+  background: var(--cl-code-bg);
+  font-family: var(--cl-mono);
+  font-size: var(--cl-mono-size);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  direction: ltr;
+  text-align: left;
+}
+.card-plan {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  max-height: 50vh;
+  overflow: auto;
+  border-radius: var(--cl-radius-s);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-subtle-border);
+}
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--cl-subtle-border);
+}
+
+/* the permission prompt: one numbered option per line */
+.card-options { flex-direction: column; align-items: stretch; gap: 2px; padding: 6px; }
+.opt { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.opt-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--cl-radius-s);
+  background: transparent;
+  text-align: start;
+}
+.opt-deny .opt-btn { flex: none; }
+.opt-btn:hover, .opt-btn:focus-visible { background: var(--cl-sel-bg); color: var(--cl-sel-fg); outline: none; }
+.opt-num {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--cl-subtle-border);
+  border-radius: var(--cl-radius-s);
+  font-size: 11px;
+  color: var(--cl-muted);
+}
+.opt-btn:hover .opt-num, .opt-btn:focus-visible .opt-num { color: inherit; border-color: currentColor; }
+.opt .card-input { flex: 1; }
+
+.btn {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--cl-radius-s);
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+.btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+.btn-primary:hover { background: var(--vscode-button-hoverBackground); }
+.btn-secondary {
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--cl-fg));
+}
+.btn-secondary:hover { background: var(--vscode-button-secondaryHoverBackground, var(--cl-hover)); }
+.btn-ghost { background: transparent; border-color: var(--cl-border); }
+.btn-ghost:hover { background: var(--cl-hover); }
+.btn:focus-visible { outline-offset: 1px; }
+.card-input {
+  flex: 1 1 160px;
+  min-width: 120px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--cl-radius-s);
+  border: 1px solid var(--cl-border);
+  background: var(--cl-input-bg);
+  color: var(--cl-input-fg);
+  font: inherit;
+  outline: none;
+}
+textarea.card-input { height: auto; padding: 4px 8px; }
+.card-input:focus { border-color: var(--cl-focus); }
+.card-done { color: var(--cl-muted); font-size: 12px; padding: 0 4px; }
+.card-done.ok { color: var(--cl-ok); }
+.card-done.no { color: var(--cl-warn); }
+.q-block { margin-bottom: 4px; }
+.q-block + .q-block { margin-top: 10px; }
+.q-header {
+  display: inline-block;
+  font-size: 10.5px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  margin-bottom: 3px;
+}
+.q-text { margin-bottom: 6px; }
+.q-option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  border: 1px solid var(--cl-subtle-border);
+  border-radius: var(--cl-radius-s);
+  background: transparent;
+  text-align: start;
+}
+.q-option:hover { background: var(--cl-hover); }
+.q-option.sel { border-color: var(--cl-orange); background: color-mix(in srgb, var(--cl-orange) 12%, transparent); }
+.q-option-desc { display: block; font-size: 11.5px; color: var(--cl-muted); }
+
+/* Terminal-only card, plan button, CLI error card */
+.info-card {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; border: 1px solid var(--cl-subtle-border); border-radius: var(--cl-radius-l); background: var(--cl-raised);
+}
+.info-card-text { flex: 1; min-width: 0; }
+.info-card-btn {
+  height: 26px; padding: 0 10px; border: 1px solid var(--cl-border); border-radius: var(--cl-radius-s);
+  background: transparent; color: inherit; cursor: pointer; font: inherit;
+}
+.info-card-btn:hover { background: var(--cl-hover); }
+.plan-open { align-self: flex-start; }
+.error-card { display: block; border-color: color-mix(in srgb, var(--cl-err) 55%, transparent); }
+.error-card .card-title { padding: 0; }
+.error-card .card-actions { padding: 8px 0 0; border-top: none; }

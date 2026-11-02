@@ -2,7 +2,6 @@
 // Asks the user before anything is placed; the text goes into the input box and is never sent.
 const vscode = require('vscode');
 const { parseOpenUri, previewPrompt } = require('./uri-parse');
-const { openChatPanel } = require('../panels/chat-panel');
 
 const CONFIRM = 'הנחת הטקסט בתיבה';
 
@@ -20,11 +19,10 @@ async function handleUri(uri, services) {
   services.logger.info('uri', `user ${answer === CONFIRM ? 'confirmed' : 'declined'}`);
   if (answer !== CONFIRM) return;
 
-  const { registry } = services;
-  let entry = parsed.session ? registry.findBySession(parsed.session) : registry.lastTab();
-  if (entry) entry.reveal();
-  else entry = openChatPanel(services, { resume: parsed.session || undefined });
-  if (parsed.prompt) entry.conversation.prefill(parsed.prompt);
+  // The same placement rule as every other entry point (src/panels/places.js).
+  const host = await services.places.main();
+  const conversation = parsed.session ? host.openSession(parsed.session) : host.current || host.newConversation();
+  if (parsed.prompt) conversation.prefill(parsed.prompt);
 }
 
 function register(context, services) {

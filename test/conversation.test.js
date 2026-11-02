@@ -26,7 +26,7 @@ function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1' } = {}) 
     settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, modelDenylist: ['gemma3:27b'] }), onDidChange: () => ({ dispose() {} }) },
     registry: { findBySession: () => null },
   };
-  const c = new Conversation({ webview, services, openInNewTab() {} });
+  const c = new Conversation({ webview, services });
   c.onReady();
   return { c, posted };
 }

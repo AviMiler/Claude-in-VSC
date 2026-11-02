@@ -2,50 +2,31 @@ const test = require('node:test');
 const assert = require('node:assert');
 const m = require('../src/panels/session-model');
 
-const items = [
-  { id: 'a', title: 'A', mtime: 3 },
-  { id: 'b', title: 'B', mtime: 2 },
-  { id: 'c', title: 'C', mtime: 1 },
-];
+const conv = (id, extra = {}) => ({ id, sessionId: null, title: '', busy: false, pending: new Map(), unread: false, ...extra });
 
-test('classify marks waiting, active and finished', () => {
-  const open = new Map([['a', { busy: true, waiting: true }], ['b', { busy: true, waiting: false }], ['c', { busy: false, waiting: false }]]);
-  const out = m.classify(items, open);
-  assert.deepStrictEqual(out.map((i) => i.status), ['waiting', 'active', 'finished']);
-  assert.ok(out.every((i) => i.open));
-  assert.strictEqual(m.classify(items, new Map())[0].open, false);
+test('conversationStatus: waiting beats running beats unread', () => {
+  assert.strictEqual(m.conversationStatus({ busy: true, waiting: true, unread: true }), 'waiting');
+  assert.strictEqual(m.conversationStatus({ busy: true, waiting: false, unread: true }), 'running');
+  assert.strictEqual(m.conversationStatus({ busy: false, waiting: false, unread: true }), 'unread');
+  assert.strictEqual(m.conversationStatus({}), 'idle');
 });
 
-test('filterItems', () => {
-  const out = m.classify(items, new Map([['a', { busy: true, waiting: false }]]));
-  assert.strictEqual(m.filterItems(out, 'all').length, 3);
-  assert.deepStrictEqual(m.filterItems(out, 'active').map((i) => i.id), ['a']);
-  assert.strictEqual(m.filterItems(out, 'finished').length, 2);
-  assert.strictEqual(m.filterItems(out, 'waiting').length, 0);
+test('conversationRow: fallback title, status and the current flag', () => {
+  const row = m.conversationRow(conv('c1', { pending: new Map([['r', {}]]) }), 'c1');
+  assert.deepStrictEqual(row, { id: 'c1', sessionId: null, title: m.TITLE_FALLBACK, status: 'waiting', current: true });
+  assert.strictEqual(m.conversationRow(conv('c2', { title: 'x', busy: true }), 'c1').current, false);
 });
 
-test('continueSuggestion only when nothing is open', () => {
-  assert.strictEqual(m.continueSuggestion(items, new Map()).id, 'a');
-  assert.strictEqual(m.continueSuggestion(items, new Map([['b', {}]])), null);
-  assert.strictEqual(m.continueSuggestion([], new Map()), null);
+test('hiddenAttention counts only conversations that are not shown', () => {
+  const rows = [
+    m.conversationRow(conv('a', { pending: new Map([['r', {}]]) }), null),
+    m.conversationRow(conv('b', { unread: true }), null),
+    m.conversationRow(conv('c', { busy: true }), null),
+  ];
+  assert.deepStrictEqual(m.hiddenAttention(rows, null), { waiting: 1, unread: 1, state: 'waiting' });
+  assert.deepStrictEqual(m.hiddenAttention(rows, 'a'), { waiting: 0, unread: 1, state: 'finished' });
+  assert.strictEqual(m.hiddenAttention(rows.slice(2), null).state, null);
 });
-
-test('tab tracker: finished in a hidden tab, cleared when visible', () => {
-  const t = m.createTabTracker();
-  assert.strictEqual(t.update({ busy: true, waiting: false, visible: false }), null);
-  assert.strictEqual(t.update({ busy: true, waiting: true, visible: false }), 'waiting');
-  assert.strictEqual(t.update({ busy: true, waiting: false, visible: false }), null);
-  assert.strictEqual(t.update({ busy: false, waiting: false, visible: false }), 'finished');
-  assert.strictEqual(t.update({ busy: false, waiting: false, visible: false }), 'finished');
-  assert.strictEqual(t.update({ busy: false, waiting: false, visible: true }), null);
-});
-
-test('tab tracker: finishing in a visible tab leaves no mark', () => {
-  const t = m.createTabTracker();
-  t.update({ busy: true, waiting: false, visible: true });
-  assert.strictEqual(t.update({ busy: false, waiting: false, visible: true }), null);
-});
-
 test('decorateTitle', () => {
   assert.strictEqual(m.decorateTitle('x', null), 'x');
   assert.strictEqual(m.decorateTitle('x', 'waiting'), `${m.MARK_WAITING} x`);

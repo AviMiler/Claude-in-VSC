@@ -1,4 +1,6 @@
-// The input box and its footer: send/stop, the mode and model pickers, and the "/" trigger.
+// The input box and its footer: "+" (attach), "/" (commands), the model pill, the mode label and
+// send/stop. Each conversation keeps its own draft and queue: they leave with `uiState()` when the
+// user switches away and come back with `restore()`.
 (function () {
   const { post } = CL;
 
@@ -8,11 +10,12 @@
   const modelBtn = document.getElementById('model-btn');
   const cwdNote = document.getElementById('cwd-note');
 
+  // Labels like the official mode button ("Ask before edits", "Edit automatically", "Plan mode").
   const MODES = [
-    { value: 'default', icon: '✎', label: 'ידני', desc: 'Claude יבקש אישור לפני עריכת קבצים והרצת פקודות' },
-    { value: 'acceptEdits', icon: '⏵⏵', label: 'עריכה אוטומטית', desc: 'Claude יערוך קבצים בלי לשאול' },
+    { value: 'default', icon: '✋', label: 'לשאול לפני עריכה', desc: 'Claude יבקש אישור לפני עריכת קבצים והרצת פקודות' },
+    { value: 'acceptEdits', icon: '</>', label: 'עריכה אוטומטית', desc: 'Claude יערוך קבצים בלי לשאול' },
     { value: 'auto', icon: '✦', label: 'אוטומטי', desc: 'ה-CLI מחליט לבד, המסווג עלול לטעות', warn: true },
-    { value: 'plan', icon: '⏸', label: 'תכנון', desc: 'Claude יחקור ויציע תוכנית בלי לשנות דבר' },
+    { value: 'plan', icon: '⏸', label: 'מצב תכנון', desc: 'Claude יחקור ויציע תוכנית בלי לשנות דבר' },
     { value: 'bypassPermissions', icon: '⚠', label: 'ללא הרשאות', desc: 'Claude יפעל בלי לבקש שום אישור', danger: true },
   ];
 
@@ -40,12 +43,13 @@
   }
 
   function chip(btn, icon, label) {
-    btn.replaceChildren(CL.el('span', { text: icon }), CL.el('span', { text: label }));
+    btn.replaceChildren(CL.el('span', { class: 'chip-icon', dir: 'ltr', text: icon, 'aria-hidden': 'true' }), CL.el('span', { class: 'chip-label', text: label }));
   }
 
   function refreshMode() {
     const m = MODES.find((x) => x.value === state.mode) || MODES[0];
     chip(modeBtn, m.icon, m.label);
+    modeBtn.setAttribute('aria-label', `מצב הרשאות: ${m.label}`);
     modeBtn.classList.toggle('active-mode', m.value !== 'default');
     modeBtn.classList.toggle('danger', Boolean(m.danger));
   }
@@ -57,7 +61,8 @@
 
   function refreshModel() {
     modelBtn.hidden = !state.models.length;
-    chip(modelBtn, '◇', modelLabel(state.model));
+    modelBtn.replaceChildren(CL.el('span', { class: 'chip-label', dir: 'auto', text: modelLabel(state.model) }));
+    modelBtn.setAttribute('aria-label', `מודל: ${modelLabel(state.model)}`);
   }
 
   const history = CL.prompt.createHistory();
@@ -103,6 +108,32 @@
     };
     reader.readAsDataURL(file);
   }
+
+  // "+": attach an image (file picker) or mention a file (types "@" and opens the @ list).
+  const attachBtn = document.getElementById('attach-btn');
+  const fileInput = document.getElementById('file-input');
+  fileInput.addEventListener('change', () => {
+    [...fileInput.files].forEach(addImage);
+    fileInput.value = '';
+  });
+  attachBtn.addEventListener('click', () => {
+    CL.menu.open(attachBtn, [
+      { value: 'image', icon: '🖼', label: 'צירוף תמונה…', desc: 'PNG, JPEG, GIF או WebP (אפשר גם להדביק)' },
+      { value: 'mention', icon: '@', label: 'אזכור קובץ מהפרויקט…', desc: 'קובץ או תיקייה כ-@path' },
+    ], (value) => {
+      if (value === 'image') fileInput.click();
+      else insertAt(input.selectionStart, input.selectionEnd, `${/(^|\s)$/.test(input.value.slice(0, input.selectionStart)) ? '' : ' '}@`);
+    });
+  });
+
+  // "/": opens the commands menu (the same as typing "/" at the start of an empty box).
+  document.getElementById('slash-btn').addEventListener('click', () => {
+    input.focus();
+    if (input.value.trim()) return;
+    input.value = '/';
+    input.setSelectionRange(1, 1);
+    input.dispatchEvent(new Event('input'));
+  });
 
   input.addEventListener('paste', (e) => {
     const files = [...(e.clipboardData ? e.clipboardData.files : [])].filter((f) => f.type.startsWith('image/'));
@@ -275,22 +306,29 @@
     CL.menu.open(modeBtn, items, (value) => post({ type: 'setMode', value }));
   });
 
+  // During a turn the same pill offers "stop and switch": the host asks for confirmation and
+  // explains what is lost (src/panels/model-switch.js).
   modelBtn.addEventListener('click', () => {
-    const items = state.models.map((m) => ({
-      value: m.value,
-      label: m.displayName || m.value,
-      desc: m.description,
-      checked: m.value === state.model,
-    }));
-    CL.menu.open(modelBtn, items, (value) => post({ type: 'setModel', value }));
+    const busy = state.busy;
+    const items = state.models
+      .filter((m) => !busy || m.value !== state.model)
+      .map((m) => ({
+        value: m.value,
+        label: m.displayName || m.value,
+        desc: busy ? 'עצירת התור והחלפת מודל' : m.description,
+        checked: m.value === state.model,
+      }));
+    if (!items.length) return;
+    CL.menu.open(modelBtn, items, (value) => post({ type: busy ? 'stopAndSwitchModel' : 'setModel', value }));
   });
 
   CL.composer = {
     setBusy(on) {
       state.busy = on;
-      // The mode and model pickers are disabled during a turn (PLAN.md section 2, stage 8).
+      // The mode picker is disabled during a turn (PLAN.md section 2, stage 8); the model pill
+      // stays enabled and turns into "stop and switch".
       modeBtn.disabled = on;
-      modelBtn.disabled = on;
+      modelBtn.title = on ? 'עצירה והחלפת מודל' : 'מודל';
       refreshSend();
     },
     setMode(value) {
@@ -330,6 +368,23 @@
       history.reset(sentTexts);
       queue.clear();
       CL.thread.clearQueued();
+    },
+    // What leaves with the conversation when the user switches away (attached images stay here).
+    uiState() {
+      return { draft: input.value, queue: queue.list().map((i) => ({ text: i.text, images: i.images })) };
+    },
+    // A conversation shown again: its up-arrow history, draft and still-queued messages.
+    restore({ sent, ui }) {
+      history.reset(sent || []);
+      queue.clear();
+      CL.thread.clearQueued();
+      input.value = (ui && ui.draft) || '';
+      autoresize();
+      refreshSend();
+      for (const q of (ui && ui.queue) || []) {
+        const item = queue.push(q.text, q.images || []);
+        CL.thread.addQueued(item, () => { queue.cancel(item.id); CL.thread.removeQueued(item.id); });
+      }
     },
   };
 

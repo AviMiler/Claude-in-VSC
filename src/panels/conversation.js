@@ -1,13 +1,14 @@
-// One conversation = one webview + one long-lived CLI process. Holds only in-memory state that
-// dies with the window; everything persistent is the CLI's (spec: "the CLI is the only source
-// of truth").
+// One conversation = one long-lived CLI process, shown in a webview while it is the visible
+// conversation of its place (conversation-host.js); hidden, it keeps running and only records what
+// it would have shown (replay-log.js). Holds only in-memory state that dies with the window;
+// everything persistent is the CLI's (spec: "the CLI is the only source of truth").
 const vscode = require('vscode');
 const { CliProcess } = require('../cli/process');
 const { mergeEnv } = require('../cli/env');
 const { workspaceCwd } = require('../util/workspace');
 const { buildArgs } = require('../cli/args');
 const { createStreamTranslator } = require('./event-translator');
-const { routeMessage } = require('./message-router');
+const replayLog = require('./replay-log');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
@@ -41,14 +42,26 @@ function exitErrorText({ code, stderrTail }) {
   return `Claude Code נסגר (קוד ${code}).${stderrTail ? `\n${stderrTail.trim()}` : ''}`;
 }
 
+let nextId = 1;
+
 class Conversation {
-  constructor({ webview, services, setTitle, openInNewTab, onActivity }) {
-    this.webview = webview;
+  // webview: optional, attaches at once (tests); a host attaches and detaches it otherwise.
+  // isShown: whether the user can see this conversation now (for the "finished unread" marker).
+  constructor({ webview, services, onTitle, onActivity, isShown }) {
+    this.id = `c${nextId++}`;
+    this.webview = webview || null;
     this.services = services;
-    this.setTitle = setTitle || (() => {});
-    this.openInNewTab = openInNewTab;
-    // Called after every message to or from the webview, so tab markers and the sessions list can refresh.
+    this.title = '';
+    this.onTitle = onTitle || (() => {});
+    // Called after every message to the webview (shown or not), so the drawer and markers can refresh.
     this.onActivity = onActivity || (() => {});
+    this.isShown = isShown || (() => Boolean(this.webview));
+    this.log = replayLog.createReplayLog();
+    this.started = false; // onReady has run (the first attach)
+    this.unread = false; // a turn ended while the conversation was not shown
+    this.ui = null; // {draft, queue} saved by the webview when the user switched away
+    this.loadedFromHistory = false;
+    this.activitySig = ''; // busy|waiting|unread at the last onActivity call
     this.proc = null;
     this.sessionId = null;
     this.permissionMode = 'default';
@@ -72,10 +85,6 @@ class Conversation {
     this.entries = null;
     this.models = new ModelSwitcher(this);
     this.subs = [
-      webview.onDidReceiveMessage((msg) => {
-        routeMessage(this, msg);
-        this.onActivity();
-      }),
       services.settings.onDidChange((s) => {
         this.post({ type: 'settings', settings: this.webviewSettings(s) });
         if (this.proc) this.post({ type: 'notice', text: 'ההגדרה תחול בשיחה הבאה.' });
@@ -84,14 +93,70 @@ class Conversation {
     ({ cwd: this.cwd, noFolder: this.noFolder } = workspaceCwd());
   }
 
-  log(text, tag = 'stream', level = 'debug') {
+  logLine(text, tag = 'stream', level = 'debug') {
     this.services.logger[level](tag, text);
   }
 
+  setTitle(text) {
+    this.title = text && text !== 'Claude' ? text : '';
+    this.onTitle(this.title);
+  }
+
+  // Recorded for a later redraw, and painted only while a webview is attached. The activity
+  // listener only hears about a change of busy / waiting / unread, not about each streamed piece.
   post(msg) {
     if (this.disposed) return;
-    this.webview.postMessage(msg);
+    replayLog.record(this.log, msg);
+    if (this.webview) this.webview.postMessage(msg);
+    const sig = `${this.busy}|${this.pending.size}|${this.unread}`;
+    if (sig === this.activitySig) return;
+    this.activitySig = sig;
     this.onActivity();
+  }
+
+  // --- shown / hidden (conversation-host.js) ---------------------------------------------
+
+  attach(webview) {
+    this.webview = webview;
+    this.unread = false;
+    if (!this.started) return this.onReady();
+    this.webview.postMessage(this.restoreMessage());
+    this.ui = null; // the webview owns the draft and the queue again (no second send)
+    this.webviewReady = true;
+    this.flushPrefill();
+    return this.onActivity();
+  }
+
+  // ui: the webview's draft and queued messages for this conversation, given back on the next attach.
+  detach(ui) {
+    this.webview = null;
+    this.webviewReady = false;
+    if (ui) this.ui = { draft: String(ui.draft || ''), queue: Array.isArray(ui.queue) ? ui.queue : [] };
+  }
+
+  // Everything the webview needs to redraw this conversation after a switch.
+  restoreMessage() {
+    return {
+      type: 'restore',
+      id: this.id,
+      title: this.title,
+      init: this.initMessage(),
+      ...replayLog.replay(this.log),
+      sent: replayLog.sentTexts(this.log),
+      permissions: [...this.pending.values()].map((p) => p.msg),
+      busy: this.busy,
+      ui: this.ui,
+    };
+  }
+
+  initMessage() {
+    return {
+      type: 'init',
+      settings: this.webviewSettings(),
+      cwd: this.cwd,
+      noFolder: this.noFolder,
+      permissionMode: this.permissionMode,
+    };
   }
 
   webviewSettings(s = this.services.settings.get()) {
@@ -105,22 +170,16 @@ class Conversation {
 
   // --- lifecycle -------------------------------------------------------------------------
 
+  // The first time the conversation is shown: start the CLI (or resume a past session).
   onReady() {
-    this.post({
-      type: 'init',
-      settings: this.webviewSettings(),
-      cwd: this.cwd,
-      noFolder: this.noFolder,
-      permissionMode: this.permissionMode,
-    });
+    this.started = true;
+    this.post(this.initMessage());
     if (this.pendingResume) {
       const id = this.pendingResume;
       this.pendingResume = null;
       this.loadSession(id);
     } else if (!this.proc) {
       this.startProcess();
-    } else if (this.initInfo) {
-      this.postInitInfo(this.initInfo);
     }
     this.webviewReady = true;
     this.flushPrefill();
@@ -140,7 +199,7 @@ class Conversation {
       args,
       cwd: this.cwd,
       env: { ...mergeEnv(process.env, { ...environmentVariables, ...modelEnv(this.model) }), ...checkpoints.CHECKPOINT_ENV },
-      log: (t, tag, level) => this.log(t, tag, level),
+      log: (t, tag, level) => this.logLine(t, tag, level),
     });
     const translate = createStreamTranslator();
     this.proc = proc;
@@ -182,7 +241,7 @@ class Conversation {
       this.pending.delete(id);
       this.post({ type: 'permissionCancelled', requestId: id });
     });
-    proc.on('stderr', (d) => this.log(`stderr: ${d}`, 'spawn', 'warn'));
+    proc.on('stderr', (d) => this.logLine(`stderr: ${d}`, 'spawn', 'warn'));
     proc.on('exit', (info) => this.onExit(proc, info, claudePath));
 
     proc.request('initialize', {}, 60000).then(
@@ -211,7 +270,11 @@ class Conversation {
     this.stopping = false;
     clearTimeout(this.stopTimer);
     this.models.onTurnEnd(ev);
-    if (ev.kind === 'result') setImmediate(() => refreshContextMeter(this));
+    if (ev.kind === 'result') {
+      setImmediate(() => refreshContextMeter(this));
+      if (!this.isShown()) this.unread = true;
+      if (!this.webview && this.ui && this.ui.queue.length) setImmediate(() => this.sendQueuedHidden());
+    }
     return stopped ? { ...ev, isError: false, errorText: '', interrupted: true } : ev;
   }
 
@@ -248,7 +311,8 @@ class Conversation {
 
   // --- webview requests ------------------------------------------------------------------
 
-  send(text, images) {
+  // hidden: a prompt the extension sends for the user (the /loop stop text), drawn as no bubble.
+  send(text, images, { hidden = false } = {}) {
     if (!text || !text.trim() || this.busy) return;
     const valid = Array.isArray(images)
       ? images.filter((i) => i && IMAGE_TYPES.includes(i.mediaType) && typeof i.data === 'string')
@@ -258,7 +322,17 @@ class Conversation {
     this.hasMessages = true;
     this.services.logger.info('stream', `send (${text.length} chars, ${valid.length} images, session=${this.sessionId || 'new'})`);
     this.busy = true;
+    if (!hidden) replayLog.addUser(this.log, valid.length ? `${text}\n[תמונות: ${valid.length}]` : text);
     this.proc.sendUserText(text, valid);
+  }
+
+  // The client-side queue of a conversation the user switched away from: the host keeps it and
+  // sends the next item when the turn ends, so a hidden conversation does not stall.
+  sendQueuedHidden() {
+    if (this.busy || this.webview || this.disposed || !this.ui || !this.ui.queue.length) return;
+    const item = this.ui.queue.shift();
+    this.services.logger.info('queue', `send next queued (hidden conversation ${this.id}, ${this.ui.queue.length} left)`);
+    this.send(String(item.text || ''), item.images);
   }
 
   interrupt() {
@@ -315,9 +389,7 @@ class Conversation {
       proc.respondError(id, `unsupported request: ${req.subtype}`);
       return;
     }
-    this.pending.set(id, { proc, req });
-    this.services.logger.info('permission', `request ${id} tool=${req.tool_name}`);
-    this.post({
+    const msg = {
       type: 'permission',
       requestId: id,
       tool: req.tool_name,
@@ -325,7 +397,11 @@ class Conversation {
       toolUseId: req.tool_use_id,
       suggestions: Array.isArray(req.permission_suggestions) && req.permission_suggestions.length > 0,
       reason: req.decision_reason || req.title || '',
-    });
+    };
+    // Kept with the request: a hidden conversation's card is drawn when the user switches to it.
+    this.pending.set(id, { proc, req, msg });
+    this.services.logger.info('permission', `request ${id} tool=${req.tool_name}${this.webview ? '' : ` (conversation ${this.id} is hidden)`}`);
+    this.post(msg);
   }
 
   answerPermission({ requestId, behavior, always, message, updatedInput }) {
@@ -353,25 +429,13 @@ class Conversation {
     }
   }
 
-  listHistory() {
-    let items = [];
-    try {
-      items = transcripts.listSessions(this.cwd);
-    } catch (err) {
-      this.services.logger.warn('history', `listSessions failed: ${err.message}`);
-    }
-    this.services.logger.info('history', `list: ${items.length} sessions`);
-    this.post({ type: 'history', items, currentId: this.sessionId });
-  }
-
-  openSession(id) {
-    const open = this.services.registry.findBySession(id);
-    if (open) return open.reveal();
-    if (this.hasMessages || this.busy) return this.openInNewTab(id);
-    this.loadSession(id);
+  // True while nothing was sent: a past conversation can be loaded into it instead of a new one.
+  isEmpty() {
+    return !this.hasMessages && !this.busy && !this.loadedFromHistory && this.pending.size === 0;
   }
 
   loadSession(id) {
+    this.loadedFromHistory = true;
     this.services.logger.info('session', `load ${id}`);
     let events = [];
     let title = '';
@@ -417,22 +481,6 @@ class Conversation {
     this.services.logger.info('history', `rename session ${this.sessionId} (${title.length} chars)`);
     this.proc.sendUserText(`/rename ${title}`, []);
     return true;
-  }
-
-  newConversation() {
-    if (this.busy) return;
-    this.services.logger.info('session', 'new conversation');
-    this.killProcess();
-    this.sessionId = null;
-    this.hasMessages = false;
-    this.edits = editLog.createEditLog();
-    this.checkpoints = checkpoints.createCheckpointList();
-    this.claudeTasks = claudeTasks.createClaudeTasks();
-    this.agents = agentCards.createAgentCards();
-    this.setTitle('Claude');
-    this.post({ type: 'reset' });
-    this.post({ type: 'context', used: null, max: null });
-    this.startProcess();
   }
 
   openFile(filePath, line) {

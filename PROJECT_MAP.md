@@ -4,10 +4,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## Root
 - `extension.js` — entry: builds logger, settings, registry; sets the secondary-sidebar context key; calls `panels.register`.
-- `package.json` — manifest: 9 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 2 view containers + 2 views, 12 settings.
-- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 3 view containers (chat sidebar, fallback, sessions list) + 3 views, 12 settings.
-- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 3 view containers (chat sidebar, fallback, sessions list) + 3 views, 18 settings.
-- `package.json` — manifest: 8 commands, keybindings (Ctrl+Shift+Esc, Ctrl+Alt+C, Ctrl+Esc, Alt+K, opt-in Ctrl+N), editor/title button, 3 view containers (chat sidebar, fallback, sessions list) + 3 views, 14 settings.
+- `package.json` — manifest: 10 commands (`claude-local.open` is the single entry point), keybindings (Ctrl+Shift+Esc and Ctrl+Alt+C = open, Ctrl+Esc, Alt+K, Ctrl+Shift+T, opt-in Ctrl+N), editor/title button, 2 view containers (secondary sidebar + activity-bar fallback) + 2 views, settings (`preferredLocation` default `sidebar`).
 - `.vscodeignore` — keeps dev/, test/, .claude/ out of the package.
 - `AGENT_CONTEXT.md` — entry point for an agent: what to read, current state, working agreements, git rules.
 - `spec.md` — what the extension does today (as built) and its verification status.
@@ -15,7 +12,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `ARCHITECTURE.md` — structure and boundaries.
 - `DEPENDENCIES.md` — vendored libraries and the measured findings about the CLI, the gateway/Ollama and VS Code (with evidence and what is unknown).
 - `PLAN.md` — the roadmap: every feature decision with its reason, the settings table, build order (packages A-G), open points, IDE-server design notes.
-- `FIXES.md` — the user-reported fix list (conversation placement, new conversation while running, UI polish).
+- `FIXES.md` — the open items of the user-reported fix list (Fix 1 is done and moved to `CHANGELOG.md`).
 - `git-instructions.md` — the git workflow.
 - `CHANGELOG.md` — what changed and why, newest first.
 - `SETUP.md` — install and settings for the user's machine (Hebrew).
@@ -29,18 +26,22 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `content.js` — helpers for message content blocks (shared by live stream and transcripts).
 
 ## src/panels/ — host side of the chat
-- `conversation.js` — one webview + one CLI process: permissions, history, mode/model, stop.
+- `places.js` — THE placement rule: `places.main()` reveals/focuses the `preferredLocation` place (sidebar view by default, or ONE editor tab; never duplicated).
+- `conversation-host.js` — `ConversationHost`: hosts several conversations in one place, one attached to the webview; routes the drawer messages (ready, newConversation, switch/close/renameConversation, openSession, listConversations, viewFocus); sends a hidden conversation's queue; `[session]` logs.
+- `replay-log.js` — pure: records what a hidden conversation would show (deltas folded per block, snapshots, agent cards) and builds the `restore` message.
+- `conversation.js` — one CLI process: permissions, mode/model, stop; `attach`/`detach`/`restoreMessage`; records into the replay log and paints only while attached; unread when a turn ends unseen.
 - `message-router.js` — webview message `type` to `Conversation` method.
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
-- `panel-registry.js` — in-memory list of open conversations, closed list (max 10), open states, change listener.
-- `session-model.js` — pure: classify/filter sessions, continue-last suggestion, tab tracker, title marker, closed-list push.
-- `history-tree.js` — Activity Bar TreeView `claudeLocalHistory` and its commands (filter, rename, reopen closed, continue last).
-- `chat-panel.js` — editor-tab conversation (`claudeLocalPanel`).
-- `sidebar-view.js` — sidebar/activity-bar conversation.
-- `commands.js` — `claude-local.*` commands (main button follows `preferredLocation` / `useTerminal`; `focusToggle`, `keyboardShortcuts`, `terminal.open`).
+- `panel-registry.js` — in-memory closed list (max 10) for any place, open states, change listener.
+- `session-model.js` — pure: `conversationStatus`, `conversationRow`, `hiddenAttention`, `decorateTitle`, `pushClosed`.
+- `chat-panel.js` — the editor-tab host (`claudeLocalPanel`); tab title marker for hidden conversations.
+- `sidebar-view.js` — the sidebar/activity-bar host; the `ConversationHost` outlives the `WebviewView`; `view.badge` = hidden waiting + unread, description = title.
+- `commands.js` — `claude-local.*` commands (`open` follows `preferredLocation` / `useTerminal`; `newConversation`, `terminal.open`, `focusToggle` via `viewFocus`, `keyboardShortcuts`, `reopenClosed`, `continueLast`, logs); sets the `claude-local:hasClosed` context key.
+- `model-switch.js` — `ModelSwitcher`: model list post, `switchTo` (kill + restart with `--model` + `--resume`), `stopAndSwitch` (modal Hebrew warning), "does not support tools" revert.
+- `context-meter.js` — `get_context_usage` after initialize and each result, posts `context` to the webview.
 - `error-card.js` — builds the Hebrew CLI-failure card (connection checklist, `.cmd`/`.bat` warning).
 - `settings-actions.js` — opens `settings.json` or a given setting from the card buttons.
 - `display-settings.js` — pure: `readDisplay` / `sanitizeVerbs`, the display and accessibility settings sent to the webview.
@@ -54,10 +55,8 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `mcp-handler.js` — handles the webview `mcp` message (status, reconnect, toggle, add, remove).
 
 ## src/uri/ — URI handler
-- `index.js` — registers the handler for `vscode://local.claude-local/open`: modal confirm, prefill, open or reuse a panel.
+- `index.js` — registers the handler for `vscode://local.claude-local/open`: modal confirm, prefill, open through `places.main()`.
 - `uri-parse.js` — pure: parses and validates `prompt` (max 8000) and `session`.
-- `model-switch.js` — `ModelSwitcher`: model list post, `switchTo` (kill + restart with `--model` + `--resume`), `stopAndSwitch` (modal Hebrew warning), "does not support tools" revert.
-- `context-meter.js` — `get_context_usage` after initialize and each result, posts `context` to the webview.
 
 ## src/models/ — model gateway (package D)
 - `gateway.js` — `resolveGatewayUrl`, `fetchModels` (`/v1/models` + `/v1/model/info`, 5 s, in memory).
@@ -93,35 +92,30 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel + ring buffer, tagged API, copy), `log-tags.js` (fixed feature tags), `log-buffer.js` (pure: redact, line format, level filter, ring buffer), `settings.js` (`claudeLocal.*` + change events), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
 
 ## webview/chat/ — plain scripts loaded by `index.html`
-- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `mcp-dialog.js` (MCP dialog) with `mcp.css`; `error-card.js` (CLI-failure card); `app.js` (wiring, messages from host).
-- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `display-logic.js` (pure: spinner verb, time format, speaker label, heading text); `display.js` (applies display settings as body attributes, speaker headings); `a11y.js` (screen-reader announcer); `a11y.css` (focus view, reduced motion, daltonized palette, sr-only); `app.js` (wiring, messages from host).
-- `index.html` shell; `chat.css`, `highlight-theme.css`; `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js`; `history.js` (past conversations list); `context-meter.js` (window fill, click = /compact); `model-picker.js` (picker, "stop and switch" button); `app.js` (wiring, messages from host).
+- `index.html` shell. Styles by topic: `chat.css` (tokens, header, thread), `composer.css`, `drawer.css`, `cards.css`, `mcp.css`, `a11y.css` (focus view, reduced motion, daltonized palette, sr-only), `highlight-theme.css`, `agent-cards.css`.
+- Scripts: `util.js`; `markdown.js` (marked wrapper, escapes raw HTML); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards; permission = numbered options); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js` ("+" menu, "/" button, model pill incl. "stop and switch", mode, `uiState`/`restore`); `context-meter.js` (display only); `drawer.js` + `drawer-logic.js` (pure, UMD, tested: the conversation drawer); `restore.js` (redraw after a switch in one pass); `mcp-dialog.js`; `error-card.js` (CLI-failure card); `display-logic.js` (pure: spinner verb, time format, speaker label, heading text); `display.js` (display settings as body attributes, speaker headings); `a11y.js` (screen-reader announcer); `app.js` (wiring, messages from host: `restore`, `conversations`, `conversationStates`, `title`, ...).
 - Added by B2: `agent-cards.js` + `agent-cards.css` (agent cards after the tool row; `thread.js` has `CL.thread.toolNode(id)`), `loop-bar.js` (`/loop` bar), `cron-next.js` (pure, UMD), `tasks-bar.js`, `tasks.js`; `app.js` also handles `agentCards`, `loopJobs`, `selfTurn`.
 
 ## webview/vendor/
 - `marked.umd.js`, `marked.LICENSE.md`, `highlight.min.js`, `powershell.min.js`, `highlight.LICENSE` — see DEPENDENCIES.md.
 
 ## resources/
-- `claude-logo.svg` — hand-drawn spark used for commands and containers.
+- `claude-mascot.svg` — the Claude Code mascot, full colour (editor-title button, tab icon).
+- `claude-mascot-mono.svg` — the mascot in `currentColor` (view containers).
 
 ## dev/ — development only (not packaged)
 - `README.md` — how to run the probes, the gateway probe, the fake CLI and the browser preview.
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
-- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`).
 - `check-context-window.txt` — Hebrew `/api/ps` check of the 64,000 window, for the user.
-- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`). Supersedes the older line above.
+- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`).
 - `manual-tests.html` — Hebrew manual test checklist.
-- `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host.
+- `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host (several conversations, drawer, restore, MCP, bars; URL params `?conv=c2`, `?open=drawer|mcp|slash|attach|mode`, `?theme=light`).
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
 - `probe4-standalone.js` — self-contained probe: background tasks, Task tools, sub-agents, cron tools.
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`.
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `display.test.js`.
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `models.test.js`.
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario).
-- B2 also: `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`. The four lines above are per-package variants of the same list.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`. 138 tests in all.
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

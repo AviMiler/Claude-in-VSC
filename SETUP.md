@@ -80,18 +80,23 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 - **הפרויקט `claude-gui`** נפרד, וההגדרות שלו (`config.json`) לא משפיעות על התוסף.
 
 ## 7. הגדרות התוסף וקיצורי מקלדת
+
+**איפה Claude נפתח (כלל אחד):**
+1. כל דרך לפתוח את Claude (כפתור הדמות הכתומה בסרגל הכלים של העורך, "✻ Claude" בשורת המצב, `Ctrl+Alt+C`, קישור URI) פותחת את **אותו מקום**: סרגל הצד, או לשונית עורך אחת אם `claudeLocal.preferredLocation` = `panel`. אם Claude כבר פתוח שם, הוא רק מקבל את המיקוד.
+2. "שיחה חדשה" (הבועה עם + בכותרת) פותחת שיחה נוספת באותו מקום. שיחה שעובדת **ממשיכה לעבוד ברקע** ולא נעצרת; כשהיא מבקשת אישור או מסיימת מופיעה נקודה על ☰ ומספר על סמל סרגל הצד.
+3. ☰ (בפינה הימנית של הכותרת) פותח את רשימת השיחות: מעבר בין שיחות פתוחות, שיחות קודמות, חיפוש, שינוי שם וסגירה. שיחה שכבר פתוחה מוצגת, לא נפתחת פעמיים.
 כל ההגדרות ב-`Ctrl+,` ← חיפוש `claudeLocal`.
 
 | הגדרה | ברירת מחדל | מה היא עושה |
 |---|---|---|
 | `claudeLocal.environmentVariables` | `API_TIMEOUT_MS=1200000`, `CLAUDE_ENABLE_STREAM_WATCHDOG=0`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000` | משתני סביבה לתהליך ה-CLI, גם בצ'אט וגם בפתיחה בטרמינל. נוספים מעל הסביבה של VS Code ודורסים משתנה בעל אותו שם. משתני החיבור (`ANTHROPIC_BASE_URL` ועוד) נשארים ב-`settings.json` של ה-CLI. שינוי חל בשיחה הבאה. |
-| `claudeLocal.preferredLocation` | `panel` | איפה נפתח הצ'אט מהכפתור הראשי: `panel` = לשונית עורך, `sidebar` = סרגל הצד. |
+| `claudeLocal.preferredLocation` | `sidebar` | המקום היחיד שבו Claude נפתח: `sidebar` = סרגל הצד, `panel` = לשונית עורך אחת. |
 | `claudeLocal.lockEditorGroups` | כבוי | נועל את קבוצת העורכים של לשונית הצ'אט. |
-| `claudeLocal.useTerminal` | כבוי | הכפתור הראשי ו-`Ctrl+Shift+Esc` פותחים את ה-CLI בטרמינל. הפקודה "פתיחה בטרמינל" זמינה תמיד. |
+| `claudeLocal.useTerminal` | כבוי | פתיחת Claude (הכפתור, שורת המצב והקיצורים) פותחת את ה-CLI בטרמינל. הפקודה "פתיחה בטרמינל" זמינה תמיד. |
 | `claudeLocal.enableNewConversationShortcut` | כבוי | `Ctrl+N` פותח שיחה חדשה כשהמיקוד בצ'אט. |
 | `claudeLocal.keybindings.send` / `.newLine` / `.rewind` | `Enter` / `Shift+Enter` / `Escape Escape` | קיצורים בתוך תיבת ההודעה. פורמט: `Ctrl+Enter`, או רצף מופרד ברווח: `Escape Escape`. `useCtrlEnterToSend` ממשיכה לעבוד ומחליפה בין שליחה לשורה חדשה, כל עוד שני הקיצורים בברירת המחדל. `rewind` יופעל עם בניית נקודות השמירה. |
 
-**קיצורי VS Code** (ניתנים לשינוי): `Ctrl+Shift+Esc` ו-`Ctrl+Alt+C` פותחים לשונית צ'אט, `Ctrl+Esc` עובר בין העורך לצ'אט, ו-`Ctrl+N` (רק אם הופעל). לשינוי: Command Palette ← "Claude Code Local: קיצורי מקלדת" (פותח את עורך הקיצורים מסונן ל-`claude-local`). הקיצורים בתוך תיבת ההודעה אינם מופיעים שם, כי ה-webview לא רואה את קיצורי VS Code; משנים אותם בהגדרות `claudeLocal.keybindings.*`.
+**קיצורי VS Code** (ניתנים לשינוי): `Ctrl+Alt+C` ו-`Ctrl+Shift+Esc` פותחים את Claude (באותו מקום, לפי הכלל למעלה), `Ctrl+Esc` עובר בין העורך לצ'אט, ו-`Ctrl+N` (רק אם הופעל). לשינוי: Command Palette ← "Claude Code Local: קיצורי מקלדת" (פותח את עורך הקיצורים מסונן ל-`claude-local`). הקיצורים בתוך תיבת ההודעה אינם מופיעים שם, כי ה-webview לא רואה את קיצורי VS Code; משנים אותם בהגדרות `claudeLocal.keybindings.*`.
 
 ### בדיקה שנדרשת אצלכם: האם `Ctrl+Esc` פותח את תפריט התחל?
 ב-Windows `Ctrl+Esc` בדרך כלל פותח את תפריט התחל, ולכן ייתכן ש-VS Code לא יקבל אותו. **זה לא נבדק (נבדק רק במחשב שלכם).** הבדיקה:

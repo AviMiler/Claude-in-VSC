@@ -1,11 +1,12 @@
-// Webview -> host message table. Each entry maps one `type` to a Conversation method.
+// Webview -> host message table for the visible conversation. Each entry maps one `type` to a
+// Conversation method; the drawer's messages (new, switch, close, rename, list) are the host's
+// (conversation-host.js) and never reach this table.
 
 const { handleMcp } = require('../mcp/mcp-handler');
 const { openSettings } = require('./settings-actions');
 const { WEBVIEW_TAGS } = require('../util/log-tags');
 
 const ROUTES = {
-  ready: (c) => c.onReady(),
   send: (c, m) => c.send(String(m.text || ''), m.images),
   dropUris: (c, m) => c.dropUris(m.uris),
   interrupt: (c) => c.interrupt(),
@@ -13,9 +14,6 @@ const ROUTES = {
   setModel: (c, m) => c.setModel(String(m.value)),
   stopAndSwitchModel: (c, m) => c.stopAndSwitchModel(String(m.value)),
   permissionAnswer: (c, m) => c.answerPermission(m),
-  listHistory: (c) => c.listHistory(),
-  openSession: (c, m) => c.openSession(String(m.id)),
-  newConversation: (c) => c.newConversation(),
   openFile: (c, m) => c.openFile(String(m.path), m.line),
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),

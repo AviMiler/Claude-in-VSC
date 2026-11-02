@@ -6,7 +6,7 @@ function registerStatusBar(context) {
   item.name = 'Claude Code Local';
   item.text = '✻ Claude';
   item.tooltip = 'פתיחת Claude Code Local';
-  item.command = 'claude-local.editor.openLast';
+  item.command = 'claude-local.open';
   item.show();
   context.subscriptions.push(item);
 }
