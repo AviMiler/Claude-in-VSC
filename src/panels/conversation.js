@@ -60,6 +60,8 @@ class Conversation {
     this.started = false; // onReady has run (the first attach)
     this.unread = false; // a turn ended while the conversation was not shown
     this.ui = null; // {draft, queue} saved by the webview when the user switched away
+    this.loadedFromHistory = false;
+    this.activitySig = ''; // busy|waiting|unread at the last onActivity call
     this.proc = null;
     this.sessionId = null;
     this.permissionMode = 'default';
@@ -100,11 +102,15 @@ class Conversation {
     this.onTitle(this.title);
   }
 
-  // Recorded for a later redraw, and painted only while a webview is attached.
+  // Recorded for a later redraw, and painted only while a webview is attached. The activity
+  // listener only hears about a change of busy / waiting / unread, not about each streamed piece.
   post(msg) {
     if (this.disposed) return;
     replayLog.record(this.log, msg);
     if (this.webview) this.webview.postMessage(msg);
+    const sig = `${this.busy}|${this.pending.size}|${this.unread}`;
+    if (sig === this.activitySig) return;
+    this.activitySig = sig;
     this.onActivity();
   }
 
@@ -115,6 +121,7 @@ class Conversation {
     this.unread = false;
     if (!this.started) return this.onReady();
     this.webview.postMessage(this.restoreMessage());
+    this.ui = null; // the webview owns the draft and the queue again (no second send)
     this.webviewReady = true;
     this.flushPrefill();
     return this.onActivity();

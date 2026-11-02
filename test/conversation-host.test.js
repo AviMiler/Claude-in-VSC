@@ -111,6 +111,27 @@ test('a permission request of a hidden conversation stays pending and is drawn a
   }
 });
 
+test('a saved queue goes back to the webview once and is never sent again by the host', async () => {
+  const { host, send } = setup();
+  try {
+    const a = host.current;
+    await until(() => a.sessionId);
+    send({ type: 'newConversation', ui: { draft: 'x', queue: [{ text: 'queued' }] } });
+    assert.deepStrictEqual(a.ui.queue.map((q) => q.text), ['queued']);
+    const b = host.current;
+    send({ type: 'switchConversation', id: a.id }); // the webview owns the queue again
+    assert.strictEqual(a.ui, null);
+    host.show(b); // a host-initiated switch carries no ui
+    const sent = [];
+    a.send = (text) => sent.push(text);
+    a.busy = false;
+    a.sendQueuedHidden();
+    assert.deepStrictEqual(sent, []);
+  } finally {
+    host.dispose();
+  }
+});
+
 test('closing the visible conversation shows another; closing the last one opens a new one', async () => {
   const { host, send } = setup();
   try {

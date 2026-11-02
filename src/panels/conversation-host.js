@@ -105,7 +105,6 @@ class ConversationHost {
     const reg = this.services.registry.add({
       conversation,
       host: this,
-      isTab: this.kind === 'editor',
       reveal: () => this.reveal(conversation),
     });
     this.conversations.set(conversation.id, { conversation, reg });

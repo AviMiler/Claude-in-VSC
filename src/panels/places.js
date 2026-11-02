@@ -33,7 +33,6 @@ function createPlaces(services, sidebarHost) {
         || (preferred() === 'editor' ? editorHost : sidebarHost);
     },
     isFocused: () => Boolean(sidebarHost.focused || (editorHost && editorHost.focused)),
-    use,
     editorClosed(host) {
       if (editorHost === host) editorHost = null;
       if (lastHost === host) lastHost = null;

@@ -213,17 +213,6 @@
       case 'setModel':
         toWebview({ type: 'model', value: msg.value });
         break;
-      case 'listHistory': {
-        const now = Date.now();
-        later(150, () => toWebview({ type: 'history', currentId: 'b', items: [
-          { id: 'a', title: 'תיקון באג בתהליך ה-CLI', mtime: now - 5 * 60e3 },
-          { id: 'b', title: 'Refactor the auth middleware to support JWT', mtime: now - 3 * 3600e3 },
-          { id: 'c', title: 'הוספת היסטוריית שיחות', mtime: now - 26 * 3600e3 },
-          { id: 'd', title: 'סנכרון עם GitHub', mtime: now - 4 * 86400e3 },
-          { id: 'e', title: 'Explain the webview CSP', mtime: now - 20 * 86400e3 },
-        ] }));
-        break;
-      }
       case 'openSession':
         toWebview({ type: 'sessionLoaded', id: msg.id, title: 'תיקון באג בתהליך ה-CLI', events: [
           { kind: 'user', key: 'h1', text: 'למה התוסף קורס כשאין claude ב-PATH?' },

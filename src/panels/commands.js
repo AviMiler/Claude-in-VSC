@@ -104,7 +104,6 @@ function registerCommands(context, services) {
   for (const [id, fn] of Object.entries(commands)) {
     context.subscriptions.push(vscode.commands.registerCommand(id, fn));
   }
-  return { openSession };
 }
 
 module.exports = { registerCommands };

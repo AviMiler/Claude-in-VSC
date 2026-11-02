@@ -14,7 +14,7 @@ function register(context, services) {
   context.subscriptions.push(services.diffView);
   const sidebarHost = registerSidebar(context, services);
   services.places = createPlaces(services, sidebarHost);
-  services.openSession = registerCommands(context, services).openSession;
+  registerCommands(context, services);
   registerStatusBar(context);
 }
 
