@@ -84,6 +84,8 @@
 
   const HANDLERS = {
     init(m) {
+      // A brand-new conversation arrives as init (not restore): clear the one that was shown before.
+      resetView();
       CL.tools.setCwd(m.cwd);
       CL.composer.setSettings(m.settings);
       CL.display.apply(m.settings.display);
