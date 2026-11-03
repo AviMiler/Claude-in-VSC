@@ -87,6 +87,7 @@ Updated: 2026-11-01. This is the **single source of truth for what to build next
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
 | Display | **Focus view, timestamps, `spinnerVerbs`, `scrollToBottomOnSend`** | All chosen; light and independent | 👤 |
+| Collapsing user messages | **A function that collapses long user messages in the thread** (display only): a message above a set length shows its first lines with a "הצג עוד" / "כווץ" toggle; the text sent to the CLI and the saved transcript are not changed. The length limit is a proposed setting (`claudeLocal.collapseUserMessageLines`, proposed default 8 lines, not yet decided). Short messages are never collapsed | Requested 2026-11-02 on branch `develop`; read as display-only; to confirm with the user | 👤 (to confirm) |
 | `useTerminal` | **A setting** that makes the main button open a terminal | Chosen | 👤 |
 | Accessibility | **Accessibility and colour settings** (`prefersReducedMotion`, daltonized) + **screen-reader announcements, speaker labels ("אתה"/"Claude") and navigation by headings** | Chosen; testing needs a real screen reader | 👤 |
 | More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
@@ -169,7 +170,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |
 | **E** ✅ done 2026-11-01 (branch `pkg-e-mcp`) | MCP, sign-in error card, URI (the usage line moved to D). **Still open:** nothing run in real VS Code; `claude mcp add -e` argument order and the live `mcp_status` shape unverified against the real CLI | A |
 | **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
-| **G** | Display and accessibility (Focus view, timestamps, screen reader) | – |
+| **G** | Display and accessibility (Focus view, timestamps, screen reader), collapsing long user messages | – |
 
 ## 6. What is open
 
