@@ -19,7 +19,7 @@ Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requir
 - **Symptom:** the model says the file is not found when a file is picked from the list; the model invents a wrong path (`C:\dev\gateway-probe\extension.js`); folders cannot be entered in the `@` list; sometimes a file does attach.
 - **Known:** the extension sends `@path` as plain text; whether the CLI expands `@path` in stream-json mode was unverified and the result suggests it does not. The `@` list is flat.
 - **Fix idea:** resolve the picked path to an absolute path (or read the file and attach it) before sending; allow navigating into folders in the list. Test with the real CLI.
-- **Status:** open.
+- **Status:** code done 2026-11-04 (absolute paths on send, folder navigation; see `CHANGELOG.md`); **awaiting the user's re-run of test 7.1 against the real CLI**, then delete this item.
 
 ### F-5 `/plan` shows nothing (test 11.1, FAIL)
 - **Symptom:** `/plan` and `/plan open` show nothing. Known: `/plan` only switches to plan mode; the "open plan" document needs assistant text before `ExitPlanMode`, and the local model may not call it.

@@ -26,6 +26,12 @@ function foldersOf(files) {
 // shorter paths first inside a rank.
 function rankPaths(entries, query, max = 30) {
   const q = String(query || '').toLowerCase();
+  // "src/" (a folder was picked): navigate into it, listing only its direct children.
+  if (q.endsWith('/')) {
+    const children = entries.filter((e) => e.toLowerCase().startsWith(q) && e.length > q.length && !e.slice(q.length).replace(/\/$/, '').includes('/'));
+    children.sort((a, b) => Number(b.endsWith('/')) - Number(a.endsWith('/')) || a.localeCompare(b));
+    return children.slice(0, max).map((e) => ({ path: e, isDir: e.endsWith('/') }));
+  }
   const scored = [];
   for (const entry of entries) {
     const lower = entry.toLowerCase();
@@ -97,4 +103,28 @@ function mentionText(relPath) {
   return /\s/.test(relPath) ? `@"${relPath}"` : `@${relPath}`;
 }
 
-module.exports = { foldersOf, rankPaths, parseGitList, listEntries, mentionText, toSlashes };
+// Rewrites the `@rel/path` mentions of a prompt that name an existing file or folder under `cwd`
+// into absolute paths: the CLI does not expand `@path` in stream-json mode, and a model given a
+// bare relative path guessed a wrong location (FIXES F-4). Unknown names are left untouched.
+function resolveMentions(text, cwd) {
+  if (!text || !cwd || !text.includes('@')) return text;
+  const inCwd = (rel) => {
+    const abs = path.resolve(cwd, rel);
+    const inside = path.relative(cwd, abs);
+    return !inside.startsWith('..' + path.sep) && inside !== '..' && !path.isAbsolute(inside) && fs.existsSync(abs) ? abs : null;
+  };
+  return text.replace(/(^|\s)@(?:"([^"\n]+)"|([^\s"@]+))/g, (whole, lead, quoted, bare) => {
+    let abs = inCwd(quoted || bare);
+    let tail = '';
+    if (!abs && bare) { // "@a.js," / "(@a.js)": retry without the trailing punctuation
+      const m = /[.,;:!?)\]}]+$/.exec(bare);
+      if (m) {
+        abs = inCwd(bare.slice(0, m.index));
+        tail = m[0];
+      }
+    }
+    return abs ? `${lead}${mentionText(abs)}${tail}` : whole;
+  });
+}
+
+module.exports = { resolveMentions, foldersOf, rankPaths, parseGitList, listEntries, mentionText, toSlashes };
