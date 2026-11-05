@@ -32,6 +32,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `conversation.js` — one CLI process: permissions, mode/model, stop; `attach`/`detach`/`restoreMessage`; records into the replay log and paints only while attached; unread when a turn ends unseen.
 - `message-router.js` — webview message `type` to `Conversation` method.
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
+- `work-file.js` — the working-file button: tracks the open file (or the user's pick), a QuickPick to choose another, and `withWorkFile` which puts `@path` in front of the next message when the file changed (package H).
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
@@ -116,6 +117,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 
 ## test/
+- `work-file.test.js` — withWorkFile (once per change) and current.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`. 138 tests in all.
 
 ## .claude/

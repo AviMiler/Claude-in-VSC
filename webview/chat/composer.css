@@ -260,3 +260,22 @@
 @media (max-width: 300px) {
   #slash-btn { display: none; }
 }
+
+/* The working-file button: shows the file the work is on; a click picks another one. */
+.workfile-btn {
+  max-width: 45%;
+  min-width: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--cl-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--cl-muted, var(--cl-fg));
+  font: inherit;
+  font-size: 0.9em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.workfile-btn:hover { background: var(--cl-hover); color: var(--cl-fg); }
+.workfile-btn.picked { color: var(--cl-fg); border-color: var(--cl-focus, var(--cl-border)); }

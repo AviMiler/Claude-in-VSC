@@ -345,7 +345,20 @@
     CL.menu.open(modelBtn, items, (value) => post({ type: busy ? 'stopAndSwitchModel' : 'setModel', value }));
   });
 
+  // The working-file button: the file the work is on (the open file unless the user picked one).
+  const workFileBtn = document.getElementById('workfile-btn');
+  workFileBtn.textContent = 'בחירת קובץ…';
+  workFileBtn.addEventListener('click', () => post({ type: 'pickWorkFile' }));
+
   CL.composer = {
+    setWorkFile(path, auto) {
+      const name = path ? String(path).split('/').pop() : '';
+      workFileBtn.textContent = name ? `📄 ${name}` : 'בחירת קובץ…';
+      workFileBtn.classList.toggle('picked', Boolean(path) && !auto);
+      workFileBtn.title = path
+        ? `קובץ העבודה: ${path}${auto ? ' (הקובץ הפתוח בעורך)' : ''}. לחיצה לבחירת קובץ אחר`
+        : 'אין קובץ פתוח. לחיצה לבחירת קובץ עבודה';
+    },
     // One click re-sends the same message (and images); never automatic.
     canRetry: () => Boolean(lastSent), // busy is checked at click time (the result arrives before the busy flag clears)
     retry() {

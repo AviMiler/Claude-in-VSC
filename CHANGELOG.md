@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Package H part 3: working-file button)
+- A button in the composer footer shows the file the work is on: the file open in the editor by default (follows the active editor), or the file picked through a QuickPick (the first item returns to "the open file"). With no file open it reads "בחירת קובץ…" and still opens the picker. The file reaches the model as an absolute `@path` in front of the next message, and again only when the file changes (`work-file.js`, `withWorkFile`). New: `src/panels/work-file.js`, `Conversation.loadEntries/pickWorkFile`, message `pickWorkFile`, webview message `workFile`, `#workfile-btn`. Why: requested 2026-11-03; the user chose on 2026-11-05 that it should point the model at the file; the "once per change" rule keeps token cost low (`DECISIONS.md`).
+- **Verified:** `node --test` 154/154 (3 new tests: `withWorkFile`, `current`). **Not verified:** the button and the QuickPick in real VS Code, that the CLI reads the `@path` mention in stream-json (F-4 assumed the absolute form works), and the Copilot comparison (from memory only).
+
 ## 2026-11-05 (Package H part 2: retry after an error)
 - A "נסה שוב" button appears on a turn's error box and on the CLI error card; one click re-sends the same message and images (kept in memory by the composer, `lastSent`). No automatic retry, the text is not changed, and the button disappears when any message is sent. Not shown for history loaded from a past session. Shown for every error result, not only connection errors (a retry of a "does not support tools" error just fails again). Why: decided with the user on 2026-11-05 ("button only, re-send the same message").
 - **Verified:** `node --check` and `node --test` 151/151 (no new test: the code is webview DOM code, which has no unit harness). **Not verified:** rendering and clicking in a browser or real VS Code; resending after a CLI process exit.

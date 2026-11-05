@@ -11,6 +11,7 @@ const { createStreamTranslator } = require('./event-translator');
 const replayLog = require('./replay-log');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
+const workFile = require('./work-file');
 const { translateTranscript } = require('../history/transcript-events');
 const { buildErrorCard } = require('./error-card');
 const { launchSettings } = require('../models/launch');
@@ -84,6 +85,8 @@ class Conversation {
     this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
     this.agents = agentCards.createAgentCards(); // one card per sub-agent call (live only)
     this.entries = null;
+    this.workFile = null; // the file picked with the working-file button (null = follow the open file)
+    this.lastWorkFileSent = null; // the file last handed to the model as an @mention
     this.models = new ModelSwitcher(this);
     this.subs = [
       services.settings.onDidChange((s) => {
@@ -91,6 +94,8 @@ class Conversation {
         if (this.proc) this.post({ type: 'notice', text: 'ההגדרה תחול בשיחה הבאה.' });
       }),
     ];
+    const editorWatch = workFile.watchEditor(this);
+    if (editorWatch) this.subs.push(editorWatch);
     ({ cwd: this.cwd, noFolder: this.noFolder } = workspaceCwd());
   }
 
@@ -122,6 +127,7 @@ class Conversation {
     this.unread = false;
     if (!this.started) return this.onReady();
     this.webview.postMessage(this.restoreMessage());
+    workFile.postState(this);
     this.ui = null; // the webview owns the draft and the queue again (no second send)
     this.webviewReady = true;
     this.flushPrefill();
@@ -175,6 +181,7 @@ class Conversation {
   onReady() {
     this.started = true;
     this.post(this.initMessage());
+    workFile.postState(this);
     if (this.pendingResume) {
       const id = this.pendingResume;
       this.pendingResume = null;
@@ -337,7 +344,7 @@ class Conversation {
     this.services.logger.info('stream', `send (${text.length} chars, ${valid.length} images, session=${this.sessionId || 'new'})`);
     this.busy = true;
     if (!hidden) replayLog.addUser(this.log, valid.length ? `${text}\n[תמונות: ${valid.length}]` : text);
-    this.proc.sendUserText(text, valid);
+    this.proc.sendUserText(hidden ? text : workFile.applyToSend(this, text), valid);
   }
 
   // The client-side queue of a conversation the user switched away from: the host keeps it and
@@ -571,7 +578,8 @@ class Conversation {
     return this.post({ type: 'notice', text: 'השיחה פוצלה: ההמשך נשמר כשיחה חדשה, והמקורית נשארת כמו שהיא.' });
   }
 
-  async mentionSearch(query, seq) {
+  // The project's files and folders (cached for 10 s), for the `@` list and the working-file picker.
+  async loadEntries() {
     const now = Date.now();
     if (!this.entries || now - this.entriesAt > 10000) {
       try {
@@ -582,8 +590,17 @@ class Conversation {
         this.entries = [];
       }
     }
+    return this.entries;
+  }
+
+  async mentionSearch(query, seq) {
+    const entries = await this.loadEntries();
     const rel = mentions.relativeQuery(this.cwd, query);
-    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(this.entries, rel, 30, this.cwd) });
+    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(entries, rel, 30, this.cwd) });
+  }
+
+  pickWorkFile() {
+    return workFile.pick(this);
   }
 
   // Files dragged in with Shift arrive as URIs and become @path mentions (a PDF is read by the CLI itself).

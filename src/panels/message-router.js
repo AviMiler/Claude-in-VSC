@@ -15,6 +15,7 @@ const ROUTES = {
   stopAndSwitchModel: (c, m) => c.stopAndSwitchModel(String(m.value)),
   permissionAnswer: (c, m) => c.answerPermission(m),
   openFile: (c, m) => c.openFile(String(m.path), m.line),
+  pickWorkFile: (c) => c.pickWorkFile(),
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),
   diffCommand: (c) => c.diffCommand(),
