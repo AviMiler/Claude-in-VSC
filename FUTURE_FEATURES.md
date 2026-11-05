@@ -63,7 +63,7 @@ Claude keeps using `Grep`, `Glob` and `Read` on `.cs` files, as today.
 ### 3.2 Conflict with the new principle — ✅ decided 2026-11-05: keep add/remove as it is (option B); no new editing features are added
 - **Add/remove** is editing, so it conflicts with "use and on/off only". Options: (A) remove the add/remove buttons from the dialog and keep list, status, enable/disable and reconnect; (B) keep add/remove as it is; (C) hide them behind a setting. Not decided. The `PLAN.md` stage 5 row ("A full management dialog, including add and remove from the UI") would change accordingly.
 
-### 3.3 Candidate bridging of **using** MCP — 💡 (none verified against the real CLI)
+### 3.3 Candidate bridging of **using** MCP — reviewed 2026-11-05: the tool list (read-only), prompts as slash commands and the per-session on/off check are ✅ **moved to `PLAN.md`** (stage 5 MCP row, section 6 item 12); **resources through `@` were not chosen and stay 💡** (none verified against the real CLI)
 - **Tools of each server, read-only:** show a server's tool list in the dialog (the `mcp_status` response already carries a tool list, `DEPENDENCIES.md` row 15). Permission cards for MCP tool calls already work through `can_use_tool`.
 - **Prompts as slash commands:** MCP prompts are exposed by the CLI as slash commands; they should appear in the grouped `/` menu. Unverified whether they arrive in the `initialize` response in stream-json mode.
 - **Resources through `@`:** attach an MCP resource from a server with `@`. Unverified: the `@path` text is not expanded by the CLI in stream-json mode (`FIXES.md` F-4), so a resource mention probably needs the extension to fetch it some other way, which may not be possible as a pure bridge.
