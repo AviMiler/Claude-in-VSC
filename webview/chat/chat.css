@@ -504,3 +504,7 @@ kbd {
   cursor: pointer;
 }
 .collapse-toggle:hover { text-decoration: underline; }
+
+/* LaTeX math (KaTeX), left-to-right inside the RTL page */
+.math-inline { unicode-bidi: isolate; }
+.math-display { display: block; direction: ltr; text-align: center; margin: 0.6em 0; overflow-x: auto; overflow-y: hidden; }

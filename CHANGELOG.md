@@ -2,6 +2,38 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (LaTeX math in assistant messages)
+- `$...# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+ and `(...)` (inline) and `$...$` and `[...]` (display) are rendered with bundled KaTeX 0.16.11 (`webview/vendor/katex/`: `katex.min.js`, `katex.min.css` with a woff2-only `@font-face`, 20 woff2 fonts, MIT license). Never inside code spans or fenced code; a lone `# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+ (prices like "$5 and $10") stays text: inline `# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+ needs a non-space after the opening and before the closing `# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+, and the closing `# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+ may not be followed by a digit; `# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+ is an escape; unfinished math (while streaming) stays plain until it closes. New `webview/chat/math-logic.js` (pure, UMD: `extract` swaps math for placeholders before marked, `restore` puts them back) and `test/math-logic.test.js`; `markdown.js` renders each piece with `katex.renderToString(src, {throwOnError:false, displayMode, trust:false})` inside a `dir="ltr"` span. The CSP is unchanged (no `unsafe-inline`): KaTeX output has inline `style=` attributes, which the CSP would block, so the HTML is parsed inertly and each style is applied through the CSSOM. No setting. Why: requested in PLAN.md (Package C, "LaTeX").
+- **Verified:** `node --check`, the unit tests of the splitting logic, and that `katex.renderToString` runs under Node and emits `style=` attributes. **Not verified:** actual rendering, fonts loading and the CSSOM style workaround in real VS Code or a browser; indented (4-space) code blocks are not recognised as code, so `$x# Changelog
+
+Newest first. Each entry: what changed + why. Dates are commit dates.
+
+ inside one would still render.
+
 ## 2026-11-05 (Package H part 3: working-file button)
 - A button in the composer footer shows the working file; by default there is NONE ("קובץ עבודה: ללא"). A click opens a QuickPick: "ללא קובץ", "the file open now in the editor", then the project files. Claude is told to start from the chosen file: the next message begins "התחל את העבודה מהקובץ @path." (an explicit instruction, because it is unverified that the CLI expands `@path` in stream-json), and again only when the file changes (`work-file.js`, `withWorkFile`). New: `src/panels/work-file.js`, `Conversation.loadEntries/pickWorkFile`, message `pickWorkFile`, webview message `workFile`, `#workfile-btn`. Why: requested 2026-11-03; the user chose on 2026-11-05 that it should point the model at the file; the "once per change" rule keeps token cost low (`DECISIONS.md`).
 - **Verified:** `node --test` 154/154 (3 new tests: `withWorkFile`, `current`). The check file `dev/check-at-mention.txt` (run by the user) tells whether the real CLI expands `@path` in stream-json. **Not verified:** the button and the QuickPick in real VS Code, that the CLI reads the `@path` mention in stream-json (F-4 assumed the absolute form works), and the Copilot comparison (from memory only).
