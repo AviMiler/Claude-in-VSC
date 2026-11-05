@@ -2,6 +2,12 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-06 (package H batch 2: goToDefinition, findImporters, documentSymbols filter)
+- **Added:** `goToDefinition` and `findImporters` in `nav-tools.js` (deps supplied by `nav-vscode.js`, which also gained a workspace text search returning 1-based lines). `documentSymbols` now drops `<unknown>` entries and export-shorthand property duplicates, keeping real properties. Caps (50 / 2,000) and the workspace path limit unchanged.
+- **Verified:** unit tests 175/175 (fake deps); Verify = GO.
+- **Not verified:** all three changes in real VS Code and against the real CLI; checks (d) jsconfig and (e) `findImporters` accuracy are open.
+- **Why:** `PLAN.md` section 8 table; the filter removes noise seen in `documentSymbols` output.
+
 ## 2026-11-05 (package H prototype: code navigation MCP server)
 - **Added:** `src/mcp/nav-server.js` (HTTP on 127.0.0.1, random port and Bearer token, hand-written JSON-RPC), `nav-config.js` (inline `--mcp-config`, server `claude-local-nav`), `nav-tools.js` (`documentSymbols`, `readSymbol`, `findReferences`; 50 results / 2,000 chars; workspace path limit; plain failures), `nav-vscode.js` (the only `vscode` user). `src/cli/process.js` starts the server per CLI process and adds `--mcp-config` and `--allowedTools mcp__claude-local-nav` (no `--strict-mcp-config`; spawn continues without the server if it fails). Tests: `nav-server`, `nav-tools`; full suite 166 pass.
 - **Verified:** unit tests; transport pre-check against real CLI 2.1.246 (http and stdio PASS, reported by the user).

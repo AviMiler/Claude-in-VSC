@@ -174,7 +174,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |
 | **E** ✅ done 2026-11-01 (branch `pkg-e-mcp`) | MCP, sign-in error card, URI (the usage line moved to D). **Still open:** nothing run in real VS Code; `claude mcp add -e` argument order and the live `mcp_status` shape unverified against the real CLI | A |
 | **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
-| **H** (prototype built 2026-11-05, awaiting manual checks in VS Code) | Code-navigation MCP server for JS/React (section 8): a small prototype first (three tools, with a token measurement), then the rest of the tools | A, E (MCP handling); independent of F |
+| **H** (prototype built 2026-11-05; batch 2 `goToDefinition`, `findImporters` built 2026-11-06; awaiting manual checks in VS Code) | Code-navigation MCP server for JS/React (section 8): a small prototype first (three tools, with a token measurement), then the rest of the tools | A, E (MCP handling); independent of F |
 | **G** | Display and accessibility (Focus view, timestamps, screen reader), collapsing long user messages | – |
 
 ## 6. What is open

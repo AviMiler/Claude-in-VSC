@@ -19,8 +19,50 @@ function createVscodeNavDeps() {
         uri,
         new vscode.Position(pos.line, pos.character),
       ),
+    executeDefinitionProvider: (uri, pos) =>
+      vscode.commands.executeCommand(
+        'vscode.executeDefinitionProvider',
+        uri,
+        new vscode.Position(pos.line, pos.character),
+      ),
     readFile: (p) => fs.promises.readFile(p, 'utf8'),
+    searchWorkspaceText,
   };
+}
+
+const SEARCH_GLOB = '**/*.{js,jsx,ts,tsx,mjs,cjs}';
+const SEARCH_EXCLUDE = '{**/node_modules/**,**/.git/**}';
+const MAX_FILE_BYTES = 1024 * 1024;
+const MAX_MATCHES = 500;
+
+// Plain-text fallback for findImporters: when the reference provider returns nothing
+// (no language server, or the file is not indexed yet), nav-tools can still find
+// import/require lines by scanning file text. Bounded: 1 MB per file, 500 matches total.
+// An invalid regular expression rejects the promise; errors on single files are skipped.
+async function searchWorkspaceText(pattern, folders) {
+  const re = new RegExp(pattern);
+  const results = [];
+  for (const folder of folders || []) {
+    const include = new vscode.RelativePattern(vscode.Uri.file(folder), SEARCH_GLOB);
+    const uris = await vscode.workspace.findFiles(include, SEARCH_EXCLUDE);
+    for (const uri of uris) {
+      if (results.length >= MAX_MATCHES) return results;
+      const p = uri.fsPath;
+      try {
+        const st = await fs.promises.stat(p);
+        if (st.size > MAX_FILE_BYTES) continue;
+        const lines = (await fs.promises.readFile(p, 'utf8')).split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+          if (!re.test(lines[i])) continue;
+          results.push({ path: p, line: i + 1, text: lines[i] });
+          if (results.length >= MAX_MATCHES) return results;
+        }
+      } catch (_) {
+        // Unreadable file (deleted, locked, permission): skip it.
+      }
+    }
+  }
+  return results;
 }
 
 module.exports = { createVscodeNavDeps };

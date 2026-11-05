@@ -1,10 +1,15 @@
-// Code navigation tools (package H prototype): documentSymbols, readSymbol, findReferences.
+// Code navigation tools (package H prototype): documentSymbols, readSymbol, findReferences,
+// goToDefinition, findImporters.
+// Deps read (all injected): workspaceFolders, toUri, openDocument?, readFile, executeDocumentSymbolProvider,
+// executeReferenceProvider(uri,pos), findSymbolPosition?(uri,name), executeDefinitionProvider(uri,pos),
+// searchWorkspaceText(pattern, folders) -> Promise<Array<{ path, line (1-based), text }>>.
 // No VS Code require: the caller injects the providers (see createNavTools), so this is testable alone.
 const path = require('path');
 
 const MAX_RESULTS = 50;
 const MAX_CHARS = 2000;
 const NO_ACCESS = 'no access: the path is outside the open workspace folders';
+const NOT_AVAILABLE = 'not available here';
 const NO_PROVIDER = 'no language provider for this file type; use Grep';
 
 // vscode.SymbolKind numbers grouped into the three filter words.
@@ -55,6 +60,28 @@ const TOOLS = [
         symbol: { type: 'string', description: 'Symbol name' },
       },
       required: ['file', 'symbol'],
+    },
+  },
+  {
+    name: 'goToDefinition',
+    description: 'Find where a symbol is defined, with the declaration line.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', description: 'File path' },
+        symbol: { type: 'string', description: 'Symbol name' },
+        line: { type: 'number', description: 'Optional 1-based line to pick between same-named symbols' },
+      },
+      required: ['file', 'symbol'],
+    },
+  },
+  {
+    name: 'findImporters',
+    description: 'Find the files that import this module, one line per file.',
+    inputSchema: {
+      type: 'object',
+      properties: { file: { type: 'string', description: 'Module file path' } },
+      required: ['file'],
     },
   },
 ];
@@ -122,6 +149,17 @@ function resolveSymbolPosition(symbols, name, line) {
   return { line: r.start.line, character: r.start.character };
 }
 
+const sameRange = (a, b) => !!a && !!b
+  && a.start.line === b.start.line && a.start.character === b.start.character
+  && a.end.line === b.end.line && a.end.character === b.end.character;
+
+// Drops "<unknown>"/empty names and export-shorthand property duplicates (same name and range as a function/variable).
+function cleanSymbols(flat) {
+  const named = flat.filter((s) => s.name && s.name !== '<unknown>');
+  return named.filter((s) => s.kind !== 6
+    || !named.some((o) => o !== s && o.name === s.name && [11, 12].includes(o.kind) && sameRange(o.range, s.range)));
+}
+
 function filePathOf(loc) {
   const u = loc && (loc.uri || loc.targetUri);
   if (!u) return '';
@@ -154,7 +192,7 @@ function createNavTools(deps) {
     if (!abs) return { text: NO_ACCESS };
     const { symbols } = await loadSymbols(abs);
     if (!symbols.length) return { text: NO_PROVIDER };
-    let flat = flatten(symbols);
+    let flat = cleanSymbols(flatten(symbols));
     const group = KIND_GROUPS[args.kind];
     if (args.kind && !group) return { error: 'kind must be function, class or variable' };
     if (group) flat = flat.filter((s) => group.includes(s.kind));
@@ -205,7 +243,93 @@ function createNavTools(deps) {
     return { text: capLines(items) };
   }
 
-  const impl = { documentSymbols, readSymbol, findReferences };
+  function relOf(p) {
+    return path.relative(folders.find((f) => isInsideWorkspace(p, [f])) || '', p).replace(/\\/g, '/') || p;
+  }
+
+  async function goToDefinition(args) {
+    if (!deps.executeDefinitionProvider) return { text: NOT_AVAILABLE };
+    const abs = resolvePath(args.file);
+    if (!abs) return { text: NO_ACCESS };
+    const name = String(args.symbol || '');
+    const { uri, symbols } = await loadSymbols(abs);
+    let pos = resolveSymbolPosition(symbols, name, args.line);
+    if (!pos && deps.findSymbolPosition) pos = await deps.findSymbolPosition(uri, name);
+    if (!pos) return { text: symbols.length ? `symbol "${name}" not found in this file` : NO_PROVIDER };
+    const targets = await deps.executeDefinitionProvider(uri, pos);
+    const items = [];
+    const seen = new Set();
+    for (const t of Array.isArray(targets) ? targets : []) {
+      const p = filePathOf(t);
+      const r = t && (t.targetRange || t.range);
+      if (!p || !r || !isInsideWorkspace(p, folders)) continue;
+      const n = r.start.line;
+      if (seen.has(p + ':' + n)) continue;
+      seen.add(p + ':' + n);
+      let src = null;
+      try { src = await fileLines(p); } catch { src = null; }
+      items.push(`${relOf(p)}:${n + 1} ${src && src[n] !== undefined ? src[n].trim() : ''}`);
+    }
+    return { text: items.length ? capLines(items) : 'no definition found' };
+  }
+
+  const IMPORT_RE = /\b(import|require|from)\b/;
+  const EXPORT_KINDS = [4, 5, 9, 10, 11, 12, 13, 22];
+
+  // Default export, else the first top-level symbol declared with "export", else the first function/class/variable.
+  async function exportedSymbol(abs, symbols) {
+    const top = symbols.filter((s) => s.name && s.name !== '<unknown>');
+    const def = top.find((s) => s.name === 'default');
+    if (def) return def;
+    let src = [];
+    try { src = await fileLines(abs); } catch { src = []; }
+    const named = top.filter((s) => EXPORT_KINDS.includes(s.kind));
+    return named.find((s) => /^\s*export\b/.test(src[s.range.start.line] || '')) || named[0] || null;
+  }
+
+  async function findImporters(args) {
+    if (!deps.executeReferenceProvider || !deps.searchWorkspaceText) return { text: NOT_AVAILABLE };
+    const abs = resolvePath(args.file);
+    if (!abs) return { text: NO_ACCESS };
+    const win = process.platform === 'win32';
+    const self = norm(abs, win);
+    const { uri, symbols } = await loadSymbols(abs);
+    const items = [];
+    const exp = symbols.length ? await exportedSymbol(abs, symbols) : null;
+    if (exp) {
+      const r = exp.selectionRange || exp.range;
+      const refs = await deps.executeReferenceProvider(uri, { line: r.start.line, character: r.start.character });
+      const byFile = new Map();
+      for (const ref of Array.isArray(refs) ? refs : []) {
+        const p = filePathOf(ref);
+        if (!p || !ref.range || !isInsideWorkspace(p, folders) || norm(p, win) === self) continue;
+        if (!byFile.has(p)) byFile.set(p, []);
+        byFile.get(p).push(ref.range.start.line);
+      }
+      for (const [p, nums] of byFile) {
+        let src = null;
+        try { src = await fileLines(p); } catch { src = null; }
+        const sorted = [...new Set(nums)].sort((a, b) => a - b);
+        const n = (src && sorted.find((x) => IMPORT_RE.test(src[x] || ''))) ?? sorted[0];
+        items.push(`${relOf(p)}:${n + 1} ${src && src[n] !== undefined ? src[n].trim() : ''} [ref]`);
+      }
+    }
+    if (!items.length) {
+      const base = path.basename(abs, path.extname(abs)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = `(from|import|require)\\s*\\(?\\s*['"](?:[^'"]*[/\\\\])?${base}(?:\\.\\w+)?['"]`;
+      const hits = await deps.searchWorkspaceText(pattern, folders);
+      const seen = new Set();
+      for (const h of Array.isArray(hits) ? hits : []) {
+        if (!h || !h.path || !isInsideWorkspace(h.path, folders) || norm(h.path, win) === self) continue;
+        if (seen.has(h.path)) continue;
+        seen.add(h.path);
+        items.push(`${relOf(h.path)}:${h.line} ${String(h.text || '').trim()} [text]`);
+      }
+    }
+    return { text: items.length ? capLines(items) : 'no importers found' };
+  }
+
+  const impl = { documentSymbols, readSymbol, findReferences, goToDefinition, findImporters };
 
   async function call(name, args) {
     const fn = impl[name];
