@@ -224,6 +224,8 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 **Design rules:**
 - **Input by name:** `file` + `symbol` (optional `line`) instead of line and column, because a local model gets positions wrong; the tool resolves the name through `documentSymbols` or a text match on that line.
 - **Size caps:** at most 50 results and 2,000 characters per answer, ending with "N more not shown". The numbers can be adjusted after real use.
+- **Permissions (decided 2026-11-05):** the extension passes `--allowedTools` for our own server only (the navigation tools are read-only), so no approval card appears per call. Other MCP servers still ask.
+- **Path limit (decided 2026-11-05):** a tool that receives a file path answers "no access" for any path outside the open workspace folders.
 - **Plain failure:** when a language has no provider (for example `.cs` files), the tool says so and Claude falls back to `Grep`.
 - **Token cost:** the tool list is sent with every request; keep descriptions short and parameters few (merge tools if it gets large). Measured in the prototype (section 6, item 10).
 - **Tests:** unit tests for the pure parts (result shaping, caps, name-to-position, the JSON-RPC handling) with fake provider results; a manual check in real VS Code.
