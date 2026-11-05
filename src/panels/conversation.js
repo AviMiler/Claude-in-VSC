@@ -94,8 +94,6 @@ class Conversation {
         if (this.proc) this.post({ type: 'notice', text: 'ההגדרה תחול בשיחה הבאה.' });
       }),
     ];
-    const editorWatch = workFile.watchEditor(this);
-    if (editorWatch) this.subs.push(editorWatch);
     ({ cwd: this.cwd, noFolder: this.noFolder } = workspaceCwd());
   }
 

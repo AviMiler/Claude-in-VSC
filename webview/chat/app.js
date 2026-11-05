@@ -100,7 +100,7 @@
     },
     commands: (m) => CL.slashMenu.setCommands(m.commands),
     models: (m) => CL.composer.setModels(m.models, m.current),
-    workFile: (m) => CL.composer.setWorkFile(m.path, m.auto),
+    workFile: (m) => CL.composer.setWorkFile(m.path),
     mode: (m) => CL.composer.setMode(m.value),
     model: (m) => CL.composer.setModel(m.value),
     context: (m) => CL.contextMeter.set(m.used, m.max),

@@ -178,6 +178,6 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 
 
 ## [2026-11-05] Working-file button: the file is handed to the model once per change (builder decision)
-**Decision:** The header-free button in the composer footer shows the file open in the editor (or the one the user picked in a QuickPick). The file reaches the model as an absolute `@path` mention in front of the next message, and again only when the file changes, not on every message.
+**Decision:** The button in the composer footer shows the working file, by default none. The user picks one in a QuickPick. The file reaches the model as the instruction "התחל את העבודה מהקובץ @path." in front of the next message, and again only when the file changes, not on every message.
 **Alternatives considered:** (1) display only, nothing sent (the plan's first proposal); the user rejected it on 2026-11-05 because the button should point the model at the file. (2) A mention on every message (like an always-on "current file" context); it costs tokens on every message, which the user has been cutting. (3) Following VS Code Copilot's exact behaviour: from memory it keeps the open file as implicit context of each request with an on/off toggle; not checked against its current build.
 **Why:** (3) is the closest to what the user saw, but the CLI has no implicit-context channel without the IDE server (package F). Once per change gives the model the file at the moment it matters and keeps the cost low. When package F exists, the button can switch to the IDE context.

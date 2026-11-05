@@ -109,6 +109,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
 - `check-context-window.txt` — Hebrew `/api/ps` check of the 64,000 window, for the user.
 - `check-model-switch.txt` — Hebrew check of F-8/F-9 on the user's CLI (log lines, `/api/ps`).
+- `check-at-mention.txt` — Hebrew check, run by the user: does the real CLI expand `@path` in stream-json (tools blocked, a secret word in a temp file).
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; `--settings` env over `FAKE_CLAUDE_USER_SETTINGS_ENV`; default model `fake-model[1m]` unless 1M is off; answers `get_context_usage`).
 - `manual-tests.html` — Hebrew manual test checklist.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host (several conversations, drawer, restore, MCP, bars; URL params `?conv=c2`, `?open=drawer|mcp|slash|attach|mode`, `?theme=light`).

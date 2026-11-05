@@ -347,17 +347,17 @@
 
   // The working-file button: the file the work is on (the open file unless the user picked one).
   const workFileBtn = document.getElementById('workfile-btn');
-  workFileBtn.textContent = 'בחירת קובץ…';
+  workFileBtn.textContent = 'קובץ עבודה: ללא';
   workFileBtn.addEventListener('click', () => post({ type: 'pickWorkFile' }));
 
   CL.composer = {
-    setWorkFile(path, auto) {
+    setWorkFile(path) {
       const name = path ? String(path).split('/').pop() : '';
-      workFileBtn.textContent = name ? `📄 ${name}` : 'בחירת קובץ…';
-      workFileBtn.classList.toggle('picked', Boolean(path) && !auto);
+      workFileBtn.textContent = name ? `📄 ${name}` : 'קובץ עבודה: ללא';
+      workFileBtn.classList.toggle('picked', Boolean(path));
       workFileBtn.title = path
-        ? `קובץ העבודה: ${path}${auto ? ' (הקובץ הפתוח בעורך)' : ''}. לחיצה לבחירת קובץ אחר`
-        : 'אין קובץ פתוח. לחיצה לבחירת קובץ עבודה';
+        ? `קובץ העבודה: ${path}. Claude יתחיל את העבודה ממנו. לחיצה לשינוי או להסרה`
+        : 'ללא קובץ עבודה. לחיצה לבחירת קובץ שממנו Claude יתחיל';
     },
     // One click re-sends the same message (and images); never automatic.
     canRetry: () => Boolean(lastSent), // busy is checked at click time (the result arrives before the busy flag clears)
