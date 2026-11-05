@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Package I step 3: the source button takes a file or a folder from the explorer)
+- The working-file button became the **source button** ("מקור השיחה: ללא" by default). A click opens the file explorer (`showOpenDialog` in the project folder, file or folder, one item); with a source already set, a short menu offers "choose another" or "remove". The next message gets the agreed instruction once, again only when the choice changes: file `זה קובץ המקור של השיחה הזו: @path. קרא אותו ותתחיל לעבוד ממנו.`, folder `זו תיקיית המקור של השיחה הזו: @path. עבור על התוכן שלה ותתחיל לעבוד ממנה.` In memory only (decided 2026-11-05 in the discussion session); replaces the QuickPick and the "open file now" item of package H.
+- **Verified:** `node --test` 163/163 (the work-file tests rewritten for both instructions). **Not verified:** the dialog and the menu in real VS Code, and whether the CLI expands `@path` (step 2 of package I depends on `dev/check-at-mention.txt`). Review by Opus before merging, as the plan asks, was not done (the change is outside stream-json handling).
+
 ## 2026-11-05 (LaTeX math in assistant messages)
 - `$...# Changelog
 

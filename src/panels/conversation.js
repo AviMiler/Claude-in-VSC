@@ -85,7 +85,8 @@ class Conversation {
     this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
     this.agents = agentCards.createAgentCards(); // one card per sub-agent call (live only)
     this.entries = null;
-    this.workFile = null; // the file picked with the working-file button (null = follow the open file)
+    this.workFile = null; // the file or folder picked with the source button (null = none, the default)
+    this.workFileIsDir = false;
     this.lastWorkFileSent = null; // the file last handed to the model as an @mention
     this.models = new ModelSwitcher(this);
     this.subs = [
