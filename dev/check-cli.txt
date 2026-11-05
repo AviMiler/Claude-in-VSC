@@ -17,7 +17,8 @@
 שלב 0 - הכנה (פעם אחת בכל חלון PowerShell)
 ------------------------------------------------------------
 פתחו PowerShell (מקש Windows, הקלידו PowerShell, Enter) והדביקו את כל הבלוק. הוא מוצא את הקובץ האמיתי,
-מגדיר את אותם משתנים שהעטיפה מגדירה, ומדפיס גרסה. אם הוא מדפיס "לא נמצא", הדביקו לי את הפלט.
+מגדיר את אותם משתנים שהעטיפה מגדירה, ומדפיס גרסה. שלב 0 הוא שני בלוקים (מציאת הקובץ, ואחריו בחירת המודל מתחת):
+חובה להדביק את שניהם לפני בדיקה 1. בלי הבלוק הראשון המשתנה $claude ריק והבדיקות נכשלות עם "The expression after '&'". אם הוא מדפיס "לא נמצא", הדביקו לי את הפלט.
 
 $claude = 'C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe'
 if (-not (Test-Path $claude)) {
@@ -66,6 +67,7 @@ New-Item -ItemType Directory -Force $dir | Out-Null
 Set-Content -Path (Join-Path $dir 'secret.txt') -Value 'The secret word of this file is PINEAPPLE-7731' -Encoding utf8
 $abs = (Join-Path $dir 'secret.txt') -replace '\\','/'
 function Ask($label, $text) {
+  if (-not $claude -or -not (Test-Path $claude) -or -not $model) { Write-Host 'עצרו: קודם הריצו את שני הבלוקים של שלב 0 (מציאת הקובץ, ובחירת המודל).' -ForegroundColor Red; return }
   Write-Host "=== $label" -ForegroundColor Cyan
   $msg = @{ type = 'user'; message = @{ role = 'user'; content = @(@{ type = 'text'; text = $text }) } } | ConvertTo-Json -Depth 6 -Compress
   $out = $msg | & $claude --model $model -p --input-format stream-json --output-format stream-json --verbose --disallowedTools 'Read,Glob,Grep,Bash,Edit,Write,WebFetch'
@@ -98,6 +100,7 @@ Pop-Location
 
 הדביקו (אחרי שלב 0, באותו חלון):
 
+if (-not $claude -or -not (Test-Path $claude) -or -not $model) { throw 'עצרו: קודם הריצו את שני הבלוקים של שלב 0 (מציאת הקובץ, ובחירת המודל).' }
 $dir = Join-Path $env:TEMP 'cl-btw-test'
 New-Item -ItemType Directory -Force $dir | Out-Null
 function Msg($t) { @{ type = 'user'; message = @{ role = 'user'; content = @(@{ type = 'text'; text = $t }) } } | ConvertTo-Json -Depth 6 -Compress }
