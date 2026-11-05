@@ -198,6 +198,26 @@ test('model and mode changes are refused during a turn', async () => {
   }
 });
 
+test('/plan always gives a visible Hebrew result (F-5)', async () => {
+  const { c, posted } = setup();
+  try {
+    await until(() => c.sessionId);
+    const notices = () => posted.filter((m) => m.type === 'notice');
+    c.planCommand(true); // no plan yet
+    assert.strictEqual(notices().length, 1);
+    c.planCommand(false); // idle: switches and says so
+    assert.strictEqual(notices().length, 2);
+    assert.strictEqual(c.permissionMode, 'plan');
+    c.planCommand(false); // already in plan mode: still says so
+    assert.strictEqual(notices().length, 3);
+    c.send('slow please');
+    c.planCommand(false); // busy: setMode refuses with a notice
+    assert.strictEqual(notices().length, 4);
+  } finally {
+    c.dispose();
+  }
+});
+
 test('the model list comes from the gateway, filtered; the context meter follows get_context_usage', async () => {
   const http = require('http');
   const server = http.createServer((req, res) => {

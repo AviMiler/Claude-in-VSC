@@ -8,6 +8,7 @@ Newest first. Each entry: what changed + why. Dates are commit dates.
 
 ## 2026-11-05 (Fix 2 part 2: F-5 `/plan` visible result, F-13 local commands in the `/` menu)
 - **F-5:** `/plan` now posts a Hebrew notice ("עברתם למצב תכנון…", or "כבר במצב תכנון…" when already in plan mode); refused mid-turn it keeps the existing refusal notice. `/plan open` with no plan keeps its notice. Logged as `session /plan (mode, busy)`. Probable cause of "shows nothing": the mode pill changed silently and the plan document needs assistant text before `ExitPlanMode`.
+- **F-5/F-13 follow-up:** added the unit test "/plan always gives a visible Hebrew result" and the `spec.md` line for the local-commands group and the `/plan` notices. Test NOT run (no Node on this machine).
 - **F-13:** `/plan`, `/plan open` and `/diff` are listed in the `/` menu under a new group "פקודות של התוסף" (`slash-menu.js` LOCAL list); picking one runs it at once (no second Enter).
 - **Not verified:** no unit tests exist for this path and none were run (no Node); real VS Code untested.
 
