@@ -38,7 +38,7 @@ Approved: (1) `findReferences` + `goToDefinition`; (2) `documentSymbols` + `work
 4. **Navigation results shown in the chat:** the chat renders a navigation call as a compact Hebrew card ("מקומות שימוש של X: 12 תוצאות") whose lines open the file at that line in the editor. Gives the user the same view Claude has. Open: whether the chat already makes `path:line` clickable.
 5. **`signatureHelp`:** parameter list of a function being called (`vscode.executeSignatureHelpProvider`); largely overlaps `hover`, so probably skip.
 
-### 1.3 Design ideas — 💡
+### 1.3 Design ideas — ✅ approved 2026-11-05 as written (numbers adjustable after real use)
 - **Input by name, not position:** `file` + `symbol` (+ optional `line`) instead of raw line/column, because a local model gets positions wrong. The tool resolves the name through `documentSymbols` or a text match on that line.
 - **Size caps:** about 50 references and 2,000 characters per answer, ending with "N more not shown".
 - **Plain failure:** when a language has no provider, the tool says so, and Claude falls back to `Grep`.
