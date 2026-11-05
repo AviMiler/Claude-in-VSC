@@ -73,7 +73,7 @@ Updated: 2026-11-05. This is the **single source of truth for what to build next
 | `continueAfterReload` | **As a suggestion only**: "continue the last conversation", read from the transcripts | Contradicts "no restore after refresh", so it is implemented with no stored state | 👤 + ⚠️ |
 | Web tab | **No** | Anthropic cloud infrastructure, no internal server | 👤 |
 | Checkpoints | **Full:** fork, rewind code, both, Esc Esc | Verified: rewind worked when the process was started with `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` and `--replay-user-messages` (the saved setting `checkpoints=true` is not enough); fork works | 👤 + 🔧 |
-| Background | **A "move to background" button + a task map with stop** | Verified: `task_started`, `background_tasks_changed`, `stop_task` | 👤 + 🔧 |
+| Background | **A task map with a stop button. No "move to background" button** (decided 2026-11-05; the user had no preference, so the recommendation was adopted). Revisit only if a newer CLI adds a control request for it | Verified: `task_started`, `background_tasks_changed`, `stop_task`. The button cannot be built: four candidate control requests were all answered "Unsupported control request subtype" (`DECISIONS.md`, probe4) | 👤 + 🔧 |
 
 ### Stage 5: environment integration
 
@@ -91,7 +91,7 @@ Updated: 2026-11-05. This is the **single source of truth for what to build next
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
 | Display | **Focus view, timestamps, `spinnerVerbs`, `scrollToBottomOnSend`** | All chosen; light and independent | 👤 |
-| Collapsing user messages | **A function that collapses long user messages in the thread** (display only): a message above a set length shows its first lines with a "הצג עוד" / "כווץ" toggle; the text sent to the CLI and the saved transcript are not changed. The length limit is a proposed setting (`claudeLocal.collapseUserMessageLines`, proposed default 8 lines, not yet decided). Short messages are never collapsed | Requested 2026-11-02 on branch `develop`; read as display-only; to confirm with the user | 👤 (to confirm) |
+| Collapsing user messages | **A function that collapses long user messages in the thread** (display only): a message above a set length shows its first lines with a "הצג עוד" / "כווץ" toggle; the text sent to the CLI and the saved transcript are not changed. The length limit is a proposed setting (`claudeLocal.collapseUserMessageLines`, default 8 lines, decided 2026-11-05: the user had no preference, so the proposed default was adopted). Short messages are never collapsed | Requested 2026-11-02 on branch `develop`; read as display-only (confirmed as the default on 2026-11-05) | 👤 (no preference; default adopted) |
 | `useTerminal` | **A setting** that makes the main button open a terminal | Chosen | 👤 |
 | Accessibility | **Accessibility and colour settings** (`prefersReducedMotion`, daltonized) + **screen-reader announcements, speaker labels ("אתה"/"Claude") and navigation by headings** | Chosen; testing needs a real screen reader | 👤 |
 | More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
@@ -186,7 +186,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 5. When updating `spec.md` at the end of each package: also update the "Settings", "Placement" and "History" sections and "Verification status" according to what was built.
 6. ~~Cost removal and the mid-turn model switch~~ **Resolved 2026-11-01:** tokens only; the picker is disabled mid-turn with a "stop and switch" button and a detailed Hebrew explanation (see stage 5 and stage 8).
 7. ~~Defaults marked ⚠️ in section 4~~ **Approved 2026-11-01** as proposed. Package A is unblocked.
-8. **Retry after an error (stage 1 table, requested 2026-11-03):** ~~automatic or button~~ **Resolved 2026-11-05:** button only (the user had no preference; the proposed default adopted). Open only: the exact list of error types that show the button, to settle when building.
+8. **Retry after an error (stage 1 table, requested 2026-11-03):** ~~automatic or button~~ **Resolved 2026-11-05:** button only. The error types are also settled (2026-11-05, no preference, recommendation adopted): connection failures, the CLI failing to start, and sign-in errors; **not** model errors such as missing tool support, where repeating the same request does not help.
 9. **IDE lock file vs "the extension writes no files":** deliberately left open until the IDE server work starts (package F). When it does: first test whether an environment variable or `--ide` is enough with no file; otherwise a temporary lock file with cleanup (delete on deactivate, delete stale locks whose pid is dead), recorded as an explicit exception in `DECISIONS.md`.
 10. **Code navigation (decided 2026-11-05), checks for the prototype:** (a) that the CLI shows our MCP server's tools to the model when passed with `--mcp-config`, and which transport it accepts (localhost HTTP is the plan; stdio through a helper script is the alternative); (b) the token cost of the tool list, measured with the context meter before and after; (c) that the local model actually chooses `readSymbol` / `documentSymbols` over reading whole files; (d) whether a `jsconfig.json` improves cross-file results in React projects; (e) accuracy of `findImporters` and the reliability of `callHierarchy` in dynamic JS. Model for package H is proposed, not decided: ⚠️ Opus 5.5 for the hand-written MCP protocol part, Sonnet 5.5 for the tool functions.
 
@@ -228,4 +228,4 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 
 **Not decided here (in `FUTURE_FEATURES.md`):** navigation results as clickable cards in the chat, a repository map, "open at symbol", rename/refactor, and all .NET work.
 
-**First step (proposed, not yet approved):** a prototype with three tools (`documentSymbols`, `readSymbol`, `findReferences`) to check items (a)-(c) above before building the rest.
+**First step (asked 2026-11-05; the user asked whether it depends on the rest of the plan; answer: it depends only on packages A and E, which are done, not on F):** a prototype with three tools (`documentSymbols`, `readSymbol`, `findReferences`) to check items (a)-(c) above before building the rest.
