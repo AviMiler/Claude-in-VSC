@@ -1,6 +1,6 @@
 # Plan: every decision and its reason
 
-Updated: 2026-11-03. This is the **single source of truth for what to build next**. The old historical log (`features-plan.md`) was merged into this file and `DEPENDENCIES.md` and deleted; `DECISIONS.md` holds the architecture-level decisions in full format (alternatives and reasons). What exists today is described in `spec.md`; the measured facts behind the decisions are in `DEPENDENCIES.md`.
+Updated: 2026-11-05. This is the **single source of truth for what to build next**. The old historical log (`features-plan.md`) was merged into this file and `DEPENDENCIES.md` and deleted; `DECISIONS.md` holds the architecture-level decisions in full format (alternatives and reasons). What exists today is described in `spec.md`; the measured facts behind the decisions are in `DEPENDENCIES.md`.
 
 **Source of each decision:** 👤 the user decided (question and answer) · ✅ a recommendation the user approved · 🔧 derived from a check against the CLI/gateway (a factual reason) · ⚠️ my adjustment that was not asked explicitly (awaiting approval).
 
@@ -80,6 +80,7 @@ Updated: 2026-11-03. This is the **single source of truth for what to build next
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
 | IDE server | **A local WebSocket server + context + getDiagnostics.** `executeCode` (Jupyter): no. **A feasibility check first (my prototype)** | We need to know whether the CLI connects; if not, the chips fallback | 👤 |
+| Code navigation for Claude (future, not built; decided 2026-11-05) | **Tools backed by VS Code's own language features** (already LSP-backed; the extension runs no language server and installs nothing). **Delivered through an MCP server of our own** (passed to the CLI with `--mcp-config`, no lock file). The IDE server (next row) is **not** used for navigation; it keeps editor context and `openDiff`. **Scope now: JavaScript and React only** (the TypeScript language service built into VS Code); .NET/C# stays future development (`FUTURE_FEATURES.md` section 2). Tools, design and open checks: section 8 | Claude today navigates only by text (`Grep`/`Glob`/`Read`), which costs context in a 64,000 window; symbol-level answers are much smaller. Verified by the user on 2026-11-05: JS/React navigation works in VS Code with no extension installed; no C# extension is installed | 👤 |
 | MCP | **A full management dialog, including add and remove from the UI** (list + status, enable/disable, reconnect). OAuth: no | Verified: `mcp_status`, `mcp_reconnect`, `mcp_toggle` work, and so do `claude mcp add/remove` | 👤 + 🔧 |
 | Plugins and Mods | **Skip** | Marketplaces on GitHub, does not work offline | 👤 |
 | Git | **No change** (through Bash); no PR status | Already works, and the status needs GitHub | 👤 |
@@ -173,6 +174,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |
 | **E** ✅ done 2026-11-01 (branch `pkg-e-mcp`) | MCP, sign-in error card, URI (the usage line moved to D). **Still open:** nothing run in real VS Code; `claude mcp add -e` argument order and the live `mcp_status` shape unverified against the real CLI | A |
 | **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
+| **H** (future, proposed) | Code-navigation MCP server for JS/React (section 8): a small prototype first (three tools, with a token measurement), then the rest of the tools | A, E (MCP handling); independent of F |
 | **G** | Display and accessibility (Focus view, timestamps, screen reader), collapsing long user messages | – |
 
 ## 6. What is open
@@ -186,6 +188,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 7. ~~Defaults marked ⚠️ in section 4~~ **Approved 2026-11-01** as proposed. Package A is unblocked.
 8. **Retry after an error (stage 1 table, requested 2026-11-03):** to confirm which errors get the button, and whether it retries automatically or only on click (proposed: button only).
 9. **IDE lock file vs "the extension writes no files":** deliberately left open until the IDE server work starts (package F). When it does: first test whether an environment variable or `--ide` is enough with no file; otherwise a temporary lock file with cleanup (delete on deactivate, delete stale locks whose pid is dead), recorded as an explicit exception in `DECISIONS.md`.
+10. **Code navigation (decided 2026-11-05), checks for the prototype:** (a) that the CLI shows our MCP server's tools to the model when passed with `--mcp-config`, and which transport it accepts (localhost HTTP is the plan; stdio through a helper script is the alternative); (b) the token cost of the tool list, measured with the context meter before and after; (c) that the local model actually chooses `readSymbol` / `documentSymbols` over reading whole files; (d) whether a `jsconfig.json` improves cross-file results in React projects; (e) accuracy of `findImporters` and the reliability of `callHierarchy` in dynamic JS. Model for package H is proposed, not decided: ⚠️ Opus 5.5 for the hand-written MCP protocol part, Sonnet 5.5 for the tool functions.
 
 ## 7. IDE server: design notes
 
@@ -195,3 +198,34 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 - **Tools the server exposes:** `getDiagnostics` and `getOpenEditors` (through `mcp_message`), `openFile`, `openDiff` (uses package F's diff view) and `selection_changed` (editor context). `executeCode` (Jupyter): no.
 - **Fallback:** if the CLI does not connect, the editor context stays as chips above the box (section 2, stage 3).
 - **Tests:** unit tests for the codec and the frames (`ws-frames`), and a manual check that `/ide` recognizes the server.
+
+## 8. Code navigation MCP server: design (decided 2026-11-05)
+
+**Goal:** let Claude find and move around JS/React code by meaning (symbols, definitions, references) instead of only by text search, with small answers for the 64,000-token window.
+
+**Delivery:** the extension starts a small MCP server on `127.0.0.1` (random port, random token required in a header; hand-written JSON-RPC, no npm, no build) and passes it to the CLI with `--mcp-config`. It needs no lock file, so it does not touch the "the extension writes no files" rule. The IDE server (section 7) is separate and stays for editor context and `openDiff`. Both can exist side by side.
+
+**Tools** (each is one function registered in a list; `tools/list` is built from the list):
+| Tool | VS Code API | Returns |
+|---|---|---|
+| `findReferences` | `vscode.executeReferenceProvider` | Locations grouped by file, one line of source each |
+| `goToDefinition` | `vscode.executeDefinitionProvider` (+ type definition, implementation) | Location plus a few lines of the declaration |
+| `documentSymbols` | `vscode.executeDocumentSymbolProvider` | File outline (names, kinds, line ranges) |
+| `workspaceSymbols` | `vscode.executeWorkspaceSymbolProvider` | Matches by name across the workspace |
+| `hover` | `vscode.executeHoverProvider` | Type, signature, doc text (limited value in JS without TypeScript) |
+| `callHierarchy` (later) | `vscode.prepareCallHierarchy`, `vscode.provideIncomingCalls`, `vscode.provideOutgoingCalls` | Callers and callees; less reliable in dynamic JS |
+| `readSymbol` | `documentSymbols` ranges + reading the file | The exact source of one function, component or class, not the whole file |
+| `findImporters` | `findReferences` of the exported name; text-search fallback on `import … from` paths | Which files import a module (accuracy to verify) |
+
+`getDiagnostics` stays with the IDE server (section 2, stage 5). `documentSymbols` and `workspaceSymbols` take a `kind` filter (function, class, variable, component-like) to keep answers small.
+
+**Design rules:**
+- **Input by name:** `file` + `symbol` (optional `line`) instead of line and column, because a local model gets positions wrong; the tool resolves the name through `documentSymbols` or a text match on that line.
+- **Size caps:** at most 50 results and 2,000 characters per answer, ending with "N more not shown". The numbers can be adjusted after real use.
+- **Plain failure:** when a language has no provider (for example `.cs` files), the tool says so and Claude falls back to `Grep`.
+- **Token cost:** the tool list is sent with every request; keep descriptions short and parameters few (merge tools if it gets large). Measured in the prototype (section 6, item 10).
+- **Tests:** unit tests for the pure parts (result shaping, caps, name-to-position, the JSON-RPC handling) with fake provider results; a manual check in real VS Code.
+
+**Not decided here (in `FUTURE_FEATURES.md`):** navigation results as clickable cards in the chat, a repository map, "open at symbol", rename/refactor, and all .NET work.
+
+**First step (proposed, not yet approved):** a prototype with three tools (`documentSymbols`, `readSymbol`, `findReferences`) to check items (a)-(c) above before building the rest.
