@@ -20,6 +20,12 @@ test('resume and model are appended', () => {
   assert.ok(a.join(' ').endsWith('--permission-mode plan --resume abc --model sonnet'));
 });
 
+test('settings are passed as one compact JSON argument after --settings', () => {
+  const a = buildArgs({ settings: { env: { ANTHROPIC_DEFAULT_HAIKU_MODEL: 'qwen2.5:7b' } } });
+  assert.strictEqual(a[a.indexOf('--settings') + 1], '{"env":{"ANTHROPIC_DEFAULT_HAIKU_MODEL":"qwen2.5:7b"}}');
+  assert.ok(!buildArgs({ settings: null }).includes('--settings'));
+});
+
 test('bypass is only allowed when the setting asks for it', () => {
   assert.ok(!buildArgs().includes('--allow-dangerously-skip-permissions'));
   assert.ok(buildArgs({ allowBypass: true }).includes('--allow-dangerously-skip-permissions'));

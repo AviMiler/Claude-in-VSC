@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const http = require('http');
 const { resolveGatewayUrl, fetchModels } = require('../src/models/gateway');
 const { filterModels, isNoToolsError } = require('../src/models/filter');
-const { modelEnv } = require('../src/models/launch');
+const { launchSettings, contextWindow } = require('../src/models/launch');
 const { parseContextUsage } = require('../src/panels/context-meter');
 
 // The shape of LiteLLM's /v1/model/info as recorded in DEPENDENCIES.md section 3.3.
@@ -35,18 +35,50 @@ test('isNoToolsError matches the gateway error text only', () => {
   assert.ok(!isNoToolsError(undefined));
 });
 
-test('modelEnv points all three aliases at the chosen model; nothing for the default', () => {
-  assert.deepStrictEqual(modelEnv('gpt-oss:20b'), {
-    ANTHROPIC_DEFAULT_OPUS_MODEL: 'gpt-oss:20b',
-    ANTHROPIC_DEFAULT_SONNET_MODEL: 'gpt-oss:20b',
-    ANTHROPIC_DEFAULT_HAIKU_MODEL: 'gpt-oss:20b',
+test('launchSettings points every alias at the chosen model; nothing for the default (F-8)', () => {
+  assert.deepStrictEqual(launchSettings({ model: 'gpt-oss:20b' }), {
+    env: {
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'gpt-oss:20b',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'gpt-oss:20b',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'gpt-oss:20b',
+      ANTHROPIC_SMALL_FAST_MODEL: 'gpt-oss:20b',
+    },
   });
-  assert.deepStrictEqual(modelEnv('default'), {});
-  assert.deepStrictEqual(modelEnv(undefined), {});
+  assert.strictEqual(launchSettings({ model: 'default' }), null);
+  assert.strictEqual(launchSettings({ model: undefined, environmentVariables: {} }), null);
+  assert.strictEqual(launchSettings(), null);
+});
+
+test('launchSettings carries a configured window and turns 1M off, for the default model too (F-9)', () => {
+  const env = { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000', API_TIMEOUT_MS: '1200000' };
+  assert.deepStrictEqual(launchSettings({ model: 'default', environmentVariables: env }), {
+    env: { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000', CLAUDE_CODE_DISABLE_1M_CONTEXT: '1' },
+  });
+  const both = launchSettings({ model: 'qwen2.5:7b', environmentVariables: env }).env;
+  assert.strictEqual(both.ANTHROPIC_DEFAULT_HAIKU_MODEL, 'qwen2.5:7b');
+  assert.strictEqual(both.CLAUDE_CODE_DISABLE_1M_CONTEXT, '1');
+  assert.strictEqual(both.API_TIMEOUT_MS, undefined, 'other variables stay in the process environment');
+});
+
+test('contextWindow accepts only a positive integer', () => {
+  assert.strictEqual(contextWindow({ CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000' }), 64000);
+  assert.strictEqual(contextWindow({ CLAUDE_CODE_MAX_CONTEXT_TOKENS: 32000 }), 32000);
+  for (const bad of ['', '0', '-5', '6.5', 'abc', null]) {
+    assert.strictEqual(contextWindow({ CLAUDE_CODE_MAX_CONTEXT_TOKENS: bad }), null, String(bad));
+  }
+  assert.strictEqual(contextWindow({}), null);
+  assert.strictEqual(contextWindow(undefined), null);
+});
+
+test('parseContextUsage caps the CLI maximum at the configured window (F-9)', () => {
+  const r = { totalTokens: 3575, maxTokens: 1000000, model: 'qwen3.8:27b[1m]' };
+  assert.deepStrictEqual(parseContextUsage(r, 64000), { used: 3575, max: 64000, cliMax: 1000000, model: 'qwen3.8:27b[1m]' });
+  assert.strictEqual(parseContextUsage(r, null).max, 1000000);
+  assert.strictEqual(parseContextUsage({ totalTokens: 1, maxTokens: 32000 }, 64000).max, 32000, 'a smaller CLI window is kept');
 });
 
 test('parseContextUsage needs both totalTokens and a positive maxTokens', () => {
-  assert.deepStrictEqual(parseContextUsage({ totalTokens: 23400, maxTokens: 64000, categories: [] }), { used: 23400, max: 64000 });
+  assert.deepStrictEqual(parseContextUsage({ totalTokens: 23400, maxTokens: 64000, categories: [] }), { used: 23400, max: 64000, cliMax: 64000, model: '' });
   assert.strictEqual(parseContextUsage({ totalTokens: 1 }), null);
   assert.strictEqual(parseContextUsage({ totalTokens: 1, maxTokens: 0 }), null);
   assert.strictEqual(parseContextUsage(null), null);
