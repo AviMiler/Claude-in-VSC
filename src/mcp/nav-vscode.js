@@ -25,6 +25,27 @@ function createVscodeNavDeps() {
         uri,
         new vscode.Position(pos.line, pos.character),
       ),
+    // Symbols matching a name across the workspace; returned as is (nav-tools reads name, kind, location).
+    executeWorkspaceSymbolProvider: (query) =>
+      vscode.commands.executeCommand('vscode.executeWorkspaceSymbolProvider', query),
+    // Hover text (type info, docs) at a position.
+    executeHoverProvider: (uri, pos) =>
+      vscode.commands.executeCommand(
+        'vscode.executeHoverProvider',
+        uri,
+        new vscode.Position(pos.line, pos.character),
+      ),
+    // Call-hierarchy items for the symbol at a position; the input for incomingCalls/outgoingCalls.
+    prepareCallHierarchy: (uri, pos) =>
+      vscode.commands.executeCommand(
+        'vscode.prepareCallHierarchy',
+        uri,
+        new vscode.Position(pos.line, pos.character),
+      ),
+    // Who calls this item (item comes from prepareCallHierarchy).
+    incomingCalls: (item) => vscode.commands.executeCommand('vscode.provideIncomingCalls', item),
+    // What this item calls (item comes from prepareCallHierarchy).
+    outgoingCalls: (item) => vscode.commands.executeCommand('vscode.provideOutgoingCalls', item),
     readFile: (p) => fs.promises.readFile(p, 'utf8'),
     searchWorkspaceText,
   };

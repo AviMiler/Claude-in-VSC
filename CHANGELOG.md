@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-06 (package H batch 3: workspaceSymbols, hover, callHierarchy)
+- **Added:** `workspaceSymbols` (kind filter, workspace-only), `hover` (plain text, 2,000 chars), `callHierarchy` (incoming|outgoing, with a "less reliable in dynamic JavaScript" note). Eight tools now. Caps, path limit and injected deps unchanged.
+- **Verified:** unit tests 180/180 (fake deps); Verify = GO.
+- **Not verified:** all three in real VS Code and against the real CLI; checks (c), (d), (e) open; tool-list token cost with eight tools unmeasured.
+- **Deviation:** the call-hierarchy note is appended after the cap, so a capped answer can exceed 2,000 characters by about 50. Accepted for now.
+- **Why:** `PLAN.md` section 8 table.
+
 ## 2026-11-06 (package H batch 2: goToDefinition, findImporters, documentSymbols filter)
 - **Added:** `goToDefinition` and `findImporters` in `nav-tools.js` (deps supplied by `nav-vscode.js`, which also gained a workspace text search returning 1-based lines). `documentSymbols` now drops `<unknown>` entries and export-shorthand property duplicates, keeping real properties. Caps (50 / 2,000) and the workspace path limit unchanged.
 - **Verified:** unit tests 175/175 (fake deps); Verify = GO.

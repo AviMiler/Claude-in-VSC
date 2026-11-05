@@ -27,8 +27,8 @@ function make(over) {
   });
 }
 
-test('TOOLS: five short-described tools', () => {
-  assert.deepStrictEqual(TOOLS.map((t) => t.name), ['documentSymbols', 'readSymbol', 'findReferences', 'goToDefinition', 'findImporters']);
+test('TOOLS: eight short-described tools', () => {
+  assert.deepStrictEqual(TOOLS.map((t) => t.name), ['documentSymbols', 'readSymbol', 'findReferences', 'goToDefinition', 'findImporters', 'workspaceSymbols', 'hover', 'callHierarchy']);
   for (const t of TOOLS) assert.ok(t.description.length < 100);
 });
 
@@ -236,4 +236,76 @@ test('findImporters: only-self references use fallback; none, cap and missing de
   assert.strictEqual(lines[50], '10 more not shown');
   const nodep = make({ searchWorkspaceText: undefined });
   assert.strictEqual((await nodep.call('findImporters', { file: FILE })).text, 'not available here');
+});
+
+const wsym = (name, kind, p, l) => ({ name, kind, location: { uri: { fsPath: p }, range: rng(l, l) } });
+
+test('workspaceSymbols: shaping, kind filter, outside dropped, empty, bad kind, missing dep, cap', async () => {
+  const t = make({
+    executeWorkspaceSymbolProvider: async (q) => {
+      assert.strictEqual(q, 'foo');
+      return [wsym('foo', 11, FILE, 0), wsym('Foo', 4, OTHER, 9), wsym('foo2', 11, OUTSIDE, 1), wsym('fooV', 12, OTHER, 3)];
+    },
+  });
+  assert.deepStrictEqual((await t.call('workspaceSymbols', { query: 'foo' })).text.split('\n'), ['function foo a.js:1', 'class Foo b.js:10', 'variable fooV b.js:4']);
+  assert.strictEqual((await t.call('workspaceSymbols', { query: 'foo', kind: 'class' })).text, 'class Foo b.js:10');
+  assert.ok((await t.call('workspaceSymbols', { query: 'foo', kind: 'bogus' })).error);
+  const none = make({ executeWorkspaceSymbolProvider: async () => [wsym('z', 11, OUTSIDE, 0)] });
+  assert.strictEqual((await none.call('workspaceSymbols', { query: 'z' })).text, 'no symbols match');
+  let called = false;
+  const e = make({ executeWorkspaceSymbolProvider: async () => { called = true; return []; } });
+  const er = await e.call('workspaceSymbols', { query: '  ' });
+  assert.ok(!er.error && er.text && !called);
+  assert.strictEqual((await make().call('workspaceSymbols', { query: 'x' })).text, 'not available here');
+  const many = Array.from({ length: 60 }, (_, i) => wsym('s' + i, 11, FILE, i));
+  const lines = (await make({ executeWorkspaceSymbolProvider: async () => many }).call('workspaceSymbols', { query: 's' })).text.split('\n');
+  assert.strictEqual(lines.length, 51);
+  assert.strictEqual(lines[50], '10 more not shown');
+});
+
+test('hover: flattens string, MarkdownString and {value}; empty, cap, missing dep, access', async () => {
+  const t = make({
+    executeHoverProvider: async (uri, pos) => {
+      assert.deepStrictEqual(pos, { line: 0, character: 9 });
+      return [{ contents: [{ value: ' function foo(): number ' }, 'docs here'] }, { contents: { value: '' } }, { contents: 'more' }];
+    },
+  });
+  assert.strictEqual((await t.call('hover', { file: FILE, symbol: 'foo' })).text, 'function foo(): number\n\ndocs here\n\nmore');
+  const empty = make({ executeHoverProvider: async () => [] });
+  assert.strictEqual((await empty.call('hover', { file: FILE, symbol: 'foo' })).text, 'no hover info');
+  const big = make({ executeHoverProvider: async () => [{ contents: ['x'.repeat(3000)] }] });
+  assert.strictEqual((await big.call('hover', { file: FILE, symbol: 'foo' })).text.length, 2000);
+  assert.strictEqual((await make().call('hover', { file: FILE, symbol: 'foo' })).text, 'not available here');
+  assert.match((await empty.call('hover', { file: OUTSIDE, symbol: 'foo' })).text, /^no access/);
+});
+
+const item = (name, p, l) => ({ name, uri: { fsPath: p }, range: rng(l, l), selectionRange: rng(l, l) });
+const NOTE = 'call hierarchy is less reliable in dynamic JavaScript';
+
+test('callHierarchy: incoming and outgoing shaping, outside dropped, note appended', async () => {
+  const t = make({
+    prepareCallHierarchy: async (uri, pos) => { assert.deepStrictEqual(pos, { line: 0, character: 9 }); return [item('foo', FILE, 0)]; },
+    incomingCalls: async (it) => { assert.strictEqual(it.name, 'foo'); return [{ from: item('caller', OTHER, 4) }, { from: item('ext', OUTSIDE, 1) }]; },
+    outgoingCalls: async () => [{ to: item('callee', OTHER, 1) }, { to: item('ext', OUTSIDE, 1) }],
+  });
+  assert.strictEqual((await t.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'caller b.js:5\n' + NOTE);
+  assert.strictEqual((await t.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'outgoing' })).text, 'callee b.js:2\n' + NOTE);
+});
+
+test('callHierarchy: direction validation, unsupported, empty, cap, missing dep', async () => {
+  const base = { prepareCallHierarchy: async () => [item('foo', FILE, 0)], incomingCalls: async () => [], outgoingCalls: async () => [] };
+  const t = make(base);
+  assert.ok((await t.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'sideways' })).error);
+  assert.ok((await t.call('callHierarchy', { file: FILE, symbol: 'foo' })).error);
+  assert.strictEqual((await t.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'no incoming calls found');
+  const unsupported = make({ ...base, prepareCallHierarchy: async () => [] });
+  assert.strictEqual((await unsupported.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'no call hierarchy here (not supported for this language)');
+  const many = Array.from({ length: 60 }, (_, i) => ({ from: item('c' + i, OTHER, i) }));
+  const lines = (await make({ ...base, incomingCalls: async () => many }).call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text.split('\n');
+  assert.strictEqual(lines.length, 52);
+  assert.strictEqual(lines[50], '10 more not shown');
+  assert.strictEqual(lines[51], NOTE);
+  assert.strictEqual((await make().call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'not available here');
+  const noIn = make({ ...base, incomingCalls: undefined });
+  assert.strictEqual((await noIn.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'not available here');
 });

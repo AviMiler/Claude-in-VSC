@@ -1,5 +1,7 @@
 // Code navigation tools (package H prototype): documentSymbols, readSymbol, findReferences,
-// goToDefinition, findImporters.
+// goToDefinition, findImporters, workspaceSymbols, hover, callHierarchy.
+// Also: executeWorkspaceSymbolProvider(query), executeHoverProvider(uri,pos), prepareCallHierarchy(uri,pos),
+// incomingCalls(item), outgoingCalls(item). A missing dep makes that tool answer "not available here".
 // Deps read (all injected): workspaceFolders, toUri, openDocument?, readFile, executeDocumentSymbolProvider,
 // executeReferenceProvider(uri,pos), findSymbolPosition?(uri,name), executeDefinitionProvider(uri,pos),
 // searchWorkspaceText(pattern, folders) -> Promise<Array<{ path, line (1-based), text }>>.
@@ -82,6 +84,45 @@ const TOOLS = [
       type: 'object',
       properties: { file: { type: 'string', description: 'Module file path' } },
       required: ['file'],
+    },
+  },
+  {
+    name: 'workspaceSymbols',
+    description: 'Search symbols by name across the workspace.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Name or part of a name' },
+        kind: { type: 'string', enum: ['function', 'class', 'variable'], description: 'Optional filter' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'hover',
+    description: 'Get the type/signature and docs of a symbol.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', description: 'File path' },
+        symbol: { type: 'string', description: 'Symbol name' },
+        line: { type: 'number', description: 'Optional 1-based line to pick between same-named symbols' },
+      },
+      required: ['file', 'symbol'],
+    },
+  },
+  {
+    name: 'callHierarchy',
+    description: 'List the callers (incoming) or callees (outgoing) of a function.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', description: 'File path' },
+        symbol: { type: 'string', description: 'Function name' },
+        direction: { type: 'string', enum: ['incoming', 'outgoing'], description: 'Callers or callees' },
+        line: { type: 'number', description: 'Optional 1-based line to pick between same-named symbols' },
+      },
+      required: ['file', 'symbol', 'direction'],
     },
   },
 ];
@@ -329,7 +370,81 @@ function createNavTools(deps) {
     return { text: items.length ? capLines(items) : 'no importers found' };
   }
 
-  const impl = { documentSymbols, readSymbol, findReferences, goToDefinition, findImporters };
+  async function workspaceSymbols(args) {
+    if (!deps.executeWorkspaceSymbolProvider) return { text: NOT_AVAILABLE };
+    const query = String(args.query || '').trim();
+    if (!query) return { text: 'give a non-empty query' };
+    const group = KIND_GROUPS[args.kind];
+    if (args.kind && !group) return { error: 'kind must be function, class or variable' };
+    const found = await deps.executeWorkspaceSymbolProvider(query);
+    const items = [];
+    for (const s of Array.isArray(found) ? found : []) {
+      const p = filePathOf(s.location);
+      if (!p || !isInsideWorkspace(p, folders) || (group && !group.includes(s.kind))) continue;
+      const r = s.location.range;
+      items.push(`${KIND_NAMES[s.kind] || 'symbol'} ${s.name} ${relOf(p)}:${(r ? r.start.line : 0) + 1}`);
+    }
+    return { text: items.length ? capLines(items) : 'no symbols match' };
+  }
+
+  // Shared by hover and callHierarchy: file + symbol (+ line) -> { uri, pos } or { text }.
+  async function locate(args) {
+    const abs = resolvePath(args.file);
+    if (!abs) return { text: NO_ACCESS };
+    const name = String(args.symbol || '');
+    const { uri, symbols } = await loadSymbols(abs);
+    let pos = resolveSymbolPosition(symbols, name, args.line);
+    if (!pos && deps.findSymbolPosition) pos = await deps.findSymbolPosition(uri, name);
+    if (!pos) return { text: symbols.length ? `symbol "${name}" not found in this file` : NO_PROVIDER };
+    return { uri, pos };
+  }
+
+  const hoverPart = (c) => (typeof c === 'string' ? c : c && typeof c.value === 'string' ? c.value : '');
+
+  async function hover(args) {
+    if (!deps.executeHoverProvider) return { text: NOT_AVAILABLE };
+    const at = await locate(args);
+    if (!at.uri) return at;
+    const hovers = await deps.executeHoverProvider(at.uri, at.pos);
+    const parts = [];
+    for (const h of Array.isArray(hovers) ? hovers : []) {
+      const cs = h && h.contents;
+      for (const c of Array.isArray(cs) ? cs : [cs]) {
+        const t = hoverPart(c).trim();
+        if (t) parts.push(t);
+      }
+    }
+    const text = parts.join('\n\n').trim();
+    return { text: text ? text.slice(0, MAX_CHARS) : 'no hover info' };
+  }
+
+  const CALL_NOTE = 'call hierarchy is less reliable in dynamic JavaScript';
+
+  async function callHierarchy(args) {
+    if (!deps.prepareCallHierarchy) return { text: NOT_AVAILABLE };
+    const dir = args.direction;
+    if (dir !== 'incoming' && dir !== 'outgoing') return { error: 'direction must be incoming or outgoing' };
+    const fetchCalls = dir === 'incoming' ? deps.incomingCalls : deps.outgoingCalls;
+    if (!fetchCalls) return { text: NOT_AVAILABLE };
+    const at = await locate(args);
+    if (!at.uri) return at;
+    const prepared = await deps.prepareCallHierarchy(at.uri, at.pos);
+    const item = Array.isArray(prepared) ? prepared[0] : prepared;
+    if (!item) return { text: 'no call hierarchy here (not supported for this language)' };
+    const calls = await fetchCalls(item);
+    const items = [];
+    for (const c of Array.isArray(calls) ? calls : []) {
+      const it = c && (dir === 'incoming' ? c.from : c.to);
+      const p = it && filePathOf(it);
+      if (!p || !isInsideWorkspace(p, folders)) continue;
+      const r = it.selectionRange || it.range;
+      items.push(`${it.name} ${relOf(p)}:${(r ? r.start.line : 0) + 1}`);
+    }
+    if (!items.length) return { text: `no ${dir} calls found` };
+    return { text: capLines(items) + '\n' + CALL_NOTE };
+  }
+
+  const impl = { documentSymbols, readSymbol, findReferences, goToDefinition, findImporters, workspaceSymbols, hover, callHierarchy };
 
   async function call(name, args) {
     const fn = impl[name];

@@ -42,6 +42,30 @@ test('executeDefinitionProvider passes uri and Position', async () => {
   assert.deepStrictEqual([pos.line, pos.character], [3, 7]);
 });
 
+test('symbol, hover and call-hierarchy deps call the right commands', async () => {
+  const deps = createVscodeNavDeps();
+  const p = { line: 2, character: 5 };
+  const cases = [
+    [() => deps.executeWorkspaceSymbolProvider('foo'), 'vscode.executeWorkspaceSymbolProvider', 'foo', false],
+    [() => deps.executeHoverProvider('U', p), 'vscode.executeHoverProvider', 'U', true],
+    [() => deps.prepareCallHierarchy('U', p), 'vscode.prepareCallHierarchy', 'U', true],
+    [() => deps.incomingCalls('I'), 'vscode.provideIncomingCalls', 'I', false],
+    [() => deps.outgoingCalls('I'), 'vscode.provideOutgoingCalls', 'I', false],
+  ];
+  for (const [run, id, arg, hasPos] of cases) {
+    await run();
+    const c = calls.at(-1);
+    assert.strictEqual(c[0], id);
+    assert.strictEqual(c[1], arg);
+    if (hasPos) {
+      assert.ok(c[2] instanceof fakeVscode.Position);
+      assert.deepStrictEqual([c[2].line, c[2].character], [2, 5]);
+    } else {
+      assert.strictEqual(c.length, 2);
+    }
+  }
+});
+
 test('searchWorkspaceText returns 1-based matches, skips big and missing files', async () => {
   fileList = [a, big, missing];
   const res = await createVscodeNavDeps().searchWorkspaceText("\\./b'", [dir]);
