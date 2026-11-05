@@ -15,6 +15,7 @@ This is a **parking place for ideas**. Nothing here is decided, scheduled or bui
 - **The user's languages (2026-11-05):** JavaScript + React (no TypeScript) and C# on .NET 6.
   - JS/JSX: covered by the TypeScript language service built into VS Code; nothing to install. A `jsconfig.json` in the project makes cross-file results more accurate (an assumption to verify).
   - C#: needs a C# extension and the .NET SDK on the machine. **Unknown:** whether one is installed, which one (C# or C# Dev Kit), and whether it works offline. Some versions download language-server components on first use, and VS Code 1.91.1 limits which extension versions can be used. Do not assume it works; check on the machine.
+  - **Result of the user's check (2026-11-05):** no extensions are installed in VS Code; JS/React navigation is confirmed to work; C# is probably used only in Visual Studio, not VS Code. So **C# navigation is out of scope for now**: Claude falls back to `Grep`/`Glob`/`Read` on `.cs` files. It could be added later by bringing a C# extension (a file) into the machine, treated as a special case; not planned.
   - Per `AGENT_CONTEXT.md` (no internet), the extension must not install anything itself.
 
 ### 1.2 Candidate tools — 💡
@@ -48,6 +49,6 @@ This is a **parking place for ideas**. Nothing here is decided, scheduled or bui
 
 ### 1.7 Open questions
 1. Does the CLI show extra IDE-server tools to the model, or only `getDiagnostics`? (prototype)
-2. ~~Which languages?~~ JS/React and C# (.NET 6). Still open: is a C# extension installed and does its navigation work offline (go to definition, find references) on the user's machine?
+2. ~~Which languages?~~ Answered: JS/React works; C# is not available in VS Code (out of scope for now).
 3. Is the repository map worth a tool, given that `Glob` and `documentSymbols` already exist?
 4. Where in the build order: after package F's IDE prototype, or independent of it (Option B)?
