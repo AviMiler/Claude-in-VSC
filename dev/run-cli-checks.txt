@@ -1,8 +1,9 @@
 ﻿# Claude Code Local - בדיקות CLI בהרצה אחת (בלי התוסף).
-# הרצה:  powershell -ExecutionPolicy Bypass -File C:\Users\user\Claude-in-VSC\dev\run-cli-checks.ps1
-# בלי שאלה על המודל:  ... -File ...\run-cli-checks.ps1 -Model qwen3.8:27b
+# הרצה: מעתיקים את כל הקובץ הזה ומדביקים ב-PowerShell (בלי שאלות באמצע). המודל נקבע בשורה הראשונה למטה.
 # התוצאה מודפסת וגם נשמרת בקובץ: %TEMP%\cl-cli-results.txt (אפשר להעתיק משם).
-param([string]$Model = '')
+# גרסה 2: ההודעות מועברות לקובץ (לא בצינור), ו-stdout / stderr / קוד יציאה נשמרים בנפרד, כדי לראות למה אין פלט.
+
+$Model = 'qwen3.8:27b'
 
 $ErrorActionPreference = 'Continue'
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -12,7 +13,6 @@ Start-Transcript -Path $resultsFile -Force | Out-Null
 
 function Section($t) { Write-Host ''; Write-Host ('=== ' + $t) -ForegroundColor Cyan }
 
-# ---------- שלב 0: מציאת הקובץ, סביבה, מודל ----------
 Section 'שלב 0: הכנה'
 $claude = 'C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe'
 if (-not (Test-Path $claude)) {
@@ -20,28 +20,35 @@ if (-not (Test-Path $claude)) {
   $found = if ($cmd) { Get-ChildItem (Split-Path $cmd) -Recurse -Filter claude-bin.exe -ErrorAction SilentlyContinue | Select-Object -First 1 }
   if ($found) { $claude = $found.FullName }
 }
-if (-not (Test-Path $claude)) {
-  Write-Host 'לא נמצא claude-bin.exe. עצרו והעתיקו לי את הפלט.' -ForegroundColor Red
-  Stop-Transcript | Out-Null; return
-}
+if (-not (Test-Path $claude)) { Write-Host 'לא נמצא claude-bin.exe. עצרו והעתיקו לי את הפלט.' -ForegroundColor Red }
 'נמצא: ' + $claude
 $env:API_TIMEOUT_MS = '1200000'
 $env:CLAUDE_ENABLE_STREAM_WATCHDOG = '0'
 'גרסה: ' + (& $claude --version)
-
-if (-not $Model) {
-  $ids = @()
-  try { $ids = (Invoke-RestMethod 'http://172.27.5.5:11436/v1/models' -TimeoutSec 10).data.id } catch {}
-  if (-not $ids) { $ids = 'qwen2.5-coder:7b','qwen2.5:7b','gpt-oss:20b','gemma4:26b','gemma3:27b','gemma4:31b','qwen3:latest','llama3.1:70b','gpt-oss:120b','qwen3.8:27b' }
-  for ($i = 0; $i -lt $ids.Count; $i++) { '{0}. {1}' -f ($i + 1), $ids[$i] }
-  $pick = Read-Host 'מספר מודל (Enter = qwen3.8:27b)'
-  $Model = if ($pick -match '^\d+$' -and [int]$pick -ge 1 -and [int]$pick -le $ids.Count) { $ids[[int]$pick - 1] } else { 'qwen3.8:27b' }
-}
-'המודל שנבחר: ' + $Model
+'המודל: ' + $Model
 
 function Msg($t) { @{ type = 'user'; message = @{ role = 'user'; content = @(@{ type = 'text'; text = $t }) } } | ConvertTo-Json -Depth 6 -Compress }
 
-# ---------- בדיקה 1: האם @ מורחב ----------
+# מריץ את ה-CLI כשהקלט בא מקובץ והפלט נכתב לקבצים. מחזיר קוד יציאה, שורות stdout ושורות stderr.
+function RunClaude($lines, $extra, $workDir) {
+  $in = Join-Path $env:TEMP 'cl-in.json'; $o = Join-Path $env:TEMP 'cl-out.txt'; $e = Join-Path $env:TEMP 'cl-err.txt'
+  [System.IO.File]::WriteAllText($in, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+  Remove-Item $o, $e -ErrorAction SilentlyContinue
+  $argList = @('--model', $Model, '-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose') + @($extra)
+  $p = Start-Process -FilePath $claude -ArgumentList $argList -WorkingDirectory $workDir -RedirectStandardInput $in -RedirectStandardOutput $o -RedirectStandardError $e -NoNewWindow -Wait -PassThru
+  [pscustomobject]@{
+    Code = $p.ExitCode
+    Out  = @(Get-Content $o -Encoding UTF8 -ErrorAction SilentlyContinue)
+    Err  = @(Get-Content $e -Encoding UTF8 -ErrorAction SilentlyContinue)
+  }
+}
+
+function Diag($r) {
+  'קוד יציאה: ' + $r.Code + ' | שורות stdout: ' + $r.Out.Count + ' | שורות stderr: ' + $r.Err.Count
+  if ($r.Err.Count) { 'stderr (עד 8 שורות):'; $r.Err | Select-Object -First 8 }
+  if ($r.Out.Count -and -not ($r.Out | Where-Object { $_ -match '"type":"result"' })) { 'stdout (עד 5 שורות, בלי result):'; $r.Out | Select-Object -First 5 | ForEach-Object { if ($_.Length -gt 300) { $_.Substring(0, 300) + '...' } else { $_ } } }
+}
+
 Section 'בדיקה 1: האם ה-CLI מרחיב @ (כלי קריאה וחיפוש חסומים)'
 $dir = Join-Path $env:TEMP 'cl-at-test'
 New-Item -ItemType Directory -Force $dir | Out-Null
@@ -49,22 +56,17 @@ Set-Content -Path (Join-Path $dir 'secret.txt') -Value 'The secret word of this 
 $abs = (Join-Path $dir 'secret.txt') -replace '\\', '/'
 function Ask($label, $text) {
   Write-Host ('--- ' + $label) -ForegroundColor Yellow
-  $out = (Msg $text) | & $claude --model $Model -p --input-format stream-json --output-format stream-json --verbose --disallowedTools 'Read,Glob,Grep,Bash,Edit,Write,WebFetch'
-  $got = $false
-  foreach ($line in $out) {
-    try { $j = $line | ConvertFrom-Json } catch { continue }
-    if ($j.type -eq 'result') { $got = $true; 'תשובה: ' + $j.result }
-  }
-  if (-not $got) { 'לא התקבלה תשובה. הפלט הגולמי:'; $out | Select-Object -First 5 }
+  $r = RunClaude @((Msg $text)) @('--disallowedTools', 'Read,Glob,Grep,Bash,Edit,Write,WebFetch') $dir
+  $res = $null
+  foreach ($l in $r.Out) { try { $j = $l | ConvertFrom-Json } catch { continue }; if ($j.type -eq 'result') { $res = $j } }
+  if ($res) { 'תשובה: [' + $res.result + ']  (is_error=' + $res.is_error + ')' } else { 'לא התקבלה תשובה.' }
+  if (-not $res -or $res.is_error) { Diag $r }
 }
-Push-Location $dir
 Ask '1: @ with full path' "@$abs What is the secret word in this file? Answer with one word."
 Ask '2: @ with relative path' "@secret.txt What is the secret word in this file? Answer with one word."
 Ask '3: control, no @ (should fail)' "What is the secret word in the file secret.txt in the current folder? Answer with one word."
 Ask '4: explicit instruction, no tools' "Start your work from the file @$abs. What is the secret word in it? Answer with one word."
-Pop-Location
 
-# ---------- בדיקה 2: /btw ----------
 Section 'בדיקה 2: /btw'
 $dir2 = Join-Path $env:TEMP 'cl-btw-test'
 New-Item -ItemType Directory -Force $dir2 | Out-Null
@@ -74,11 +76,9 @@ $lines = @(
   (Msg '/btw Use a tool to list the files in the current folder.'),
   (Msg 'What number did I ask you to remember? Answer with the number only.')
 )
-Push-Location $dir2
-$out = $lines | & $claude --model $Model -p --input-format stream-json --output-format stream-json --verbose
-Pop-Location
+$r = RunClaude $lines @() $dir2
 $sid = $null
-foreach ($l in $out) {
+foreach ($l in $r.Out) {
   try { $j = $l | ConvertFrom-Json } catch { continue }
   if ($j.type -eq 'system' -and $j.subtype -eq 'init') { $sid = $j.session_id; 'init: btw ברשימת הפקודות = ' + ($j.slash_commands -contains 'btw') + ' | model=' + $j.model }
   elseif ($j.type -eq 'result') { 'result[' + $j.subtype + ']: ' + $j.result }
@@ -89,7 +89,7 @@ foreach ($l in $out) {
   }
   elseif ($j.type -ne 'stream_event') { 'אחר: ' + $j.type + '/' + $j.subtype }
 }
-if (-not $sid) { 'לא התקבל מזהה שיחה (init). הפלט הגולמי:'; $out | Select-Object -First 5 }
+if (-not $sid) { 'לא התקבל מזהה שיחה (init).'; Diag $r }
 else {
   $enc = $dir2 -replace '[^A-Za-z0-9]', '-'
   $tr = Join-Path $env:USERPROFILE ".claude\projects\$enc\$sid.jsonl"
@@ -100,7 +100,6 @@ else {
   } else { 'קובץ התמלול לא נמצא' }
 }
 
-# ---------- בדיקה 4: חלון ההקשר ----------
 Section 'בדיקה 3: חלון ההקשר (/api/ps, המודל חייב להיות טעון עכשיו)'
 try {
   Invoke-RestMethod http://172.27.5.5:11435/api/ps | Select-Object -ExpandProperty models | Select-Object name, context_length | Format-Table -AutoSize | Out-String -Width 200
