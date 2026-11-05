@@ -8,7 +8,7 @@ This is a **parking place for ideas**. Nothing here is decided, scheduled or bui
 
 **Goal:** let Claude find and move around code by meaning (symbols, definitions, references) instead of only by text (`Grep`/`Glob`/`Read`), and keep the answers small, because the real context window is about 64,000 tokens.
 
-### 1.1 Approach: use VS Code's language features, not a language server of our own — 🗣️
+### 1.1 Approach: use VS Code's language features, not a language server of our own — ✅ approved 2026-11-05 for JS/React (all .NET work stays in section 2, future)
 - VS Code already runs language servers (TypeScript/JavaScript built in; Python, C#, Java and others through extensions) and exposes their results through `vscode.commands.executeCommand('vscode.execute…Provider', …)`. The extension would only translate those results into tool answers.
 - Running our own LSP client plus servers would mean shipping and updating servers with no npm and no build, on a machine without internet. Not proposed.
 - Limit: a language has navigation only if its VS Code extension is installed on the target machine.
