@@ -193,6 +193,7 @@ class Conversation {
   }
 
   startProcess({ resume, fork = false } = {}) {
+    this.lastWorkFileSent = null; // a new process (also after a failed start, a fork or a model switch) gets the source instruction again
     const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
     const settings = launchSettings({ model: this.model, environmentVariables });
     const args = buildArgs({

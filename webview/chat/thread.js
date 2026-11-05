@@ -209,7 +209,7 @@
 
   // "נסה שוב": only when this view sent something (not for replayed history).
   function retryButton() {
-    if (!CL.composer || !CL.composer.canRetry()) return null;
+    if (!CL.composer || !CL.composer.canRetry() || (CL.display && CL.display.isReplaying())) return null;
     return el('button', { class: 'info-card-btn retry-btn', type: 'button', text: 'נסה שוב', onclick: () => CL.composer.retry() });
   }
 

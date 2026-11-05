@@ -115,4 +115,5 @@ test('isNoVisionError matches image-support errors only', () => {
   assert.ok(isNoVisionError('model does not support vision'));
   assert.ok(!isNoVisionError('API Error: 400 gemma3:27b does not support tools'));
   assert.ok(!isNoVisionError(''));
+  assert.ok(!isNoVisionError('Error in revision 3 of the provision step')); // "vision" only as a whole word
 });

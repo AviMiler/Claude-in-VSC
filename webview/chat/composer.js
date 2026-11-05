@@ -162,8 +162,10 @@
     const dt = e.dataTransfer;
     const uris = (dt.getData('text/uri-list') || '').split(/\r?\n/).filter((l) => l && !l.startsWith('#'));
     if (uris.length) post({ type: 'dropUris', uris });
-    const files = [...dt.files, ...[...(dt.items || [])].filter((i) => i.kind === 'file').map((i) => i.getAsFile())];
-    const images = files.filter((f, idx) => f && f.type.startsWith('image/') && files.indexOf(f) === idx);
+    // getAsFile() returns new File objects, so the two lists cannot be merged without duplicates:
+    // use the items only when files is empty.
+    const files = dt.files.length ? [...dt.files] : [...(dt.items || [])].filter((i) => i.kind === 'file').map((i) => i.getAsFile());
+    const images = files.filter((f) => f && f.type.startsWith('image/'));
     images.forEach(addImage);
     CL.post({ type: 'log', tag: 'drop', text: `uris=${uris.length} files=${dt.files.length} images=${images.length}` });
   });
@@ -253,12 +255,17 @@
   // "@" menu: the word being typed right before the caret starts with "@".
   function updateMention() {
     const before = input.value.slice(0, input.selectionStart);
-    const m = /(^|\s)@([^\s@]*)$/.exec(before);
+    // `@word`, or an open quote `@"C:/my dir/src/` (a folder with spaces being drilled into).
+    const m = /(^|\s)@(?:"([^"]*)|([^\s@"]*))$/.exec(before);
     if (!m) return CL.mentions.close();
-    const start = before.length - m[2].length - 1;
-    CL.mentions.request(m[2], (item) => {
+    const quoted = m[2] !== undefined;
+    const query = quoted ? m[2] : m[3];
+    const start = before.length - query.length - (quoted ? 2 : 1);
+    CL.mentions.request(query, (item) => {
       const target = item.abs || item.path; // absolute: the CLI does not expand "@relative" (F-4)
-      const text = /\s/.test(target) ? `@"${target}"` : `@${target}`;
+      const spaced = /\s/.test(target);
+      // A folder with spaces stays open (no closing quote) so the list keeps working; a file closes it.
+      const text = spaced ? (item.isDir ? `@"${target}` : `@"${target}"`) : `@${target}`;
       insertAt(start, input.selectionStart, item.isDir ? text : `${text} `);
       CL.mentions.close();
     });
@@ -409,6 +416,8 @@
     },
     // A new or loaded conversation starts with its own history and an empty queue.
     resetConversation(sentTexts) {
+      lastSent = null; // "נסה שוב" must never re-send another conversation's message
+      document.querySelectorAll('.retry-btn').forEach((b) => b.remove());
       history.reset(sentTexts);
       queue.clear();
       CL.thread.clearQueued();
@@ -419,6 +428,8 @@
     },
     // A conversation shown again: its up-arrow history, draft and still-queued messages.
     restore({ sent, ui }) {
+      lastSent = null;
+      document.querySelectorAll('.retry-btn').forEach((b) => b.remove());
       history.reset(sent || []);
       queue.clear();
       CL.thread.clearQueued();

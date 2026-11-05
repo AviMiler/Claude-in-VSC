@@ -26,7 +26,7 @@ function isNoToolsError(text) {
 
 // The server error of a model without image support (Ollama: "missing data required for image input"; others: "vision").
 function isNoVisionError(text) {
-  return /image input|does not support (image|vision)|vision|multimodal|image.{0,30}not supported/i.test(String(text || ''));
+  return /image input|does not support (image|vision)|\bvision\b|multimodal|image.{0,30}not supported/i.test(String(text || ''));
 }
 
 module.exports = { filterModels, isNoToolsError, isNoVisionError };
