@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Package H part 2: retry after an error)
+- A "נסה שוב" button appears on a turn's error box and on the CLI error card; one click re-sends the same message and images (kept in memory by the composer, `lastSent`). No automatic retry, the text is not changed, and the button disappears when any message is sent. Not shown for history loaded from a past session. Shown for every error result, not only connection errors (a retry of a "does not support tools" error just fails again). Why: decided with the user on 2026-11-05 ("button only, re-send the same message").
+- **Verified:** `node --check` and `node --test` 151/151 (no new test: the code is webview DOM code, which has no unit harness). **Not verified:** rendering and clicking in a browser or real VS Code; resending after a CLI process exit.
+
 ## 2026-11-05 (Package H part 1: collapse long user messages)
 - A user message longer than `claudeLocal.collapseUserMessageLines` lines (default 8, `0` = never; long lines count as wrapped at about 80 characters) shows its first lines with a "הצג עוד" / "כווץ" toggle (`thread.addUser`, CSS line clamp). Display only: the text sent to the CLI and the saved transcript are unchanged. Short messages are never collapsed. Why: decided with the user on 2026-11-05 (8 lines, changeable).
 - **Verified:** `node --test` 151/151 (two new tests: `shouldCollapse`, `sanitizeLines`; the defaults test updated). **Not verified:** how it looks in the browser or in real VS Code (not rendered).

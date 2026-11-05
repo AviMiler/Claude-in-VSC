@@ -74,7 +74,12 @@
     refreshSend();
   }
 
+  // The last message sent, kept in memory so an error can offer "נסה שוב" (package H).
+  let lastSent = null;
+
   function dispatch(text, images = []) {
+    lastSent = { text, images };
+    document.querySelectorAll('.retry-btn').forEach((b) => b.remove());
     post({ type: 'send', text, images });
     CL.app.userSent(text, images.length);
   }
@@ -341,6 +346,14 @@
   });
 
   CL.composer = {
+    // One click re-sends the same message (and images); never automatic.
+    canRetry: () => Boolean(lastSent), // busy is checked at click time (the result arrives before the busy flag clears)
+    retry() {
+      if (!lastSent || state.busy) return false;
+      CL.post({ type: 'log', tag: 'queue', text: 'retry last message' });
+      dispatch(lastSent.text, lastSent.images);
+      return true;
+    },
     setBusy(on) {
       state.busy = on;
       // The mode picker is disabled during a turn (PLAN.md section 2, stage 8); the model pill

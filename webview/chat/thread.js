@@ -207,8 +207,14 @@
     return parts.join(' · ');
   }
 
+  // "נסה שוב": only when this view sent something (not for replayed history).
+  function retryButton() {
+    if (!CL.composer || !CL.composer.canRetry()) return null;
+    return el('button', { class: 'info-card-btn retry-btn', type: 'button', text: 'נסה שוב', onclick: () => CL.composer.retry() });
+  }
+
   function addError(text) {
-    currentTurn().append(el('div', { class: 'tl tl-error' }, el('div', { class: 'error-box', dir: 'auto', text })));
+    currentTurn().append(el('div', { class: 'tl tl-error' }, el('div', { class: 'error-box', dir: 'auto', text }), retryButton()));
   }
 
   function onResult(ev) {
@@ -278,5 +284,5 @@
     if (e.target.closest('a[data-link]')) e.preventDefault();
   });
 
-  CL.thread = { addCard, addQueued, removeQueued, clearQueued, apply, addUser, addError, addNode, toolNode, reset, scrollToBottom, endTurn };
+  CL.thread = { retryButton, addCard, addQueued, removeQueued, clearQueued, apply, addUser, addError, addNode, toolNode, reset, scrollToBottom, endTurn };
 })();

@@ -9,7 +9,7 @@
       el('div', { class: 'card-title', dir: 'auto', text: card.title }),
       card.warning ? el('div', { class: 'error-card-warning', dir: 'auto', text: `⚠ ${card.warning}` }) : null,
       el('ul', { class: 'error-card-list' }, card.checks.map((c) => el('li', { dir: 'auto', text: c }))),
-      el('div', { class: 'card-actions' }, buttons)));
+      el('div', { class: 'card-actions' }, buttons, CL.thread.retryButton())));
     CL.thread.scrollToBottom();
   }
 
