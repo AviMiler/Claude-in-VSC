@@ -485,3 +485,22 @@ kbd {
   .tl:not(:last-child)::after { inset-inline-start: 5px; }
   .result-line, .turn-actions { padding-inline-start: 16px; }
 }
+
+/* A long user message is collapsed to a number of lines (setting collapseUserMessageLines); display only. */
+.msg-user.collapsible .msg-text { display: block; }
+.msg-user.collapsed .msg-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--cl-collapse-lines, 8);
+  overflow: hidden;
+}
+.collapse-toggle {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cl-link, var(--vscode-textLink-foreground));
+  font: inherit;
+  cursor: pointer;
+}
+.collapse-toggle:hover { text-decoration: underline; }

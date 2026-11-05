@@ -17,6 +17,11 @@ function sanitizeVerbs(value) {
   return out;
 }
 
+// Lines above which a user message is collapsed: a whole number 0-200 (0 = never), default 8.
+function sanitizeLines(value) {
+  return Number.isInteger(value) && value >= 0 && value <= 200 ? value : 8;
+}
+
 // `get(name)` returns the raw configuration value (undefined when unset).
 function readDisplay(get) {
   return {
@@ -26,7 +31,8 @@ function readDisplay(get) {
     scrollToBottomOnSend: get('scrollToBottomOnSend') !== false,
     prefersReducedMotion: get('prefersReducedMotion') === true,
     colorMode: COLOR_MODES.includes(get('colorMode')) ? get('colorMode') : 'default',
+    collapseUserMessageLines: sanitizeLines(get('collapseUserMessageLines')),
   };
 }
 
-module.exports = { readDisplay, sanitizeVerbs, COLOR_MODES };
+module.exports = { readDisplay, sanitizeVerbs, sanitizeLines, COLOR_MODES };

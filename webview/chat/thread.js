@@ -82,7 +82,20 @@
 
   function addUser(text) {
     endTurn();
-    place(el('div', { class: 'msg-user', dir: 'auto', text }));
+    const limit = CL.display ? CL.display.collapseLines() : 0;
+    if (CL.displayLogic.shouldCollapse(text, limit)) {
+      // Display only: the text sent to the CLI and the saved transcript stay whole.
+      const body = el('span', { class: 'msg-text', text });
+      body.style.setProperty('--cl-collapse-lines', String(limit));
+      const toggle = el('button', { class: 'collapse-toggle', type: 'button', 'aria-expanded': 'false', text: 'הצג עוד' });
+      const box = el('div', { class: 'msg-user collapsible collapsed', dir: 'auto' }, body, toggle);
+      toggle.addEventListener('click', () => {
+        const collapsed = box.classList.toggle('collapsed');
+        toggle.textContent = collapsed ? 'הצג עוד' : 'כווץ';
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+      });
+      place(box);
+    } else place(el('div', { class: 'msg-user', dir: 'auto', text }));
     showEmpty(false);
   }
 

@@ -99,6 +99,13 @@
           "default": [],
           "markdownDescription": "מילות ההמתנה במחוון העבודה. ריק = מילות ברירת המחדל של התוסף."
         },
+        "claudeLocal.collapseUserMessageLines": {
+          "type": "integer",
+          "default": 8,
+          "minimum": 0,
+          "maximum": 200,
+          "markdownDescription": "הודעות שלכם הארוכות מהמספר הזה של שורות מוצגות מכווצות עם \"הצג עוד\" (תצוגה בלבד; הטקסט שנשלח לא משתנה). `0` = לא לכווץ אף פעם."
+        },
         "claudeLocal.scrollToBottomOnSend": {
           "type": "boolean",
           "default": true,

@@ -49,6 +49,7 @@
     apply,
     verb: (defaults) => logic.pickVerb(defaults, settings.spinnerVerbs),
     scrollOnSend: () => settings.scrollToBottomOnSend !== false,
+    collapseLines: () => (Number.isInteger(settings.collapseUserMessageLines) ? settings.collapseUserMessageLines : 8),
     isReplaying: () => replaying,
   };
 })();

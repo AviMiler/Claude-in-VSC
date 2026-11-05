@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Package H part 1: collapse long user messages)
+- A user message longer than `claudeLocal.collapseUserMessageLines` lines (default 8, `0` = never; long lines count as wrapped at about 80 characters) shows its first lines with a "הצג עוד" / "כווץ" toggle (`thread.addUser`, CSS line clamp). Display only: the text sent to the CLI and the saved transcript are unchanged. Short messages are never collapsed. Why: decided with the user on 2026-11-05 (8 lines, changeable).
+- **Verified:** `node --test` 151/151 (two new tests: `shouldCollapse`, `sanitizeLines`; the defaults test updated). **Not verified:** how it looks in the browser or in real VS Code (not rendered).
+
 ## 2026-11-05 (Fix 3 part 2: F-17 minor items)
 - **Agent log:** the card's finished/failed line now also carries `subagent=<type>` (the start line often has `?` because the type arrives later in the stream).
 - **`initialize failed: process exited`:** an old process that was replaced (new conversation, model switch, a second start) now logs `[control] initialize of a replaced process ended` at info level instead of a warning. The 23:10:43 case most likely was the shortcut test starting a second process; a real failure of the current process still warns.

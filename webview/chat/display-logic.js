@@ -25,7 +25,14 @@
     return typeof ms === 'number' ? `${label} · ${formatTime(ms)}` : label;
   }
 
-  const api = { SPEAKERS, pickVerb, formatTime, speakerLabel, headingText };
+  // A user message longer than `limit` lines (long lines count as wrapped at about 80 characters) is collapsed; 0 turns it off.
+  function shouldCollapse(text, limit) {
+    if (!(limit > 0)) return false;
+    const lines = String(text).split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 80)), 0);
+    return lines > limit;
+  }
+
+  const api = { SPEAKERS, pickVerb, formatTime, speakerLabel, headingText, shouldCollapse };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else (root.CL = root.CL || {}).displayLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

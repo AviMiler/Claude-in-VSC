@@ -13,6 +13,7 @@ test('readDisplay applies the plan defaults', () => {
     scrollToBottomOnSend: true,
     prefersReducedMotion: false,
     colorMode: 'default',
+    collapseUserMessageLines: 8,
   });
 });
 
@@ -46,4 +47,22 @@ test('speaker labels and heading text', () => {
   const ms = new Date(2026, 10, 1, 9, 5).getTime();
   assert.strictEqual(d.formatTime(ms), '09:05');
   assert.strictEqual(d.headingText('assistant', ms), 'Claude · 09:05');
+});
+
+test('shouldCollapse: long or many-line messages collapse, short ones and limit 0 never', () => {
+  assert.strictEqual(d.shouldCollapse('a\nb\nc', 8), false);
+  assert.strictEqual(d.shouldCollapse(Array(9).fill('x').join('\n'), 8), true);
+  assert.strictEqual(d.shouldCollapse(Array(8).fill('x').join('\n'), 8), false);
+  assert.strictEqual(d.shouldCollapse('x'.repeat(81 * 8), 8), true); // one long line wraps
+  assert.strictEqual(d.shouldCollapse(Array(50).fill('x').join('\n'), 0), false);
+});
+
+test('sanitizeLines keeps whole numbers 0-200, otherwise 8', () => {
+  const { sanitizeLines } = require('../src/panels/display-settings');
+  assert.strictEqual(sanitizeLines(12), 12);
+  assert.strictEqual(sanitizeLines(0), 0);
+  assert.strictEqual(sanitizeLines(-1), 8);
+  assert.strictEqual(sanitizeLines('5'), 8);
+  assert.strictEqual(sanitizeLines(undefined), 8);
+  assert.strictEqual(readDisplay(() => undefined).collapseUserMessageLines, 8);
 });
