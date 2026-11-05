@@ -174,7 +174,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **F** ⏳ not built (Opus) | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
 | **G** ✅ done (branch `pkg-g-display`). **Not built from it:** collapsing long user messages (now package H). Screen reader, browser and real VS Code unverified | Display and accessibility (Focus view, timestamps, screen reader) | – |
 | **H** ⏳ future features, not built (all three still need the user's confirmation, see stage tables and section 6) | **Retry after an error** (a "נסה שוב" button, click only), **working-file button** (shows the open file, opens a picker), **collapsing long user messages** (display only, setting `claudeLocal.collapseUserMessageLines`) | A (retry: D's error card, E; working-file: C, F's chips; collapse: G) |
-| **Fix list** | `FIXES.md`. Done: F-1 to F-5, F-7 to F-16 (F-6 and the new drop and rewind button unverified in real VS Code). Open: F-17 (minor) | – |
+| **Fix list** | `FIXES.md`. Done: F-1 to F-5, F-7 to F-16 (F-6 and the new drop and rewind button unverified in real VS Code). Open: nothing but the user checks (F-17 left test 2.4 and a repeat of 7.1) | – |
 
 ## 6. What is open
 

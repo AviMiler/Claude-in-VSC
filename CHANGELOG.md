@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Fix 3 part 2: F-17 minor items)
+- **Agent log:** the card's finished/failed line now also carries `subagent=<type>` (the start line often has `?` because the type arrives later in the stream).
+- **`initialize failed: process exited`:** an old process that was replaced (new conversation, model switch, a second start) now logs `[control] initialize of a replaced process ended` at info level instead of a warning. The 23:10:43 case most likely was the shortcut test starting a second process; a real failure of the current process still warns.
+- **`@` vs `/doctor`:** read the code: the `@` list handles Enter before the `/` menu and the `/` menu opens only for text that starts with `/`, so picking from the `@` list cannot trigger a command. Not reproduced; test 7.1 should be repeated and, if the card appears again, the log line shows what was typed.
+- **Not changed:** test 2.4 (Show Log / Copy Log) still needs the user; qwen2.5 JSON tool calls and mixed languages are a model limit.
+- **Verified:** `node --test` 149/149 and `node --check` pass. Not verified in real VS Code.
+
 ## 2026-11-05 (Fix 3: F-11 images, F-12 rewind button, F-14, F-15, F-16)
 - **F-11:** images can be sent without text (default text "ראו את התמונה המצורפת."); the drop zone now handles `dragenter` and `dropEffect` and reads `dataTransfer.items` as well (probable cause of the dead drag, unconfirmed); an image-support server error gets a Hebrew explanation (`isNoVisionError`, new unit test); new log tag `drop`.
 - **F-12:** a rewind button in the header opens the checkpoints menu (same as Esc Esc).

@@ -18,7 +18,7 @@ function trackAgents(conv, state, msg) {
     if (prev === c.state) continue;
     state.logged.set(c.id, c.state);
     if (!prev) conv.services.logger.info(TAGS.AGENTS, `card ${c.id} started (subagent=${c.subagentType || '?'}, background=${c.background})`);
-    else conv.services.logger.info(TAGS.AGENTS, `card ${c.id} ${c.state} (tools=${c.toolUses || c.tools.length}, ms=${c.durationMs === undefined ? '?' : c.durationMs}, summary=${c.summary ? 'yes' : 'no'})`);
+    else conv.services.logger.info(TAGS.AGENTS, `card ${c.id} ${c.state} (subagent=${c.subagentType || '?'}, tools=${c.toolUses || c.tools.length}, ms=${c.durationMs === undefined ? '?' : c.durationMs}, summary=${c.summary ? 'yes' : 'no'})`);
   }
   conv.post({ type: 'agentCards', cards });
 }

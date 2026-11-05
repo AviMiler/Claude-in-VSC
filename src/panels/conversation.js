@@ -258,7 +258,12 @@ class Conversation {
         if (this.permissionMode === 'auto') this.setMode('auto');
         refreshContextMeter(this);
       },
-      (err) => this.services.logger.warn('control', `initialize failed: ${err.message}`),
+      (err) => {
+        // An old process that was replaced (new conversation, model switch, a second start) ends
+        // its pending initialize with "process exited": expected, not a failure (F-17).
+        if (proc !== this.proc) return this.services.logger.info('control', `initialize of a replaced process ended: ${err.message}`);
+        this.services.logger.warn('control', `initialize failed: ${err.message}`);
+      },
     );
     return proc;
   }
