@@ -23,6 +23,20 @@ test('parseGitList drops blanks and CR', () => {
   assert.deepStrictEqual(m.parseGitList('a.js\r\n\r\nb/c.js\n'), ['a.js', 'b/c.js']);
 });
 
+test('rankPaths: absolute path on every item, folder query lists direct children only', () => {
+  const entries = ['src/', 'src/a.js', 'src/sub/', 'src/sub/b.js', 'top.js'];
+  const r = m.rankPaths(entries, 'src/', 30, 'C:\\proj');
+  assert.deepStrictEqual(r.map((x) => x.path).sort(), ['src/a.js', 'src/sub/']);
+  assert.strictEqual(r[0].abs.startsWith('C:/proj/src/'), true);
+  assert.strictEqual(m.rankPaths(entries, 'top', 30, '/home/u')[0].abs, '/home/u/top.js');
+});
+
+test('relativeQuery strips the cwd prefix of a drilled-down folder', () => {
+  assert.strictEqual(m.relativeQuery('C:\\proj', 'C:/proj/src/'), 'src/');
+  assert.strictEqual(m.relativeQuery('C:\\proj', 'src'), 'src');
+  assert.strictEqual(m.relativeQuery('', 'src'), 'src');
+});
+
 test('mentionText quotes paths with spaces', () => {
   assert.strictEqual(m.mentionText('a/b.js'), '@a/b.js');
   assert.strictEqual(m.mentionText('my dir/b.js'), '@"my dir/b.js"');

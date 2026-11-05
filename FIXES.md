@@ -15,23 +15,12 @@ Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requir
 
 ## P1
 
-### F-4 `@` mentions do not work (test 7.1, FAIL)
-- **Symptom:** the model says the file is not found when a file is picked from the list; the model invents a wrong path (`C:\dev\gateway-probe\extension.js`); folders cannot be entered in the `@` list; sometimes a file does attach.
-- **Known:** the extension sends `@path` as plain text; whether the CLI expands `@path` in stream-json mode was unverified and the result suggests it does not. The `@` list is flat.
-- **Fix idea:** resolve the picked path to an absolute path (or read the file and attach it) before sending; allow navigating into folders in the list. Test with the real CLI.
-- **Status:** open.
-
 ### F-5 `/plan` shows nothing (test 11.1, FAIL)
 - **Symptom:** `/plan` and `/plan open` show nothing. Known: `/plan` only switches to plan mode; the "open plan" document needs assistant text before `ExitPlanMode`, and the local model may not call it.
 - **Status:** open; needs a visible result (at least a mode indicator and a message when there is no plan yet).
 
 ### F-6 Ctrl+Shift+T and tab colour dots do not work (test 12.3, FAIL)
-- **Status:** open, no details given. Ask the user what exactly happened (which tab, what was expected). Check `claude-local:hasClosed` context key and the `when` clause in `package.json`.
-
-### F-7 Ctrl+Esc (test 2.2, FAIL) and other shortcuts (test 2.1)
-- **Symptom:** Ctrl+Esc does not work as the editor/chat toggle; the tester reported "VS Code does not block it" (most likely Windows takes it for the Start menu). Of the open shortcuts only Ctrl+Alt+C works; Ctrl+Shift+Esc does not (Windows Task Manager).
-- **Fix:** replace Ctrl+Esc with another default (SETUP.md suggests Ctrl+Alt+E) and Ctrl+Shift+Esc with another default; confirm with the user which keys they want.
-- **Status:** open.
+- **Status:** `when` clause widened 2026-11-05 to include a focused sidebar view (probable cause: with the sidebar as default place and a file editor open, the old clause never matched). Unverified in real VS Code; the user gave no details. Reopen only conversations that have a session id and messages (by design). Tab dots exist only with `preferredLocation=panel`; in the sidebar the signals are the drawer dots and the view badge.
 
 ### F-8 Model switch loads two models (log of tests 4.3, 5.1, 13.1)
 - **Evidence:** after switching to `qwen2.5:7b` the log still shows `[claude-code:unrecognized_model] {"model":"qwen3.8:27b","query_source":"generate_session_title"}` next to `{"model":"qwen2.5:7b","query_source":"sdk"}`: the title call still uses `qwen3.8:27b`, so the server loads a second model (cold load 285 s). Package D sets the three `ANTHROPIC_DEFAULT_*_MODEL` variables, but they apparently lose against `env` in the CLI's `settings.json`.

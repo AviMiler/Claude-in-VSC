@@ -24,10 +24,18 @@ function foldersOf(files) {
 
 // Basename prefix first, then basename contains, then path contains. Folders and files mixed;
 // shorter paths first inside a rank.
-function rankPaths(entries, query, max = 30) {
+function rankPaths(entries, query, max = 30, cwd = '') {
   const q = String(query || '').toLowerCase();
   const scored = [];
+  // A query ending in "/" is a folder being entered: show only its direct children.
+  const inside = q.endsWith('/') ? q : null;
   for (const entry of entries) {
+    if (inside) {
+      const lowerEntry = entry.toLowerCase();
+      if (lowerEntry === inside || !lowerEntry.startsWith(inside) || lowerEntry.slice(inside.length).replace(/\/$/, '').includes('/')) continue;
+      scored.push({ entry, rank: 0 });
+      continue;
+    }
     const lower = entry.toLowerCase();
     const base = lower.replace(/\/$/, '').split('/').pop();
     let rank;
@@ -39,7 +47,21 @@ function rankPaths(entries, query, max = 30) {
     scored.push({ entry, rank });
   }
   scored.sort((a, b) => a.rank - b.rank || a.entry.length - b.entry.length || a.entry.localeCompare(b.entry));
-  return scored.slice(0, max).map((s) => ({ path: s.entry, isDir: s.entry.endsWith('/') }));
+  return scored.slice(0, max).map((s) => ({ path: s.entry, isDir: s.entry.endsWith('/'), abs: absPath(cwd, s.entry) }));
+}
+
+// Absolute path with "/" of a workspace-relative entry; the CLI is told this path, because it
+// does not expand "@relative" itself in stream-json mode (F-4). Empty when the cwd is unknown.
+function absPath(cwd, rel) {
+  if (!cwd) return rel;
+  return `${toSlashes(cwd).replace(/\/$/, '')}/${rel}`;
+}
+
+// A query typed after picking a folder carries the absolute path: bring it back to relative.
+function relativeQuery(cwd, query) {
+  const base = `${toSlashes(cwd || '').replace(/\/$/, '')}/`;
+  const q = String(query || '');
+  return cwd && q.toLowerCase().startsWith(base.toLowerCase()) ? q.slice(base.length) : q;
 }
 
 function parseGitList(stdout) {
@@ -97,4 +119,4 @@ function mentionText(relPath) {
   return /\s/.test(relPath) ? `@"${relPath}"` : `@${relPath}`;
 }
 
-module.exports = { foldersOf, rankPaths, parseGitList, listEntries, mentionText, toSlashes };
+module.exports = { foldersOf, rankPaths, parseGitList, listEntries, mentionText, toSlashes, absPath, relativeQuery };

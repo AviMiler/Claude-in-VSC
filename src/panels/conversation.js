@@ -562,7 +562,8 @@ class Conversation {
         this.entries = [];
       }
     }
-    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(this.entries, query) });
+    const rel = mentions.relativeQuery(this.cwd, query);
+    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(this.entries, rel, 30, this.cwd) });
   }
 
   // Files dragged in with Shift arrive as URIs and become @path mentions (a PDF is read by the CLI itself).
@@ -576,7 +577,7 @@ class Conversation {
         continue;
       }
       if (uri.scheme !== 'file') continue;
-      parts.push(mentions.mentionText(mentions.toSlashes(vscode.workspace.asRelativePath(uri, false))));
+      parts.push(mentions.mentionText(mentions.toSlashes(uri.fsPath)));
     }
     if (parts.length) this.insertText(`${parts.join(' ')} `);
   }

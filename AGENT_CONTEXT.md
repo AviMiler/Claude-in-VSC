@@ -20,6 +20,15 @@
 
 If the session is not on the required model for the task, **stop and ask the user to switch** before writing code.
 
+## Subagent and session limits: mandatory
+Added 2026-11-05 after a single Opus subagent used about 4.1M effective tokens on one small change (F-8/F-9; 25% of it was two cache rewrites after idle gaps, 15% was hunting for Node and building ad-hoc test harnesses).
+- **No environment hunting.** If `node` is missing or a check cannot run, STOP and report what could not run and the exact command for the user. Do not search the disk for runtimes, do not build a fake server, a harness page or a compiled helper to stand in for the test run.
+- **Install nothing** (no winget/choco/npm/pip, no downloads, no services) without asking the user first.
+- **Budget in the brief.** Every subagent/session brief states a call limit (default 40 tool calls for a small fix) and says: at the limit, commit what is done and report; do not continue.
+- **Small reads.** Read line ranges, not whole files (`sed -n`, Grep with context); never dump a changelog or a whole transcript. Load only the skills the stage needs.
+- **No waiting.** A background agent must finish and report in its final message; it must not wait on timers, servers or browser pages (idle gaps expire the prompt cache: a subagent's cache survived under 10 minutes, so each wake-up rewrites its whole context).
+- **Split big work** into separate short agents (build, then docs) instead of one long agent whose context grows past 200k tokens.
+
 ## What this is
 A VS Code extension (plain JS, no build, no npm) that is a Hebrew RTL front for the real `claude` CLI. The CLI is the only source of truth: the extension persists nothing (no globalState/workspaceState/own files) and reads history read-only from `~/.claude/projects/<encoded cwd>/*.jsonl`.
 
@@ -33,7 +42,7 @@ A VS Code extension (plain JS, no build, no npm) that is a Hebrew RTL front for 
 - Package G (display and accessibility) is done on branch `pkg-g-display` (built on `pkg-b1-sessions`, not committed when written): focus view, timestamps, `spinnerVerbs`, scroll-on-send, reduced motion, daltonized colours, speaker headings, screen-reader announcer. Several semantics were inferred (`DECISIONS.md`). Unit tests 65/65; no screen reader, browser or real VS Code check. Known limits: `CHANGELOG.md`.
 - Package D is done on branch `pkg-d-models` (built on `pkg-b1-sessions`): gateway model list + filter, model switch by restart with `--model`/`--resume`, pickers disabled mid-turn with "stop and switch", context meter with `/compact`, tokens-only result line, settings `gatewayUrl`/`modelDenylist`. Unit tests 71/71. Unverified: the 64,000 window (user runs `dev/check-context-window.txt`), real VS Code, `--model` + `--resume` together on the real CLI, the `/v1/model/info` shape. Details: `CHANGELOG.md`.
 - Last Changes: package B2 is **complete** on branch `pkg-b2-finish` (commits 9698685 agent cards, f062292 `/loop`, 3f14f42 logs, 5e1b346 verify fixes + `dev/manual-tests.html`; Verify = Go; full run 129/129). Earlier B2 items: `/diff` + `src/diff/`, checkpoints (rewind code + fork), background task bar, pinned task list. New: agent cards (`src/agents/`, `webview/chat/agent-cards.js`) and the `/loop` bar with self-started-turn handling (`src/loop/`, `webview/chat/loop-bar.js`, `cron-next.js`); new log tags `agents`, `loop`; fake CLI scenarios `agent`, `loop`. No deviation from the plan except that the loop bar reuses the `.bg-tasks` styles. **Unverified:** real VS Code rendering, the real self-started-turn sequence, local-time cron, that the model obeys the stop text, real sub-agent shapes beyond `probe4`. **Still not built:** conversation rewind / "both" (CLI message never captured) and a "move to background" button (no CLI request). Next: merge B2, then the remaining packages of `PLAN.md` section 5 (D/F/G/C leftovers: `/btw`, LaTeX). Details: `CHANGELOG.md`, `spec.md` Verification status.
-- Open user item: check whether Ctrl+Esc opens the Windows Start menu (`SETUP.md` section 7); if so, rebind `claude-local.focusToggle`.
+- Shortcuts changed 2026-11-05: Ctrl+Esc -> Ctrl+Alt+E, Ctrl+Shift+Esc removed (see `DECISIONS.md`); verify in real VS Code.
 - Open items from package C (Next Steps): `/btw` (a tool-less, history-less side question; must first be verified against the real CLI) and LaTeX rendering (bundled KaTeX under `webview/vendor/`, pending). The queue is client-side by decision (`DECISIONS.md`, 2026-11-01).
 - Next step: package B of `PLAN.md` section 5 (sessions, checkpoints incl. the `rewind` action, `/diff`, background tasks; starts with the sub-agent / `TaskCreate` checks). The other roadmap features are not built; their decisions are closed (`PLAN.md`).
 - Package B2 is done (see Last Changes above); the other roadmap features are not built; their decisions are closed (`PLAN.md`).

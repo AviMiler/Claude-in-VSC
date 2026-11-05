@@ -96,11 +96,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 | `claudeLocal.enableNewConversationShortcut` | כבוי | `Ctrl+N` פותח שיחה חדשה כשהמיקוד בצ'אט. |
 | `claudeLocal.keybindings.send` / `.newLine` / `.rewind` | `Enter` / `Shift+Enter` / `Escape Escape` | קיצורים בתוך תיבת ההודעה. פורמט: `Ctrl+Enter`, או רצף מופרד ברווח: `Escape Escape`. `useCtrlEnterToSend` ממשיכה לעבוד ומחליפה בין שליחה לשורה חדשה, כל עוד שני הקיצורים בברירת המחדל. `rewind` יופעל עם בניית נקודות השמירה. |
 
-**קיצורי VS Code** (ניתנים לשינוי): `Ctrl+Alt+C` ו-`Ctrl+Shift+Esc` פותחים את Claude (באותו מקום, לפי הכלל למעלה), `Ctrl+Esc` עובר בין העורך לצ'אט, ו-`Ctrl+N` (רק אם הופעל). לשינוי: Command Palette ← "Claude Code Local: קיצורי מקלדת" (פותח את עורך הקיצורים מסונן ל-`claude-local`). הקיצורים בתוך תיבת ההודעה אינם מופיעים שם, כי ה-webview לא רואה את קיצורי VS Code; משנים אותם בהגדרות `claudeLocal.keybindings.*`.
+**קיצורי VS Code** (ניתנים לשינוי): `Ctrl+Alt+C` פותח את Claude (באותו מקום, לפי הכלל למעלה), `Ctrl+Alt+E` עובר בין העורך לצ'אט (החליף את `Ctrl+Esc` ש-Windows תופס; `Ctrl+Shift+Esc` הוסר מאותה סיבה), ו-`Ctrl+N` (רק אם הופעל). לשינוי: Command Palette ← "Claude Code Local: קיצורי מקלדת" (פותח את עורך הקיצורים מסונן ל-`claude-local`). הקיצורים בתוך תיבת ההודעה אינם מופיעים שם, כי ה-webview לא רואה את קיצורי VS Code; משנים אותם בהגדרות `claudeLocal.keybindings.*`.
 
-### בדיקה שנדרשת אצלכם: האם `Ctrl+Esc` פותח את תפריט התחל?
-ב-Windows `Ctrl+Esc` בדרך כלל פותח את תפריט התחל, ולכן ייתכן ש-VS Code לא יקבל אותו. **זה לא נבדק (נבדק רק במחשב שלכם).** הבדיקה:
-1. פותחים את VS Code עם התוסף, ולוחצים `Ctrl+Esc` כשהמיקוד בעורך קוד.
-2. אם נפתח הצ'אט ותפריט התחל **לא** נפתח: הכול תקין.
-3. אם נפתח תפריט התחל (או שלא קרה כלום): `Ctrl+K Ctrl+S`, חיפוש `claude-local.focusToggle`, לחיצה כפולה על השורה, והקלדת קיצור אחר (למשל `Ctrl+Alt+E`).
-4. חוזרים עם התוצאה (עבד / תפריט התחל / שום דבר) כדי לעדכן את `spec.md`.
+### בדיקה שנדרשת אצלכם: האם `Ctrl+Alt+E` עובד?
+`Ctrl+Esc` הוחלף ב-`Ctrl+Alt+E` (2026-11-05), כי Windows תופס את `Ctrl+Esc`. **זה לא נבדק ב-VS Code אמיתי.** הבדיקה: לוחצים `Ctrl+Alt+E` כשהמיקוד בעורך קוד; אמור להיפתח הצ'אט. אם לא: `Ctrl+K Ctrl+S`, חיפוש `claude-local.focusToggle`, והקלדת קיצור אחר.

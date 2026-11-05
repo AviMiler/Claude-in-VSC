@@ -228,18 +228,13 @@
     "keybindings": [
       {
         "command": "claude-local.open",
-        "key": "ctrl+shift+escape",
-        "mac": "cmd+shift+escape"
-      },
-      {
-        "command": "claude-local.open",
         "key": "ctrl+alt+c",
         "mac": "cmd+alt+c"
       },
       {
         "command": "claude-local.focusToggle",
-        "key": "ctrl+escape",
-        "mac": "cmd+escape"
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e"
       },
       {
         "command": "claude-local.insertAtMention",
@@ -257,7 +252,7 @@
         "command": "claude-local.reopenClosed",
         "key": "ctrl+shift+t",
         "mac": "cmd+shift+t",
-        "when": "claude-local:hasClosed && (activeWebviewPanelId == 'claudeLocalPanel' || activeEditor == '')"
+        "when": "claude-local:hasClosed && (activeWebviewPanelId == 'claudeLocalPanel' || activeEditor == '' || focusedView =~ /^claudeLocalSidebar/)"
       }
     ],
     "menus": {

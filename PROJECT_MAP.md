@@ -4,7 +4,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## Root
 - `extension.js` — entry: builds logger, settings, registry; sets the secondary-sidebar context key; calls `panels.register`.
-- `package.json` — manifest: 10 commands (`claude-local.open` is the single entry point), keybindings (Ctrl+Shift+Esc and Ctrl+Alt+C = open, Ctrl+Esc, Alt+K, Ctrl+Shift+T, opt-in Ctrl+N), editor/title button, 2 view containers (secondary sidebar + activity-bar fallback) + 2 views, settings (`preferredLocation` default `sidebar`).
+- `package.json` — manifest: 10 commands (`claude-local.open` is the single entry point), keybindings (Ctrl+Alt+C = open, Ctrl+Alt+E = focus toggle, Alt+K, Ctrl+Shift+T, opt-in Ctrl+N), editor/title button, 2 view containers (secondary sidebar + activity-bar fallback) + 2 views, settings (`preferredLocation` default `sidebar`).
 - `.vscodeignore` — keeps dev/, test/, .claude/ out of the package.
 - `AGENT_CONTEXT.md` — entry point for an agent: what to read, current state, working agreements, git rules.
 - `spec.md` — what the extension does today (as built) and its verification status.

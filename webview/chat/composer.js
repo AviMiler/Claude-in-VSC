@@ -235,7 +235,8 @@
     if (!m) return CL.mentions.close();
     const start = before.length - m[2].length - 1;
     CL.mentions.request(m[2], (item) => {
-      const text = /\s/.test(item.path) ? `@"${item.path}"` : `@${item.path}`;
+      const target = item.abs || item.path; // absolute: the CLI does not expand "@relative" (F-4)
+      const text = /\s/.test(target) ? `@"${target}"` : `@${target}`;
       insertAt(start, input.selectionStart, item.isDir ? text : `${text} `);
       CL.mentions.close();
     });

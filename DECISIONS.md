@@ -160,3 +160,13 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Alternatives considered:** keeping the click-to-compact; keeping the spark logo.
 **Why:** a click that silently compacts the conversation "makes no sense" (user, test 13.2); the mascot is what the official extension shows. Open: screenshots of the official extension during a conversation (messages, tool rows, permission prompt) would finish the matching.
 
+
+## [2026-11-05] Shortcuts: Ctrl+Alt+E replaces Ctrl+Esc, Ctrl+Shift+Esc removed
+**Decision:** `claude-local.focusToggle` is Ctrl+Alt+E; Ctrl+Shift+Esc no longer opens the chat (Ctrl+Alt+C does).
+**Alternatives considered:** keeping Ctrl+Esc / Ctrl+Shift+Esc and telling the user to rebind; another key for the toggle.
+**Why:** Windows takes both old keys (Start menu, Task Manager) and the first test run confirmed neither works. The user chose both changes on 2026-11-05; this reverses the earlier decision that Ctrl+Shift+Esc stays.
+
+## [2026-11-05] @ mentions send absolute paths
+**Decision:** the extension inserts the absolute path of a picked file or folder (`@C:/dir/file.js`), also for Alt+K and drag; file content is not inlined.
+**Alternatives considered:** reading the file and attaching its content (costs context of the 64,000 window).
+**Why:** the CLI does not expand `@relative` in stream-json mode (test 7.1); Claude can read an absolute path itself. Confirm on the real CLI.

@@ -74,7 +74,7 @@ function registerCommands(context, services) {
     'claude-local.insertAtMention': async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || editor.document.uri.scheme !== 'file') return;
-      const rel = toSlashes(vscode.workspace.asRelativePath(editor.document.uri, false));
+      const rel = toSlashes(editor.document.uri.fsPath); // absolute: the CLI does not expand "@relative" (F-4)
       const host = places.active() && places.active().current ? places.active() : await places.main();
       host.revealPlace();
       if (host.current) host.current.insertText(`${mentionText(rel)} `);

@@ -94,7 +94,7 @@ Updated: 2026-11-03. This is the **single source of truth for what to build next
 | Accessibility | **Accessibility and colour settings** (`prefersReducedMotion`, daltonized) + **screen-reader announcements, speaker labels ("אתה"/"Claude") and navigation by headings** | Chosen; testing needs a real screen reader | 👤 |
 | More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
 | `claudeProcessWrapper`, `usePythonEnvironment`, `enableReopenClosedSessionShortcut`, `disableLoginPrompt` | **No** | Not needed (a wrapper is possible in the future; no login; Ctrl+Shift+T is already decided) | 👤 |
-| Shortcuts | **Ctrl+Esc** (editor↔chat) + **Ctrl+Alt+C** to open in a new tab (Ctrl+Shift+Esc stays). **Ctrl+Esc is kept, with a check on the user's machine in package A**: on Windows it normally opens the Start menu; if it does, replace it with another key (decided 2026-11-01) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
+| Shortcuts | **Ctrl+Alt+E** (editor↔chat, replaced Ctrl+Esc) + **Ctrl+Alt+C** to open; Ctrl+Shift+Esc removed (decided 2026-11-05) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
 | Rebindable shortcuts | **All shortcuts** (as `contributes.keybindings` with a command "Claude Code Local: Keyboard Shortcuts" that opens `workbench.action.openGlobalKeybindings` filtered to `claude-local`). **Shortcuts inside the webview** (Enter, Shift+Enter, Esc Esc): **settings `claudeLocal.keybindings.*`** (decided 2026-11-01); limitation: the webview does not see VS Code's keybindings automatically, so these are separate from the VS Code shortcuts editor | An explicit requirement | 👤 |
 
 ### Stage 7: cloud and network features
@@ -158,7 +158,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | `colorMode` | enum `default` / `daltonized` | `default` | Colour scheme for colour-blind users | G | 👤 (name and value ⚠️) |
 | `keybindings.send`, `keybindings.newLine`, `keybindings.rewind` | string | `Enter`, `Shift+Enter`, `Escape Escape` | Shortcuts inside the webview, as settings (not read from keybindings.json). `useCtrlEnterToSend` stays for compatibility and swaps the `send`/`newLine` defaults | A | 👤 (decided 2026-11-01) |
 
-**VS Code-level keyboard shortcuts** are not settings but `contributes.keybindings`: Ctrl+Shift+Esc and Ctrl+Alt+C (existing), Ctrl+Esc, Ctrl+Shift+T, Alt+K and more.
+**VS Code-level keyboard shortcuts** are not settings but `contributes.keybindings`: Ctrl+Alt+C, Ctrl+Alt+E, Ctrl+Shift+T, Alt+K and more.
 
 ## 5. Build order
 

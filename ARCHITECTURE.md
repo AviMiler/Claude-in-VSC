@@ -4,7 +4,7 @@
 A VS Code extension that is a thin Hebrew RTL front for the real `claude` CLI. It owns no data: live content comes from a CLI process, history is read read-only from the CLI's transcripts.
 
 ## Entry Points
-`extension.js` `activate` (on startup finished) wires `src/panels/index.js`. Users enter through the single command `claude-local.open` (editor/title button, the "✻ Claude" status-bar item, Ctrl+Alt+C, Ctrl+Shift+Esc, the URI), which `places.main()` routes to the one configured place: the sidebar view (default) or one editor tab.
+`extension.js` `activate` (on startup finished) wires `src/panels/index.js`. Users enter through the single command `claude-local.open` (editor/title button, the "✻ Claude" status-bar item, Ctrl+Alt+C, the URI), which `places.main()` routes to the one configured place: the sidebar view (default) or one editor tab.
 
 ## Module Map
 `src/cli/` spawns and talks to the CLI; `src/panels/` is layered `places.js` -> `ConversationHost` (`conversation-host.js`, several conversations per place, one attached to the webview) -> `Conversation` (`conversation.js`, one CLI process, plus its `replay-log.js`) -> webview; `src/history/` reads transcripts; `src/util/` has logger, settings, paths; `webview/chat/` is the UI (plain scripts) and `webview/vendor/` the pinned libraries.
