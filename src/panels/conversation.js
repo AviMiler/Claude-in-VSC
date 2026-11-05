@@ -14,6 +14,7 @@ const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
 const { buildErrorCard } = require('./error-card');
 const { launchSettings } = require('../models/launch');
+const { isNoVisionError } = require('../models/filter');
 const { ModelSwitcher } = require('./model-switch');
 const { refreshContextMeter } = require('./context-meter');
 const editLog = require('../diff/edit-log');
@@ -268,7 +269,11 @@ class Conversation {
   }
 
   // A turn's result; when the user pressed stop it is shown as "stopped", not as an error.
-  endTurn(ev) {
+  endTurn(rawEv) {
+    let ev = rawEv;
+    if (ev.kind === 'result' && ev.isError && isNoVisionError(ev.errorText)) {
+      ev = { ...ev, errorText: `המודל הנוכחי כנראה לא תומך בתמונות. החליפו למודל עם תמיכה בתמונות או שלחו בלי תמונה.\n${ev.errorText}` };
+    }
     const stopped = this.stopping;
     this.busy = false;
     this.stopping = false;

@@ -9,7 +9,7 @@ PASS with no complaint: 1.1, 1.2, 3.1, 4.1-4.3, 5.1, 5.2, 6.1, 7.2, 9.1, 10.1, 1
 1. ~~**Fix 1: the basic interface** = F-1, F-2, F-3~~ **Done 2026-11-02** on branch `fix1-ui-foundation` (also F-10); see `CHANGELOG.md`. Still open from it: real VS Code checks, and screenshots of the official extension during a conversation to finish matching the look.
 2. **Next: Fix 2** = F-4, F-5, F-7 done 2026-11-05; F-6 unverified.
 3. ~~F-8 model switch loads two models, F-9 context meter 1,000,000~~ **Done 2026-11-05** (`--settings`; see `CHANGELOG.md`). Still open from it: the user's check on CLI 2.1.246 (`dev/check-model-switch.txt`). (F-10 is done.)
-4. F-11 images, F-12 rewind button, F-14 always-allow, F-15 URI docs, F-16 test page.
+4. ~~F-11 images, F-12 rewind button, F-14 always-allow, F-15 URI docs, F-16 test page~~ **Done 2026-11-05** (unverified in real VS Code).
 5. F-17 minor items.
 Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requires. Note for F-6: Ctrl+Shift+T and the tab dots changed in Fix 1 (the dots are now drawer dots, `view.badge` and the tab title marker).
 
@@ -18,22 +18,6 @@ Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requir
 ### F-6 Ctrl+Shift+T and tab colour dots do not work (test 12.3, FAIL)
 - **Status:** code done 2026-11-05 (`when` clause widened to a focused sidebar view; `popClosed` now refreshes `hasClosed`; by-design limits documented in `spec.md`/`SETUP.md`; see `CHANGELOG.md`). **Still open: the user's check in real VS Code** (Ctrl+Shift+T from the sidebar with a file editor open; test 12.3). Delete this item once it passes.
 
-## P2
-
-### F-11 Images and drag (test 8.1)
-Paste works; **drag does not work**; an image cannot be sent without text; models without vision return a server error (shown raw). Fix: allow image-only send, fix drag, show a clear Hebrew message on that server error.
-
-### F-12 Rewind needs a button (test 17.1)
-Esc Esc works for code rewind and fork, but the user wants a visible button too, not only the shortcut.
-
-### F-14 "Always allow in this project" is ignored (log of test 5.1)
-`stderr: Ignoring 1 permissions.allow entry from .claude/settings.local.json: this workspace has not been trusted` — the choice "אושר תמיד בפרויקט הזה" writes a rule the CLI then ignores in an untrusted workspace, so the user is asked again. Fix: explain it in the card, or write the rule where the CLI honours it.
-
-### F-15 URI `session=<id>` is unclear (test 16.1)
-Document what `session` does (opens that past conversation by id) in the test page and `SETUP.md`.
-
-### F-16 Test page / `/loop` indicator
-Test 24.1 did not create a loop (`/loop` was sent without a prompt, so the model asked a question); 24.3 was run in the CLI terminal. Fix the steps to use `/loop 1m Reply with the single word PING` inside the extension chat. Test 22.1 (screen reader): the user does not need it; mark it optional.
 
 ## P3
 

@@ -4,6 +4,7 @@
   const { post } = CL;
   // Esc Esc (keybindings.rewind) opens the host's checkpoints menu.
   CL.composer.onRewind = () => post({ type: 'rewindMenu' });
+  document.getElementById('rewind-btn').addEventListener('click', () => post({ type: 'rewindMenu' })); // F-12: a visible button next to Esc Esc
 
   const spinner = document.getElementById('spinner');
   const spinnerVerb = document.getElementById('spinner-verb');

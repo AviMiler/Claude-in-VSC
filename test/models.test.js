@@ -108,3 +108,11 @@ test('fetchModels reads /v1/models and /v1/model/info; info failure still return
     noInfo.close();
   }
 });
+
+test('isNoVisionError matches image-support errors only', () => {
+  const { isNoVisionError } = require('../src/models/filter');
+  assert.ok(isNoVisionError('500: this model is missing data required for image input'));
+  assert.ok(isNoVisionError('model does not support vision'));
+  assert.ok(!isNoVisionError('API Error: 400 gemma3:27b does not support tools'));
+  assert.ok(!isNoVisionError(''));
+});

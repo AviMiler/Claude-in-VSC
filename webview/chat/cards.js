@@ -58,7 +58,7 @@
     const { node, actions, finish } = shell(req.requestId, title, content);
     const allow = (always) => {
       answer(req.requestId, { behavior: 'allow', always });
-      finish(always ? '✓ אושר תמיד בפרויקט הזה' : '✓ אושר', true);
+      finish(always ? '✓ אושר, והכלל נשמר בפרויקט. ה-CLI מתעלם מכללים כאלה בתיקייה שלא אושרה כ-trusted, ולכן ייתכן שתישאלו שוב' : '✓ אושר', true);
     };
     // Numbered options like the official prompt; the digit keys pick them while the card has focus.
     actions.classList.add('card-options');

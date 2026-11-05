@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Fix 3: F-11 images, F-12 rewind button, F-14, F-15, F-16)
+- **F-11:** images can be sent without text (default text "ראו את התמונה המצורפת."); the drop zone now handles `dragenter` and `dropEffect` and reads `dataTransfer.items` as well (probable cause of the dead drag, unconfirmed); an image-support server error gets a Hebrew explanation (`isNoVisionError`, new unit test); new log tag `drop`.
+- **F-12:** a rewind button in the header opens the checkpoints menu (same as Esc Esc).
+- **F-14:** chosen "always allow" now says the CLI ignores the rule in an untrusted folder, so the user may be asked again. The rule is still written; trusting the folder is the real fix.
+- **F-15, F-16:** `SETUP.md` explains the `prompt` and `session` URI parameters; `dev/manual-tests.html` test 16.1 explains `session=`, 24.3 says to run `/loop` inside the extension chat, and 22.1 (screen reader) is marked optional.
+- **Verified:** `node --test`: 149/149 pass and `node --check` passes (Node 26.13 now installed). **Not verified:** the drop and the rewind button in real VS Code.
+
 ## 2026-11-05 (Fix 2 part 3: F-6 `hasClosed` refresh, docs)
 - **F-6:** `registry.popClosed()` removed entries from the closed list without notifying listeners, so the `claude-local:hasClosed` context key stayed true after the last reopen (or after only stale entries were skipped). It now emits when the list shrinks. Test added in `test/panel-registry.test.js`. Documented by design: only conversations with a session id and messages are reopenable; tab dots exist only with `preferredLocation=panel` (sidebar: drawer dots and view badge) in `spec.md` and `SETUP.md`. F-7 was already done in part 1.
 - **Not verified:** unit tests NOT run (no Node on this machine); real VS Code untested.

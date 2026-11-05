@@ -37,7 +37,7 @@
 
   function refreshSend() {
     sendBtn.classList.toggle('stop', state.busy);
-    sendBtn.disabled = !state.busy && !input.value.trim();
+    sendBtn.disabled = !state.busy && !input.value.trim() && !attached.length;
     sendBtn.title = state.busy ? 'עצירה' : 'שליחה';
     sendBtn.setAttribute('aria-label', sendBtn.title);
   }
@@ -82,6 +82,7 @@
   // --- attached images (pasted or dropped); kept in memory until sent ---------------------------
   const attachmentsEl = document.getElementById('attachments');
   let attached = [];
+  const IMAGE_ONLY_TEXT = 'ראו את התמונה המצורפת.';
 
   function renderAttachments() {
     attachmentsEl.hidden = !attached.length;
@@ -144,13 +145,22 @@
 
   // Files dragged in from the Explorer (Shift) become @path mentions; image files from outside are attached.
   const composerEl = document.querySelector('.composer');
-  composerEl.addEventListener('dragover', (e) => e.preventDefault());
+  // dragenter and dropEffect matter: without them the webview does not accept the drop (F-11).
+  const allowDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  };
+  composerEl.addEventListener('dragenter', allowDrop);
+  composerEl.addEventListener('dragover', allowDrop);
   composerEl.addEventListener('drop', (e) => {
     e.preventDefault();
     const dt = e.dataTransfer;
     const uris = (dt.getData('text/uri-list') || '').split(/\r?\n/).filter((l) => l && !l.startsWith('#'));
     if (uris.length) post({ type: 'dropUris', uris });
-    [...dt.files].filter((f) => f.type.startsWith('image/')).forEach(addImage);
+    const files = [...dt.files, ...[...(dt.items || [])].filter((i) => i.kind === 'file').map((i) => i.getAsFile())];
+    const images = files.filter((f, idx) => f && f.type.startsWith('image/') && files.indexOf(f) === idx);
+    images.forEach(addImage);
+    CL.post({ type: 'log', tag: 'drop', text: `uris=${uris.length} files=${dt.files.length} images=${images.length}` });
   });
 
   // Terminal-only commands are never sent to the model: show the card instead.
@@ -179,8 +189,11 @@
   }
 
   function send() {
-    const text = input.value;
-    if (!text.trim()) return;
+    let text = input.value;
+    if (!text.trim()) {
+      if (!attached.length) return;
+      text = IMAGE_ONLY_TEXT; // images alone are allowed (F-11); the CLI needs some text with them
+    }
     if (CL.prompt.isTerminalOnly(text, CL.slashMenu.getMeta())) return showTerminalCard(text);
     CL.slashMenu.close();
     history.add(text);

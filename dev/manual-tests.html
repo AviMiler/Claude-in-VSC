@@ -160,7 +160,7 @@ g('15. כרטיס שגיאת CLI');
 t('15.1', 'claudePath שבור', ['שנו <code>claudeLocal.claudePath</code> לנתיב שלא קיים; פתחו שיחה חדשה ושלחו הודעה.', 'נסו גם נתיב ל-<code>claude.cmd</code>.'], 'מופיעה שגיאה וכרטיס עזרה בעברית: רשימת בדיקה, כפתור לפתיחת settings.json; עם <code>.cmd</code> גם אזהרה וכפתור להגדרה.', ['<code>[spawn] exit code=… error=ENOENT</code>', '<code>[error-card] shown for claudePath=… (code=…)</code>'], PASTE_STD);
 
 g('16. קישור URI');
-t('16.1', 'vscode://local.claude-local/open', ['פתחו בדפדפן/Win+R: <code>vscode://local.claude-local/open?prompt=hello</code>.', 'אשרו בחלון; חזרו וסרבו.', 'נסו קישור עם <code>session=&lt;id&gt;</code> (מזהה של שיחה קודמת, למשל משם קובץ ה-.jsonl ב-<code>~/.claude/projects/…</code>) תקין ולא תקין.'], 'חלון אישור מודאלי. באישור Claude נפתח במקום הקבוע (סרגל הצד) והטקסט נכנס לתיבה <b>ולא נשלח</b>. עם <code>session</code> נפתחת (או מוצגת, אם כבר פתוחה) השיחה הקודמת בעלת המזהה הזה. בקישור פגום - התעלמות.',
+t('16.1', 'vscode://local.claude-local/open', ['פתחו בדפדפן/Win+R: <code>vscode://local.claude-local/open?prompt=hello</code>.', 'אשרו בחלון; חזרו וסרבו.', '<code>session=</code> פותח שיחה קודמת לפי המזהה שלה. את המזהה לוקחים משם קובץ ה-.jsonl ב-<code>~/.claude/projects/…</code> (בלי הסיומת), או מהרשימה ☰. נסו קישור כזה, למשל <code>vscode://local.claude-local/open?session=&lt;id&gt;</code>, עם מזהה תקין ולא תקין.'], 'חלון אישור מודאלי. באישור Claude נפתח במקום הקבוע (סרגל הצד) והטקסט נכנס לתיבה <b>ולא נשלח</b>. עם <code>session</code> נפתחת (או מוצגת, אם כבר פתוחה) השיחה הקודמת בעלת המזהה הזה. בקישור פגום - התעלמות.',
   ['<code>[uri] received /open (prompt 5 chars, session none)</code>', '<code>[uri] user confirmed</code> / <code>declined</code>', '<code>[uri] ignored … (…)</code>'], PASTE_STD);
 
 g('17. נקודות שחזור');
@@ -181,7 +181,7 @@ t('21.1', 'הגדרות תצוגה', ['הפעילו בזה אחר זה: <code>fo
   ['<code>[settings] changed: … focusView=true timestamps=true colorMode=daltonized</code>'], PASTE_STD);
 
 g('22. נגישות');
-t('22.1', 'קורא מסך (NVDA/Narrator)', ['הפעילו קורא מסך, נווטו בכותרות (H).', 'שלחו הודעה וחכו לתשובה; הפעילו בקשת הרשאה.'], 'לפני כל הודעה כותרת "אתה"/"Claude". מוכרזים: תחילת/סוף עבודה, בקשת הרשאה, שגיאה (בלי הכרזה כפולה של התשובה).', [], 'איזה קורא מסך + מה לא הוכרז');
+t('22.1', 'קורא מסך (NVDA/Narrator) - אופציונלי, אפשר לדלג', ['הפעילו קורא מסך, נווטו בכותרות (H).', 'שלחו הודעה וחכו לתשובה; הפעילו בקשת הרשאה.'], 'לפני כל הודעה כותרת "אתה"/"Claude". מוכרזים: תחילת/סוף עבודה, בקשת הרשאה, שגיאה (בלי הכרזה כפולה של התשובה).', [], 'איזה קורא מסך + מה לא הוכרז');
 
 g('23. כרטיסי סוכנים');
 t('23.1', 'כרטיס סוכן (fake-claude)', [
@@ -208,7 +208,7 @@ t('24.2', 'עצירה בזמן עבודה והחלפת מודל', [
 ], 'בעצירה בזמן עבודה מוצגת ההודעה "אפשר לעצור את המשימה המתוזמנת כש-Claude לא עובד. נסו שוב בסיום התור." והמשימה נשארת. אחרי החלפת המודל הסרגל נעלם.',
   ['<code>[loop] jobs cleared (new CLI process)</code>'], PASTE_STD);
 t('24.3', '/loop עם ה-CLI האמיתי (לא מאומת)', [
-  'עם <code>claude-bin.exe</code> אמיתי שלחו <code>/loop 1m Reply with the single word PING</code>.',
+  'עם <code>claude-bin.exe</code> אמיתי, <b>בתוך הצ\'אט של התוסף (לא בטרמינל)</b>, שלחו <code>/loop 1m Reply with the single word PING</code>.',
   'חכו לתור העצמאי, ואז לחצו "עצירה".'
 ], 'לא מאומת מול ה-CLI האמיתי: רצף התור העצמאי, פירוש cron בשעון מקומי, והאם המודל מציית לבקשת הביטול. רשמו מה קרה בפועל.',
   ['אותן שורות <code>[loop] …</code> כמו ב-24.1'], PASTE_STD);

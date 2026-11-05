@@ -21,9 +21,10 @@ const TAGS = Object.freeze({
   DISPLAY: 'display',
   SETTINGS: 'settings',
   CONTROL: 'control',
+  DROP: 'drop',
 });
 
 // Tags the webview may log under (via the `log` message).
-const WEBVIEW_TAGS = Object.freeze([TAGS.QUEUE, TAGS.DISPLAY, TAGS.MCP, TAGS.SESSION, TAGS.DIFF, TAGS.CHECKPOINT, TAGS.HISTORY]);
+const WEBVIEW_TAGS = Object.freeze([TAGS.QUEUE, TAGS.DISPLAY, TAGS.MCP, TAGS.SESSION, TAGS.DIFF, TAGS.CHECKPOINT, TAGS.HISTORY, TAGS.DROP]);
 
 module.exports = { TAGS, WEBVIEW_TAGS };
