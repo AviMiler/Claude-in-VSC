@@ -5,7 +5,26 @@ const { EventEmitter } = require('events');
 const { spawn } = require('child_process');
 const { spawnCli } = require('./spawn');
 
+const { startNavServer } = require('../mcp/nav-server');
+const { buildMcpConfig, NAV_ALLOWED_TOOL } = require('../mcp/nav-config');
+
 const KILL_GRACE_MS = 6000;
+
+// The navigation tools come from src/mcp/nav-tools.js (needs vscode); without them, no server.
+function loadNavTools(log) {
+  let tools;
+  try {
+    // nav-vscode.js is the only file that requires 'vscode'; outside VS Code (tests) this throws and no server starts.
+    const { createNavTools } = require('../mcp/nav-tools');
+    const { createVscodeNavDeps } = require('../mcp/nav-vscode');
+    tools = createNavTools(createVscodeNavDeps());
+  } catch (err) {
+    log(`nav tools not loaded: ${err && err.message}`, 'nav', 'info');
+    return null;
+  }
+  const usable = tools && Array.isArray(tools.list) && tools.list.length > 0 && typeof tools.call === 'function';
+  return usable ? tools : null;
+}
 
 // Type and size only: stream lines carry message text, which must not reach the log.
 function describe(msg, length) {
@@ -14,14 +33,37 @@ function describe(msg, length) {
 }
 
 class CliProcess extends EventEmitter {
-  constructor({ claudePath, args, cwd, env, log = () => {} }) {
+  // navTools: { list, call } for the navigation MCP server; null starts the CLI without it.
+  constructor({ claudePath, args, cwd, env, log = () => {}, navTools = loadNavTools(log) }) {
     super();
     this.log = log;
     this.pending = new Map();
     this.nextId = 1;
     this.stderrTail = '';
     this.exited = false;
-    this.child = spawnCli(claudePath, args, { cwd, env });
+    this.child = null;
+    this.queue = []; // lines sent before the child exists (while the nav server starts)
+    this.nav = null;
+    const spawnWith = (extra) => this.spawnChild(claudePath, args.concat(extra), { cwd, env });
+    if (!navTools) {
+      spawnWith([]);
+      return;
+    }
+    startNavServer({ tools: navTools, log: (t) => log(t, 'nav') }).then(
+      (srv) => {
+        if (this.exited) { srv.close(); return; }
+        this.nav = srv;
+        spawnWith(['--mcp-config', buildMcpConfig(srv), '--allowedTools', NAV_ALLOWED_TOOL]);
+      },
+      (err) => {
+        log(`nav server failed to start: ${err && err.message}`, 'nav', 'warn');
+        if (!this.exited) spawnWith([]);
+      },
+    );
+  }
+
+  spawnChild(claudePath, args, opts) {
+    this.child = spawnCli(claudePath, args, opts);
     this.child.on('error', (err) => this.finish({ code: null, error: err }));
     this.child.on('exit', (code, signal) => this.finish({ code, signal }));
     this.child.stdin.on('error', () => {});
@@ -31,6 +73,7 @@ class CliProcess extends EventEmitter {
       this.emit('stderr', d);
     });
     this.readLines(this.child.stdout, (line) => this.onLine(line));
+    for (const line of this.queue.splice(0)) this.child.stdin.write(line + '\n');
   }
 
   readLines(stream, onLine) {
@@ -82,7 +125,8 @@ class CliProcess extends EventEmitter {
     if (this.exited) return false;
     const line = JSON.stringify(obj);
     this.log(`>> ${describe(obj, line.length)}`);
-    this.child.stdin.write(line + '\n');
+    if (!this.child) this.queue.push(line);
+    else this.child.stdin.write(line + '\n');
     return true;
   }
 
@@ -120,6 +164,7 @@ class CliProcess extends EventEmitter {
 
   kill() {
     if (this.exited) return;
+    if (!this.child) { this.finish({ code: null, signal: 'SIGTERM' }); return; }
     const pid = this.child.pid;
     try { this.child.stdin.end(); } catch {}
     if (process.platform === 'win32' && pid) {
@@ -139,6 +184,7 @@ class CliProcess extends EventEmitter {
   finish(info) {
     if (this.exited) return;
     this.exited = true;
+    if (this.nav) { this.nav.close(); this.nav = null; }
     for (const { reject, timer } of this.pending.values()) {
       clearTimeout(timer);
       reject(new Error('process exited'));

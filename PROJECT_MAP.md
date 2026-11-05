@@ -54,6 +54,10 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `mcp-model.js` — normalizes the `mcp_status` response into a server list (defensive parsing).
 - `mcp-cli.js` — runs `claude mcp add/remove` via `runClaude` with the resolved `claudePath` and merged environment.
 - `mcp-handler.js` — handles the webview `mcp` message (status, reconnect, toggle, add, remove).
+- `nav-server.js` — code-navigation MCP server: HTTP on 127.0.0.1, Bearer token, hand-written JSON-RPC.
+- `nav-config.js` — inline `--mcp-config` JSON and allowed-tool name for `claude-local-nav`.
+- `nav-tools.js` — `documentSymbols`, `readSymbol`, `findReferences` (caps, workspace path limit; no `vscode` import).
+- `nav-vscode.js` — the only file that requires `vscode`; supplies the dependencies to `createNavTools`.
 
 ## src/uri/ — URI handler
 - `index.js` — registers the handler for `vscode://local.claude-local/open`: modal confirm, prefill, open through `places.main()`.

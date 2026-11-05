@@ -155,6 +155,11 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Alternatives considered:** keeping the separate chip next to a disabled picker.
 **Why:** one control instead of two in the narrow footer; behaviour unchanged. Not explicitly asked of the user.
 
+## [2026-11-05] Navigation server config passed inline, not as a file (builder decision)
+**Decision:** `--mcp-config` receives the server config as an inline JSON string (`claude-local-nav`, http on 127.0.0.1 with a Bearer token); no `--strict-mcp-config`. Unverified that CLI 2.1.246 accepts inline JSON; if it does not, a temp config file is needed as an explicit exception to "the extension writes no files", deleted on exit.
+**Alternatives considered:** a temp config file (as the probe used); stdio through a helper script (passed the pre-check too).
+**Why:** no file keeps the no-storage rule intact. Cost: the token is visible in the child's command line (loopback only, one process lifetime).
+
 ## [2026-11-02] Fix 1: context meter only displays; mascot icons (user decisions)
 **Decision:** The context meter shows a percentage with a tooltip and no longer sends `/compact` on click (F-10; `/compact` stays as a typed command). The hand-drawn spark logo was replaced by the Claude Code mascot (`resources/claude-mascot.svg` full colour, `claude-mascot-mono.svg` `currentColor`); `claude-logo.svg` was deleted. The UI follows the official extension's look as closely as the guide and screenshots allow, VS Code theme variables only.
 **Alternatives considered:** keeping the click-to-compact; keeping the spark logo.
