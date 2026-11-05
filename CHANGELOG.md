@@ -2,6 +2,11 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Fix 2 part 2: F-5 `/plan` visible result, F-13 local commands in the `/` menu)
+- **F-5:** `/plan` now posts a Hebrew notice ("עברתם למצב תכנון…", or "כבר במצב תכנון…" when already in plan mode); refused mid-turn it keeps the existing refusal notice. `/plan open` with no plan keeps its notice. Logged as `session /plan (mode, busy)`. Probable cause of "shows nothing": the mode pill changed silently and the plan document needs assistant text before `ExitPlanMode`.
+- **F-13:** `/plan`, `/plan open` and `/diff` are listed in the `/` menu under a new group "פקודות של התוסף" (`slash-menu.js` LOCAL list); picking one runs it at once (no second Enter).
+- **Not verified:** no unit tests exist for this path and none were run (no Node); real VS Code untested.
+
 ## 2026-11-05 (Fix 2 part 1: F-4 mentions, F-7 shortcuts, F-6 `when` clause)
 - **F-4:** picking a file in the `@` list, Alt+K and dragging a file now insert the ABSOLUTE path (`mentions.absPath`); the CLI does not expand `@relative` in stream-json mode. A folder query ending in `/` lists that folder's direct children, so folders can be entered (`rankPaths` quirk: `relativeQuery` strips the cwd prefix when the menu re-opens after a folder pick). Files: `src/panels/mentions.js`, `conversation.js`, `commands.js`, `webview/chat/composer.js`. Why: FIXES F-4, decided with the user (path, not file content).
 - **F-7:** `claude-local.focusToggle` moved from Ctrl+Esc to Ctrl+Alt+E; the Ctrl+Shift+Esc binding was removed (Ctrl+Alt+C stays). Why: Windows takes both; the user chose these keys on 2026-11-05 (changes the earlier "Ctrl+Shift+Esc stays", see `DECISIONS.md`).

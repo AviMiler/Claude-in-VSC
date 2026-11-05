@@ -219,6 +219,10 @@
     if (!m || input.value.slice(input.selectionStart).trim()) return CL.slashMenu.close();
     CL.slashMenu.update(m[1], (cmd) => {
       if (cmd.group === 'terminal') return showTerminalCard(`/${cmd.name}`);
+      if (cmd.local) { // the extension's own command: run it now, no second Enter
+        input.value = `/${cmd.name}`;
+        return send();
+      }
       input.value = `/${cmd.name} `;
       CL.slashMenu.close();
       input.focus();

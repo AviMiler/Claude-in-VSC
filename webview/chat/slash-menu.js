@@ -6,20 +6,29 @@
 
   let commands = [];
   let meta = {};
+  let rawCommands = [];
   let shown = [];
   let sel = 0;
   let onPick = () => {};
 
-  function retag(list) {
-    commands = CL.prompt.classify(list, meta);
-  }
+  // Commands handled by the extension itself (never sent to the model); see composer.js send().
+  const LOCAL = [
+    { name: 'plan', description: 'מעבר למצב תכנון (פקודה של התוסף)' },
+    { name: 'plan open', description: 'פתיחת התוכנית האחרונה בעורך (פקודה של התוסף)' },
+    { name: 'diff', description: 'השינויים שClaude עשה בשיחה (פקודה של התוסף)' },
+  ].map((c) => ({ ...c, group: 'local', local: true }));
 
-  let rawCommands = [];
+  function retag(list) {
+    const cli = CL.prompt.classify(list, meta).filter((c) => !LOCAL.some((l) => l.name === c.name));
+    commands = LOCAL.concat(cli);
+  }
 
   function setCommands(list) {
     rawCommands = list || [];
     retag(rawCommands);
   }
+
+  retag([]); // the extension's own commands are available before the CLI's list arrives
 
   // From `system/init`: which names are skills and which only work in the terminal.
   function setMeta(m) {

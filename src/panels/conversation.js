@@ -508,7 +508,13 @@ class Conversation {
 
   // `/plan` switches to plan mode; `/plan open` shows the last plan as a read-only document.
   planCommand(open) {
-    if (!open) return this.setMode('plan');
+    if (!open) {
+      this.services.logger.info('session', `/plan (mode ${this.permissionMode}, busy ${Boolean(this.busy)})`);
+      if (this.busy) return this.setMode('plan'); // setMode explains the refusal
+      if (this.permissionMode === 'plan') return this.post({ type: 'notice', text: 'כבר במצב תכנון. בקשו מ-Claude תוכנית; /plan open יפתח אותה בעורך.' });
+      this.post({ type: 'notice', text: 'עברתם למצב תכנון: Claude יתכנן בלי לשנות קבצים.' });
+      return this.setMode('plan');
+    }
     if (!this.planText) return this.post({ type: 'notice', text: 'עדיין אין תוכנית לפתיחה. עברו למצב תכנון ובקשו מ-Claude תוכנית.' });
     return this.services.planDocs.open(this.planText);
   }

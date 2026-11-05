@@ -6,6 +6,7 @@
   const DEFAULT_TERMINAL_ONLY = ['doctor', 'color'];
 
   const GROUPS = [
+    { id: 'local', label: 'פקודות של התוסף' },
     { id: 'builtin', label: 'פקודות' },
     { id: 'skill', label: 'סקילים' },
     { id: 'terminal', label: 'בטרמינל בלבד' },

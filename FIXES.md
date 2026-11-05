@@ -7,17 +7,13 @@ PASS with no complaint: 1.1, 1.2, 3.1, 4.1-4.3, 5.1, 5.2, 6.1, 7.2, 9.1, 10.1, 1
 
 ## Order of work (decided by the user, 2026-11-02)
 1. ~~**Fix 1: the basic interface** = F-1, F-2, F-3~~ **Done 2026-11-02** on branch `fix1-ui-foundation` (also F-10); see `CHANGELOG.md`. Still open from it: real VS Code checks, and screenshots of the official extension during a conversation to finish matching the look.
-2. **Next: Fix 2** = F-4 `@` mentions, F-5 `/plan`, F-6 Ctrl+Shift+T and tab dots, F-7 shortcuts.
+2. **Next: Fix 2** = F-4, F-5, F-7 done 2026-11-05; F-6 unverified.
 3. F-8 model switch loads two models, F-9 context meter 1,000,000. (F-10 is done.)
-4. F-11 images, F-12 rewind button, F-13 `/` menu, F-14 always-allow, F-15 URI docs, F-16 test page.
+4. F-11 images, F-12 rewind button, F-14 always-allow, F-15 URI docs, F-16 test page.
 5. F-17 minor items.
 Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requires. Note for F-6: Ctrl+Shift+T and the tab dots changed in Fix 1 (the dots are now drawer dots, `view.badge` and the tab title marker).
 
 ## P1
-
-### F-5 `/plan` shows nothing (test 11.1, FAIL)
-- **Symptom:** `/plan` and `/plan open` show nothing. Known: `/plan` only switches to plan mode; the "open plan" document needs assistant text before `ExitPlanMode`, and the local model may not call it.
-- **Status:** open; needs a visible result (at least a mode indicator and a message when there is no plan yet).
 
 ### F-6 Ctrl+Shift+T and tab colour dots do not work (test 12.3, FAIL)
 - **Status:** `when` clause widened 2026-11-05 to include a focused sidebar view (probable cause: with the sidebar as default place and a file editor open, the old clause never matched). Unverified in real VS Code; the user gave no details. Reopen only conversations that have a session id and messages (by design). Tab dots exist only with `preferredLocation=panel`; in the sidebar the signals are the drawer dots and the view badge.
@@ -38,9 +34,6 @@ Paste works; **drag does not work**; an image cannot be sent without text; model
 
 ### F-12 Rewind needs a button (test 17.1)
 Esc Esc works for code rewind and fork, but the user wants a visible button too, not only the shortcut.
-
-### F-13 Extension-local commands missing in the `/` menu (test 18.1)
-`/diff`, `/plan` and the like should appear when typing `/`, with a note that they are local to the extension.
 
 ### F-14 "Always allow in this project" is ignored (log of test 5.1)
 `stderr: Ignoring 1 permissions.allow entry from .claude/settings.local.json: this workspace has not been trusted` — the choice "אושר תמיד בפרויקט הזה" writes a rule the CLI then ignores in an untrusted workspace, so the user is asked again. Fix: explain it in the card, or write the rule where the CLI honours it.
