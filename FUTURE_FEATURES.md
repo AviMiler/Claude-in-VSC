@@ -60,7 +60,7 @@ Claude keeps using `Grep`, `Glob` and `Read` on `.cs` files, as today.
 - A dialog that lists the servers with their status, enable/disable (`mcp_toggle`), reconnect (`mcp_reconnect`), and **add/remove** through `claude mcp add/remove`. Verified only by unit tests, not in real VS Code.
 - The CLI loads the servers from its own configuration; the extension stores nothing.
 
-### 3.2 Conflict with the new principle — 🗣️ needs the user's decision
+### 3.2 Conflict with the new principle — ✅ decided 2026-11-05: keep add/remove as it is (option B); no new editing features are added
 - **Add/remove** is editing, so it conflicts with "use and on/off only". Options: (A) remove the add/remove buttons from the dialog and keep list, status, enable/disable and reconnect; (B) keep add/remove as it is; (C) hide them behind a setting. Not decided. The `PLAN.md` stage 5 row ("A full management dialog, including add and remove from the UI") would change accordingly.
 
 ### 3.3 Candidate bridging of **using** MCP — 💡 (none verified against the real CLI)
