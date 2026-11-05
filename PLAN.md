@@ -1,6 +1,6 @@
 # Plan: every decision and its reason
 
-Updated: 2026-11-05. This is the **single source of truth for what to build next**. The old historical log (`features-plan.md`) was merged into this file and `DEPENDENCIES.md` and deleted; `DECISIONS.md` holds the architecture-level decisions in full format (alternatives and reasons). What exists today is described in `spec.md`; the measured facts behind the decisions are in `DEPENDENCIES.md`.
+Updated: 2026-11-03. This is the **single source of truth for what to build next**. The old historical log (`features-plan.md`) was merged into this file and `DEPENDENCIES.md` and deleted; `DECISIONS.md` holds the architecture-level decisions in full format (alternatives and reasons). What exists today is described in `spec.md`; the measured facts behind the decisions are in `DEPENDENCIES.md`.
 
 **Source of each decision:** 👤 the user decided (question and answer) · ✅ a recommendation the user approved · 🔧 derived from a check against the CLI/gateway (a factual reason) · ⚠️ my adjustment that was not asked explicitly (awaiting approval).
 
@@ -79,7 +79,6 @@ Updated: 2026-11-05. This is the **single source of truth for what to build next
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
 | IDE server | **A local WebSocket server + context + getDiagnostics.** `executeCode` (Jupyter): no. **A feasibility check first (my prototype)** | We need to know whether the CLI connects; if not, the chips fallback | 👤 |
-| Code navigation for Claude (future, not built; requested 2026-11-05) | **Tools backed by VS Code's own language features** (which are already LSP-backed): `findReferences`, `goToDefinition` (+ type definition / implementation), `hover`, `documentSymbols`, `workspaceSymbols`, and later `callHierarchy`. The extension does **not** run language servers itself. **Delivery is decided by the prototype:** through the IDE server (section 7) if the CLI shows those tools to the model, otherwise a small MCP server of the extension's own passed with `--mcp-config` | Claude today navigates only by text (`Grep`/`Glob`/`Read`), which costs context in a 64,000 window; symbol-level answers are much smaller. VS Code already has the language servers and providers, and offline there is nothing to download | ⚠️ (to confirm) |
 | MCP | **A full management dialog, including add and remove from the UI** (list + status, enable/disable, reconnect). OAuth: no | Verified: `mcp_status`, `mcp_reconnect`, `mcp_toggle` work, and so do `claude mcp add/remove` | 👤 + 🔧 |
 | Plugins and Mods | **Skip** | Marketplaces on GitHub, does not work offline | 👤 |
 | Git | **No change** (through Bash); no PR status | Already works, and the status needs GitHub | 👤 |
@@ -173,7 +172,6 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **D** | Model picker, context meter **(starts by confirming the 64,000 window for `qwen3.8:27b` with `/api/ps`)**, **removing the cost from the result line (tokens-only usage line)**, filtering, restart with `--resume` | A, C |
 | **E** ✅ done 2026-11-01 (branch `pkg-e-mcp`) | MCP, sign-in error card, URI (the usage line moved to D). **Still open:** nothing run in real VS Code; `claude mcp add -e` argument order and the live `mcp_status` shape unverified against the real CLI | A |
 | **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
-| **H** (future, proposed) | Code-navigation tools for Claude (section 7, "Code navigation tools"); starts with the delivery check | F's IDE prototype |
 | **G** | Display and accessibility (Focus view, timestamps, screen reader), collapsing long user messages | – |
 
 ## 6. What is open
@@ -187,7 +185,6 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 7. ~~Defaults marked ⚠️ in section 4~~ **Approved 2026-11-01** as proposed. Package A is unblocked.
 8. **Retry after an error (stage 1 table, requested 2026-11-03):** to confirm which errors get the button, and whether it retries automatically or only on click (proposed: button only).
 9. **IDE lock file vs "the extension writes no files":** deliberately left open until the IDE server work starts (package F). When it does: first test whether an environment variable or `--ide` is enough with no file; otherwise a temporary lock file with cleanup (delete on deactivate, delete stale locks whose pid is dead), recorded as an explicit exception in `DECISIONS.md`.
-10. **Code navigation (requested 2026-11-05):** (a) whether the CLI shows the IDE server's extra tools to the model, or only `getDiagnostics` (to my knowledge the official extension exposes just a couple of IDE tools to the model; **unverified here**); (b) which languages actually have providers on the target machine (TypeScript/JavaScript are built into VS Code; Python, C#, Java and others need their extensions installed offline); (c) the result-size caps below.
 
 ## 7. IDE server: design notes
 
@@ -197,27 +194,3 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 - **Tools the server exposes:** `getDiagnostics` and `getOpenEditors` (through `mcp_message`), `openFile`, `openDiff` (uses package F's diff view) and `selection_changed` (editor context). `executeCode` (Jupyter): no.
 - **Fallback:** if the CLI does not connect, the editor context stays as chips above the box (section 2, stage 3).
 - **Tests:** unit tests for the codec and the frames (`ws-frames`), and a manual check that `/ide` recognizes the server.
-
-### Code navigation tools (proposed 2026-11-05, not built)
-
-**Goal:** let Claude find and move around code by meaning (symbols, definitions, references) instead of only by text search, while keeping answers small for the 64,000-token window.
-
-**Why not a language server of our own:** it would mean shipping and updating language servers and a client (no npm, no build, offline). VS Code already runs them for the user's open languages and exposes the results through `vscode.commands.executeCommand('vscode.execute…Provider', …)`. The extension only translates.
-
-| Tool | VS Code command behind it | Returns |
-|---|---|---|
-| `findReferences` | `vscode.executeReferenceProvider` | Locations grouped by file, one line of source each |
-| `goToDefinition` | `vscode.executeDefinitionProvider`, `…TypeDefinitionProvider`, `…ImplementationProvider` | Location plus a few lines of the declaration |
-| `hover` | `vscode.executeHoverProvider` | Type / signature / doc text |
-| `documentSymbols` | `vscode.executeDocumentSymbolProvider` | A file outline (names, kinds, line ranges); much cheaper than reading the file |
-| `workspaceSymbols` | `vscode.executeWorkspaceSymbolProvider` | Matches by name across the workspace |
-| `callHierarchy` (later) | `vscode.prepareCallHierarchy`, `vscode.provideIncomingCalls`, `vscode.provideOutgoingCalls` | Callers / callees |
-| `getDiagnostics` | `vscode.languages.getDiagnostics` | Already planned above |
-
-- **Position input:** by `file` + `symbol name` (and optional `line`) rather than raw line/column, because a local model gets positions wrong. The tool resolves the name to a position through `documentSymbols` or a text match on that line.
-- **Size caps:** at most about 50 references and 2,000 characters per answer, with "N more not shown" at the end.
-- **Failure behaviour:** when no provider exists for a language, the tool answers plainly that this language has no navigation support, so Claude falls back to `Grep`.
-- **Delivery (decided by the prototype):** (1) register the tools on the IDE server, if the CLI exposes them to the model; (2) otherwise the extension hosts a small localhost MCP server (hand-written JSON-RPC, no npm) and passes it to the CLI with `--mcp-config`, which also needs no lock file. Both reuse the same tool implementations.
-- **Other helpers worth considering (not decided):** a compact repository map (folders plus top-level symbols per file) as one tool call; `openFile` at a symbol so the user sees what Claude is looking at.
-- **Tests:** the pure parts (result shaping, caps, name-to-position) get unit tests with fake provider results; a manual check in real VS Code per language.
-- **Not in scope:** rename/refactor through providers (`vscode.executeDocumentRenameProvider`), because edits must go through the per-block approval flow of package F.
