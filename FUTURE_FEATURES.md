@@ -31,7 +31,7 @@ Approved: (1) `findReferences` + `goToDefinition`; (2) `documentSymbols` + `work
 | `callHierarchy` | `vscode.prepareCallHierarchy`, `vscode.provideIncomingCalls`, `vscode.provideOutgoingCalls` | Callers and callees (a later addition) |
 | `getDiagnostics` | `vscode.languages.getDiagnostics` | Already in `PLAN.md` (IDE server); listed here only for completeness |
 
-### 1.2a Extra ideas for JS/React (proposed 2026-11-05) — 💡
+### 1.2a Extra ideas for JS/React (proposed 2026-11-05) — reviewed 2026-11-05: 1, 2, 3 ✅ approved; 4 not chosen (stays 💡); 5 ❌ skipped
 1. **`readSymbol`:** returns the exact source of one function, component or class (found through `documentSymbols` ranges) instead of the whole file. Probably the biggest context saver after `documentSymbols`.
 2. **`findImporters`:** which files import a given module; built on `findReferences` of the exported name, with a text-search fallback on `import … from` paths. Useful before changing or deleting a file. **Accuracy to verify.**
 3. **Symbol kind filter:** `kind` parameter (function, class, variable, component-like) on `workspaceSymbols` and `documentSymbols`, so answers stay small.
