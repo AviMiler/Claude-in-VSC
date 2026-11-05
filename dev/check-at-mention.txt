@@ -15,7 +15,7 @@ $claude = 'claude'
 $dir = Join-Path $env:TEMP 'cl-at-test'
 New-Item -ItemType Directory -Force $dir | Out-Null
 Set-Content -Path (Join-Path $dir 'secret.txt') -Value 'The secret word of this file is PINEAPPLE-7731' -Encoding utf8
-$abs = (Join-Path $dir 'secret.txt') -replace '\','/'
+$abs = (Join-Path $dir 'secret.txt') -replace '\\','/'
 function Ask($label, $text) {
   Write-Host "=== $label" -ForegroundColor Cyan
   $msg = @{ type = 'user'; message = @{ role = 'user'; content = @(@{ type = 'text'; text = $text }) } } | ConvertTo-Json -Depth 6 -Compress
