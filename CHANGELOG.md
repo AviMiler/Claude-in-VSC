@@ -2,6 +2,9 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Math: placeholder in a link title)
+- A math placeholder inside a link's target or title is now dropped (`math-logic.stripPlaceholders`, used by `renderer.link` in `markdown.js`), so `[a](u "$x$")` no longer breaks the link's markup. One unit test added. The indented-code case from the review stays open on purpose (see `FIXES.md`). **Verified:** `node --test` 164/164. **Not verified:** in a browser.
+
 ## 2026-11-05 (Opus review of the day's code, fixes)
 - A review by an Opus subagent (read-only, 19 tool calls) of all code changed today found five real defects, all confirmed in the code and fixed: (1) a drop attached each image twice (`getAsFile()` returns new objects, so merging `files` and `items` cannot be de-duplicated by identity: `items` are now used only when `files` is empty); (2) "נסה שוב" could send another conversation's message (`lastSent` is now cleared when a conversation is reset or restored, and the button is not shown while history replays); (3) a folder with spaces in its path (like this machine's OneDrive folder) broke `@` drill-down because the closing quote came after the slash (a folder pick now stays an open quote `@"…/` and `updateMention` reads an open quote); (4) the source-file instruction was marked as sent before the CLI received it, so a failed start or a fork lost it for good (it is now repeated after every new CLI process); (5) the no-image-support error matched "revision", "provision" (`\bvision\b` now).
 - **Left open, low risk (also in `FIXES.md`):** a math placeholder inside a link title (`[a](u "$x$")`) breaks that link's markup (no XSS, the inserted markup is fixed); `$a$` inside indented (4-space) code blocks or fenced code nested in a list is rendered as math; rewind to before the message that carried the source instruction does not repeat the instruction until a new process starts.

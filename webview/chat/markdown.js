@@ -24,7 +24,10 @@
   const renderer = new marked.Renderer();
   renderer.html = (html) => escapeHtml(html);
   renderer.code = (code, lang) => codeBlock(code, lang);
-  renderer.link = (href, title, text) => `<a href="${escapeHtml(href || '')}" data-link title="${escapeHtml(title || href || '')}">${text}</a>`;
+  // A math placeholder inside a link target or title would be swapped for markup inside the attribute
+  // and break the tag, so it is dropped there (the math stays rendered where it is body text).
+  const noMath = (s) => CL.mathLogic.stripPlaceholders(s);
+  renderer.link = (href, title, text) => `<a href="${escapeHtml(noMath(href))}" data-link title="${escapeHtml(noMath(title) || noMath(href))}">${text}</a>`;
   renderer.image = (href, title, text) => `<span class="md-image">[תמונה: ${escapeHtml(text || href || '')}]</span>`;
   renderer.table = (header, body) => `<div class="table-wrap"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
   marked.use({ renderer, gfm: true, breaks: false });

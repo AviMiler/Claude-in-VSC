@@ -48,3 +48,15 @@ test('restore swaps placeholders, raw kept for fallback', () => {
 test('input private-use chars cannot forge placeholders', () => {
   assert.strictEqual(extract('a0b').items.length, 0);
 });
+
+test('stripPlaceholders removes math placeholders from a link title (no markup inside attributes)', () => {
+  const m = require('../webview/chat/math-logic');
+  const { text, items } = m.extract('[a](https://x.y "$x^2$") and $y$');
+  assert.strictEqual(items.length, 2);
+  const title = /"([^"]*)"/.exec(text)[1];
+  assert.ok(m.PLACEHOLDER_RE.test(title)); // the placeholder is in the title...
+  m.PLACEHOLDER_RE.lastIndex = 0;
+  assert.strictEqual(m.stripPlaceholders(title), ''); // ...and is dropped from the attribute
+  assert.strictEqual(m.stripPlaceholders('plain'), 'plain');
+  assert.strictEqual(m.stripPlaceholders(undefined), '');
+});

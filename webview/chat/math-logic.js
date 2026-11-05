@@ -133,7 +133,12 @@
     return String(html).replace(PLACEHOLDER_RE, (all, n) => (items[n] ? fn(items[n], Number(n)) : ''));
   }
 
-  const api = { extract, restore, PLACEHOLDER_RE };
+  // Drops placeholders from a string that must stay plain (a link target or title).
+  function stripPlaceholders(s) {
+    return String(s || '').replace(PLACEHOLDER_RE, '');
+  }
+
+  const api = { extract, restore, stripPlaceholders, PLACEHOLDER_RE };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else (root.CL = root.CL || {}).mathLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -24,5 +24,5 @@ Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requir
 ### F-17 Minor
 - Tests 2.3 and 2.4 were marked NOT RUN, but the log of 2.3 shows the settings changing correctly; 2.4 (Show Log / Copy Log) is still unchecked.
 - Models like `qwen2.5:7b` print tool calls as JSON text and answer in Chinese or mixed language: a model limit, not an extension bug.
-- Math (from the Opus review, low): a placeholder inside a link title (`[a](u "$x$")`) breaks that link's markup (not exploitable); `$a$` inside 4-space-indented code or fenced code nested in a list is rendered as math.
 - The source instruction is not repeated after a rewind to before the message that carried it (only after a new CLI process).
+- Math (low, accepted): `$a$` inside 4-space-indented code or fenced code nested in a list is rendered as math. Not fixed on purpose: telling indented code from an indented list continuation needs marked's own tokenizer, and guessing wrongly would stop math in nested lists, which models write far more often than indented code.
