@@ -51,3 +51,21 @@ Claude keeps using `Grep`, `Glob` and `Read` on `.cs` files, as today.
 1. Is C# worth any effort now, or does it wait until the JS tools (`PLAN.md` section 8) are built?
 2. If A: can the user bring in a `.vsix` and run the F12 check?
 3. If B: is the goal Claude inside Visual Studio, or only C# navigation?
+
+## 3. MCP bridging: use and per-session on/off only (requested 2026-11-05)
+
+**Principle (user, 2026-11-05):** the extension is only a **bridge** to the CLI. It gives access to **using** MCP servers and to **turning them on or off in a session**. It does **not** edit MCP configuration. (Earlier in the same conversation the user asked for "everything the CLI has, bridged"; the user then withdrew the editing part.)
+
+### 3.1 What already exists (package E, `src/mcp/`) — for reference
+- A dialog that lists the servers with their status, enable/disable (`mcp_toggle`), reconnect (`mcp_reconnect`), and **add/remove** through `claude mcp add/remove`. Verified only by unit tests, not in real VS Code.
+- The CLI loads the servers from its own configuration; the extension stores nothing.
+
+### 3.2 Conflict with the new principle — 🗣️ needs the user's decision
+- **Add/remove** is editing, so it conflicts with "use and on/off only". Options: (A) remove the add/remove buttons from the dialog and keep list, status, enable/disable and reconnect; (B) keep add/remove as it is; (C) hide them behind a setting. Not decided. The `PLAN.md` stage 5 row ("A full management dialog, including add and remove from the UI") would change accordingly.
+
+### 3.3 Candidate bridging of **using** MCP — 💡 (none verified against the real CLI)
+- **Tools of each server, read-only:** show a server's tool list in the dialog (the `mcp_status` response already carries a tool list, `DEPENDENCIES.md` row 15). Permission cards for MCP tool calls already work through `can_use_tool`.
+- **Prompts as slash commands:** MCP prompts are exposed by the CLI as slash commands; they should appear in the grouped `/` menu. Unverified whether they arrive in the `initialize` response in stream-json mode.
+- **Resources through `@`:** attach an MCP resource from a server with `@`. Unverified: the `@path` text is not expanded by the CLI in stream-json mode (`FIXES.md` F-4), so a resource mention probably needs the extension to fetch it some other way, which may not be possible as a pure bridge.
+- **Per-session on/off:** exists (`mcp_toggle`); "per session" means it applies to the running conversation and is not saved. To check: that a toggle is not written to the CLI's configuration.
+- **Our own server for package H** (`PLAN.md` section 8) is passed per launch with `--mcp-config`. It is not editing: nothing is stored.
