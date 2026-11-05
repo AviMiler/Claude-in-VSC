@@ -13,6 +13,7 @@ Each probe spawns the CLI the way the extension does (stream-json + control prot
 | `probe2-standalone.js` | `q1_rewind`, `q2_updated_input`, `q3_permission_shapes`, `q4_modes`, `q5_vision`, `q6_thinking_effort`, `q7_mcp`, `q8_loop`, `q9_interrupt_resume`, `q10_bang_shell` | same |
 | `probe4-standalone.js` | background tasks and `stop_task`, unsupported background requests, Task tools, sub-agents (`Agent`), `/loop` cron tools | same (copied from the user's probe) |
 | `probe3-standalone.js` | `s1a_rewind_with_env`, `s1b_rewind_without_env`, `s2_updated_input`, `s3_permission_shapes`, `s4_set_model`, `s5_auto_mode` | same; `--alt-model` (default `gemma3:27b`) for `s4` |
+| `probe-mcp-standalone.js` | package H pre-check (`PLAN.md` section 8): starts a small MCP server (HTTP on 127.0.0.1 with a token, or stdio), runs `claude -p` without and with it, reports whether the CLI lists and calls the tools, whether the model gets the answer, and the extra input tokens. Instructions for the user: `check-mcp-tools.txt` | same; options `--transport http\|stdio\|both`, `--model`, `--turn-timeout`. Tested only against a mock CLI, not the real one |
 
 The standalone files do not need the repo, git or the network: copy one file to the machine that has the CLI and the local model.
 
