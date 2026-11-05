@@ -74,7 +74,7 @@ t('1.1', 'הפעלה עם הכוונת פיתוח', [
   ['<code>… [settings] activated (VS Code 1.xx); claudePath=… bypass=false terminal=false location=sidebar envNames=[API_TIMEOUT_MS,…] …</code>'], 'שורת ה-activated (או היעדרה), והודעת שגיאה מ-Help &gt; Toggle Developer Tools &gt; Console');
 t('1.2', 'claudePath אמיתי', [
   'Settings: <code>claudeLocal.claudePath</code> = הנתיב המלא ל-<code>claude-bin.exe</code> (לא <code>claude.cmd</code>).',
-  'פתחו צ\'אט (Ctrl+Shift+Esc) ושלחו "שלום".'
+  'פתחו צ\'אט (Ctrl+Alt+C) ושלחו "שלום".'
 ], 'מופיעה תשובה של Claude.',
   ['<code>[settings] changed: claudePath=…claude-bin.exe …</code>', '<code>[spawn] start …claude-bin.exe --output-format stream-json … (cwd …, resume=false, fork=false)</code>', '<code>[control] request ext-1 initialize</code> ואחריו <code>[control] response ext-1 success</code>', '<code>[stream] send (4 chars, 0 images, session=new)</code>'], PASTE_STD);
 t('1.3', 'חלופה: fake-claude', [
@@ -85,12 +85,12 @@ t('1.3', 'חלופה: fake-claude', [
 
 g('2. הגדרות וקיצורים');
 t('2.1', 'קיצורי מקלדת', [
-  'Ctrl+Alt+C (וגם Ctrl+Shift+Esc אם Windows לא תופס אותו) - פתיחת Claude.', 'Ctrl+Esc בצ\'אט - חזרה לעורך האחרון; שוב - חזרה לצ\'אט.',
+  'Ctrl+Alt+C - פתיחת Claude.', 'Ctrl+Alt+E בצ\'אט - חזרה לעורך האחרון; שוב - חזרה לצ\'אט.',
   'הפקודה "Claude Code Local: Keyboard Shortcuts".'
 ], 'הקיצור פותח את Claude במקום הקבוע (סרגל הצד) או מעביר אליו את המיקוד אם הוא כבר פתוח, בלי לפתוח שיחה נוספת. הפקודה פותחת את עורך הקיצורים מסונן.', ['<i>(אין שורת לוג ייעודית; בפתיחה ראשונה: <code>[session] new conversation c1 in sidebar; …</code>)</i>'], 'איזה קיצור לא עבד + מערכת הפעלה');
-t('2.2', 'Ctrl+Esc ותפריט התחל', [
-  'בעורך טקסט לחצו Ctrl+Esc.', 'שימו לב אם תפריט התחל של Windows נפתח.'
-], 'הצ\'אט נפתח/מקבל פוקוס ותפריט התחל <b>לא</b> נפתח. אם נפתח - רשמו (VS Code לא תמיד חוסם אותו; ניתן להגדיר קיצור אחר).', [], 'האם תפריט התחל נפתח; גרסת Windows');
+t('2.2', 'Ctrl+Alt+E (החלף את Ctrl+Esc)', [
+  'בעורך טקסט לחצו Ctrl+Alt+E.', 'ודאו שהמיקוד עובר לצ\'אט ושוב לעורך, ושתפריט התחל של Windows לא נפתח.'
+], 'המיקוד עובר בין העורך לצ\'אט ותפריט התחל <b>לא</b> נפתח. אם לא - רשמו איזה קיצור ומה קרה.', [], 'האם תפריט התחל נפתח; גרסת Windows');
 t('2.3', 'הגדרות', [
   'שנו <code>claudeLocal.logLevel</code> ל-<code>debug</code> ואז חזרה ל-<code>info</code>.', 'שנו <code>claudeLocal.useTerminal</code> ל-true ולחצו על כפתור Claude, ואז החזירו.', 'שנו <code>preferredLocation</code> ל-<code>panel</code> ולחצו על כפתור Claude פעמיים; החזירו ל-<code>sidebar</code>.'
 ], 'עם debug מופיעות שורות <code>&lt;&lt; …</code>/<code>&gt;&gt; …</code> (סוג וגודל בלבד); עם info הן נעלמות. useTerminal פותח טרמינל. עם <code>panel</code> נפתחת <b>לשונית עורך אחת</b> ליד העורך; לחיצה שנייה רק מתמקדת בה (לא לשונית נוספת).',

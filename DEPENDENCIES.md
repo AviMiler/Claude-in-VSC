@@ -160,7 +160,7 @@ Plateau test (`/v1/chat/completions`, a prompt of N words; the method is in `dev
 |---|---|---|
 | VS Code **1.91.1** | `code --version` | No secondary side bar (falls back to the activity bar); every new feature must fit the 1.91 API |
 | The existing extension **works** there | The user's report | The manual checks were marked as passing on the user's report (not checked one by one; the plan-approval buttons failed and were left for last) |
-| Ctrl+Shift+Esc is taken by Windows | Known, noted in `spec.md` | Alternative shortcut Ctrl+Alt+C |
+| Ctrl+Shift+Esc and Ctrl+Esc are taken by Windows | Resolved 2026-11-05 (`DECISIONS.md`) | Ctrl+Alt+C opens, Ctrl+Alt+E switches editor and chat |
 
 ## 5. Assumptions and what is still unknown
 
