@@ -18,7 +18,9 @@ This is a **parking place for ideas**. Nothing here is decided, scheduled or bui
   - **Result of the user's check (2026-11-05):** no extensions are installed in VS Code; JS/React navigation is confirmed to work; C# is probably used only in Visual Studio, not VS Code. So **C# navigation is out of scope for now** (see section 2 for the options): Claude falls back to `Grep`/`Glob`/`Read` on `.cs` files. It could be added later by bringing a C# extension (a file) into the machine, treated as a special case; not planned.
   - Per `AGENT_CONTEXT.md` (no internet), the extension must not install anything itself.
 
-### 1.2 Candidate tools — 💡
+### 1.2 Candidate tools — 🗣️ user's choice 2026-11-05: all four groups below approved for JS/React; extra ideas in 1.2a await review
+Approved: (1) `findReferences` + `goToDefinition`; (2) `documentSymbols` + `workspaceSymbols`; (3) `hover`; (4) `callHierarchy` (still a later addition; less reliable in dynamic JS).
+
 | Tool | VS Code API behind it | Returns |
 |---|---|---|
 | `findReferences` | `vscode.executeReferenceProvider` | Locations grouped by file, one line of source each |
@@ -28,6 +30,13 @@ This is a **parking place for ideas**. Nothing here is decided, scheduled or bui
 | `workspaceSymbols` | `vscode.executeWorkspaceSymbolProvider` | Matches by name across the workspace |
 | `callHierarchy` | `vscode.prepareCallHierarchy`, `vscode.provideIncomingCalls`, `vscode.provideOutgoingCalls` | Callers and callees (a later addition) |
 | `getDiagnostics` | `vscode.languages.getDiagnostics` | Already in `PLAN.md` (IDE server); listed here only for completeness |
+
+### 1.2a Extra ideas for JS/React (proposed 2026-11-05) — 💡
+1. **`readSymbol`:** returns the exact source of one function, component or class (found through `documentSymbols` ranges) instead of the whole file. Probably the biggest context saver after `documentSymbols`.
+2. **`findImporters`:** which files import a given module; built on `findReferences` of the exported name, with a text-search fallback on `import … from` paths. Useful before changing or deleting a file. **Accuracy to verify.**
+3. **Symbol kind filter:** `kind` parameter (function, class, variable, component-like) on `workspaceSymbols` and `documentSymbols`, so answers stay small.
+4. **Navigation results shown in the chat:** the chat renders a navigation call as a compact Hebrew card ("מקומות שימוש של X: 12 תוצאות") whose lines open the file at that line in the editor. Gives the user the same view Claude has. Open: whether the chat already makes `path:line` clickable.
+5. **`signatureHelp`:** parameter list of a function being called (`vscode.executeSignatureHelpProvider`); largely overlaps `hover`, so probably skip.
 
 ### 1.3 Design ideas — 💡
 - **Input by name, not position:** `file` + `symbol` (+ optional `line`) instead of raw line/column, because a local model gets positions wrong. The tool resolves the name through `documentSymbols` or a text match on that line.
