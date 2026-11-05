@@ -8,7 +8,7 @@ PASS with no complaint: 1.1, 1.2, 3.1, 4.1-4.3, 5.1, 5.2, 6.1, 7.2, 9.1, 10.1, 1
 ## Order of work (decided by the user, 2026-11-02)
 1. ~~**Fix 1: the basic interface** = F-1, F-2, F-3~~ **Done 2026-11-02** on branch `fix1-ui-foundation` (also F-10); see `CHANGELOG.md`. Still open from it: real VS Code checks, and screenshots of the official extension during a conversation to finish matching the look.
 2. **Next: Fix 2** = F-4, F-5, F-7 done 2026-11-05; F-6 unverified.
-3. F-8 model switch loads two models, F-9 context meter 1,000,000. (F-10 is done.)
+3. ~~F-8 model switch loads two models, F-9 context meter 1,000,000~~ **Done 2026-11-05** (`--settings`; see `CHANGELOG.md`). Still open from it: the user's check on CLI 2.1.246 (`dev/check-model-switch.txt`). (F-10 is done.)
 4. F-11 images, F-12 rewind button, F-14 always-allow, F-15 URI docs, F-16 test page.
 5. F-17 minor items.
 Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requires. Note for F-6: Ctrl+Shift+T and the tab dots changed in Fix 1 (the dots are now drawer dots, `view.badge` and the tab title marker).
@@ -17,15 +17,6 @@ Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requir
 
 ### F-6 Ctrl+Shift+T and tab colour dots do not work (test 12.3, FAIL)
 - **Status:** `when` clause widened 2026-11-05 to include a focused sidebar view (probable cause: with the sidebar as default place and a file editor open, the old clause never matched). Unverified in real VS Code; the user gave no details. Reopen only conversations that have a session id and messages (by design). Tab dots exist only with `preferredLocation=panel`; in the sidebar the signals are the drawer dots and the view badge.
-
-### F-8 Model switch loads two models (log of tests 4.3, 5.1, 13.1)
-- **Evidence:** after switching to `qwen2.5:7b` the log still shows `[claude-code:unrecognized_model] {"model":"qwen3.8:27b","query_source":"generate_session_title"}` next to `{"model":"qwen2.5:7b","query_source":"sdk"}`: the title call still uses `qwen3.8:27b`, so the server loads a second model (cold load 285 s). Package D sets the three `ANTHROPIC_DEFAULT_*_MODEL` variables, but they apparently lose against `env` in the CLI's `settings.json`.
-- **Fix idea:** pass `--settings` with an override or a different mechanism; verify with `/api/ps` that only one model is loaded.
-- **Status:** open.
-
-### F-9 Context meter shows 1,000,000 until the model is switched (test 1.2 log)
-- **Evidence:** `used=3575 max=1000000` on the default model (model name arrives as `qwen3.8:27b[1m]`), `max=64000` after an explicit switch. `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000` is passed but not effective for the default model.
-- **Status:** open.
 
 ## P2
 

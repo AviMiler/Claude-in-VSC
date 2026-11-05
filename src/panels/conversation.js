@@ -13,7 +13,7 @@ const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const { translateTranscript } = require('../history/transcript-events');
 const { buildErrorCard } = require('./error-card');
-const { modelEnv } = require('../models/launch');
+const { launchSettings } = require('../models/launch');
 const { ModelSwitcher } = require('./model-switch');
 const { refreshContextMeter } = require('./context-meter');
 const editLog = require('../diff/edit-log');
@@ -187,18 +187,22 @@ class Conversation {
 
   startProcess({ resume, fork = false } = {}) {
     const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
+    const settings = launchSettings({ model: this.model, environmentVariables });
     const args = buildArgs({
       permissionMode: this.permissionMode,
       resume,
       model: this.model !== 'default' ? this.model : undefined,
       allowBypass: allowDangerouslySkipPermissions,
+      settings,
     }).concat(checkpoints.checkpointArgs({ fork: fork && Boolean(resume) }));
     this.services.logger.info('spawn', `start ${claudePath} ${args.join(' ')} (cwd ${this.cwd}, resume=${Boolean(resume)}, fork=${fork})`);
+    // Its own line: the start line can pass the log's 500-character cut.
+    if (settings) this.services.logger.info('spawn', `--settings env ${JSON.stringify(settings.env)}`);
     const proc = new CliProcess({
       claudePath,
       args,
       cwd: this.cwd,
-      env: { ...mergeEnv(process.env, { ...environmentVariables, ...modelEnv(this.model) }), ...checkpoints.CHECKPOINT_ENV },
+      env: { ...mergeEnv(process.env, environmentVariables), ...checkpoints.CHECKPOINT_ENV },
       log: (t, tag, level) => this.logLine(t, tag, level),
     });
     const translate = createStreamTranslator();

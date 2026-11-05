@@ -41,7 +41,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `sidebar-view.js` — the sidebar/activity-bar host; the `ConversationHost` outlives the `WebviewView`; `view.badge` = hidden waiting + unread, description = title.
 - `commands.js` — `claude-local.*` commands (`open` follows `preferredLocation` / `useTerminal`; `newConversation`, `terminal.open`, `focusToggle` via `viewFocus`, `keyboardShortcuts`, `reopenClosed`, `continueLast`, logs); sets the `claude-local:hasClosed` context key.
 - `model-switch.js` — `ModelSwitcher`: model list post, `switchTo` (kill + restart with `--model` + `--resume`), `stopAndSwitch` (modal Hebrew warning), "does not support tools" revert.
-- `context-meter.js` — `get_context_usage` after initialize and each result, posts `context` to the webview.
+- `context-meter.js` — `get_context_usage` after initialize and each result, capped at the configured window, posts `context` to the webview.
 - `error-card.js` — builds the Hebrew CLI-failure card (connection checklist, `.cmd`/`.bat` warning).
 - `settings-actions.js` — opens `settings.json` or a given setting from the card buttons.
 - `display-settings.js` — pure: `readDisplay` / `sanitizeVerbs`, the display and accessibility settings sent to the webview.
@@ -61,7 +61,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 ## src/models/ — model gateway (package D)
 - `gateway.js` — `resolveGatewayUrl`, `fetchModels` (`/v1/models` + `/v1/model/info`, 5 s, in memory).
 - `filter.js` (pure) — hides `output_config.format` models and `modelDenylist`; `isNoToolsError`.
-- `launch.js` (pure) — `modelEnv`: the three `ANTHROPIC_DEFAULT_*_MODEL`.
+- `launch.js` (pure) — `launchSettings`: the `--settings` env (model aliases for a picked model; the window + `CLAUDE_CODE_DISABLE_1M_CONTEXT`); `contextWindow`.
 ## src/background/ — background task map
 - `task-map.js` — pure map from `task_started` / `background_tasks_changed` / `task_updated` / `task_notification`. Test: `test/task-map.test.js`. UI: `webview/chat/tasks-bar.js` (`#bg-tasks` bar with stop).
 
@@ -107,7 +107,8 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `README.md` — how to run the probes, the gateway probe, the fake CLI and the browser preview.
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
 - `check-context-window.txt` — Hebrew `/api/ps` check of the 64,000 window, for the user.
-- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; answers `get_context_usage`).
+- `check-model-switch.txt` — Hebrew check of F-8/F-9 on the user's CLI (log lines, `/api/ps`).
+- `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; `--settings` env over `FAKE_CLAUDE_USER_SETTINGS_ENV`; default model `fake-model[1m]` unless 1M is off; answers `get_context_usage`).
 - `manual-tests.html` — Hebrew manual test checklist.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host (several conversations, drawer, restore, MCP, bars; URL params `?conv=c2`, `?open=drawer|mcp|slash|attach|mode`, `?theme=light`).
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).

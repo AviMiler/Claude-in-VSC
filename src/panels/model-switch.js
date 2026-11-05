@@ -1,6 +1,6 @@
 // Model picker and model switching for one conversation (PLAN.md section 3, decisions 1, 4, 6).
-// A switch restarts the CLI with `--model <id>`, the three ANTHROPIC_DEFAULT_*_MODEL variables and
-// `--resume <session>`. The run-time `set_model` request is not used: the CLI accepts any name and
+// A switch restarts the CLI with `--model <id>`, every model alias pointed at <id> through
+// `--settings` (src/models/launch.js) and `--resume <session>`. The run-time `set_model` request is not used: the CLI accepts any name and
 // only the next turn fails (DEPENDENCIES.md section 2 #26).
 const vscode = require('vscode');
 const { resolveGatewayUrl, fetchModels } = require('../models/gateway');

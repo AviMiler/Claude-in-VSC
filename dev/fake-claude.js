@@ -15,16 +15,44 @@
 // FAKE_CLAUDE_INTERRUPT=no-result | error changes what follows an interrupt (no result line, or a
 // result with is_error:true), to test both ways a real CLI might end a stopped turn.
 // FAKE_CLAUDE_NO_TOOLS_MODEL=<id>: when started with --model <id>, every turn fails like a model
-// without tool support (DEPENDENCIES.md section 2 #26, #29). system/init reports the --model value
-// and, in the fake-only field fake_default_models, the three ANTHROPIC_DEFAULT_*_MODEL variables.
+// without tool support (DEPENDENCIES.md section 2 #26, #29). system/init reports the model and, in
+// the fake-only field fake_default_models, ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL and
+// ANTHROPIC_SMALL_FAST_MODEL as the CLI would see them.
+// Environment as the real CLI builds it (DEPENDENCIES.md section 2 #39): the process environment,
+// then a simulated ~/.claude/settings.json `env` (FAKE_CLAUDE_USER_SETTINGS_ENV, a JSON object), then
+// the `env` of `--settings <json>`; invalid --settings JSON exits with an error like the CLI.
+// Without --model the model is "fake-model[1m]" (window 1,000,000) unless
+// CLAUDE_CODE_DISABLE_1M_CONTEXT is set, like the real default model (#40); otherwise
+// get_context_usage reports CLAUDE_CODE_MAX_CONTEXT_TOKENS or 200,000.
 const readline = require('readline');
 
-const SESSION = process.argv.includes('--resume')
-  ? process.argv[process.argv.indexOf('--resume') + 1]
-  : '00000000-0000-4000-8000-000000000001';
-let mode = process.argv.includes('--permission-mode') ? process.argv[process.argv.indexOf('--permission-mode') + 1] : 'default';
+const argValue = (flag) => (process.argv.includes(flag) ? process.argv[process.argv.indexOf(flag) + 1] : undefined);
+
+function effectiveEnv() {
+  let user = {};
+  try {
+    user = JSON.parse(process.env.FAKE_CLAUDE_USER_SETTINGS_ENV || '{}');
+  } catch {
+    user = {};
+  }
+  let flag = {};
+  const raw = argValue('--settings');
+  if (raw !== undefined) {
+    try {
+      flag = JSON.parse(raw).env || {};
+    } catch (err) {
+      process.stderr.write(`Error: Invalid --settings JSON: ${err.message}\n`);
+      process.exit(1);
+    }
+  }
+  return { ...process.env, ...user, ...flag };
+}
+
+const ENV = effectiveEnv();
+const SESSION = argValue('--resume') || '00000000-0000-4000-8000-000000000001';
+let mode = argValue('--permission-mode') || 'default';
 const allowBypass = process.argv.includes('--allow-dangerously-skip-permissions');
-const MODEL = process.argv.includes('--model') ? process.argv[process.argv.indexOf('--model') + 1] : 'fake-model';
+const MODEL = argValue('--model') || (ENV.CLAUDE_CODE_DISABLE_1M_CONTEXT ? 'fake-model' : 'fake-model[1m]');
 const noTools = Boolean(process.env.FAKE_CLAUDE_NO_TOOLS_MODEL) && process.env.FAKE_CLAUDE_NO_TOOLS_MODEL === MODEL;
 const onInterrupt = process.env.FAKE_CLAUDE_INTERRUPT || '';
 
@@ -215,7 +243,7 @@ function onControlRequest(msg) {
   if (subtype === 'initialize') {
     reply({ commands: COMMANDS, models: MODELS, agents: [], output_style: 'default', available_output_styles: ['default'], account: {}, pid: process.pid });
     out({ type: 'system', subtype: 'init', session_id: SESSION, model: MODEL, permissionMode: mode, cwd: process.cwd(), tools: ['Bash'],
-      fake_default_models: ['OPUS', 'SONNET', 'HAIKU'].map((n) => process.env[`ANTHROPIC_DEFAULT_${n}_MODEL`] || null) });
+      fake_default_models: ['DEFAULT_OPUS', 'DEFAULT_SONNET', 'DEFAULT_HAIKU', 'SMALL_FAST'].map((n) => ENV[`ANTHROPIC_${n}_MODEL`] || null) });
   } else if (subtype === 'interrupt') {
     interrupted = true;
     reply({});
@@ -230,7 +258,8 @@ function onControlRequest(msg) {
   } else if (subtype === 'set_model') {
     reply({});
   } else if (subtype === 'get_context_usage') {
-    reply({ categories: [], totalTokens: 23400, maxTokens: Number(process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS) || 200000 });
+    const maxTokens = /\[1m\]$/i.test(MODEL) ? 1000000 : Number(ENV.CLAUDE_CODE_MAX_CONTEXT_TOKENS) || 200000;
+    reply({ categories: [], totalTokens: 23400, maxTokens, model: MODEL });
   } else if (subtype === 'stop_task') {
     // The sequence probe4 captured after a stop.
     const id = msg.request.task_id;

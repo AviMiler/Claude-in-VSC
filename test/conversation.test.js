@@ -16,14 +16,14 @@ const FAKE_CMD = path.join(__dirname, '..', 'dev', 'fake-claude.cmd');
 const FAKE_JS = path.join(__dirname, '..', 'dev', 'fake-claude.js');
 
 // Port 1 refuses at once, so the model list falls back without real network.
-function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1' } = {}) {
+function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables } = {}) {
   const posted = [];
   const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage: (m) => posted.push(m) };
   // On Windows the .cmd wrapper is the realistic path; elsewhere run the script directly.
   const claudePath = process.platform === 'win32' ? FAKE_CMD : FAKE_JS;
   const services = {
     logger: { info() {}, warn() {}, debug() {} },
-    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, modelDenylist: ['gemma3:27b'] }), onDidChange: () => ({ dispose() {} }) },
+    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, modelDenylist: ['gemma3:27b'], environmentVariables }), onDidChange: () => ({ dispose() {} }) },
     registry: { findBySession: () => null },
   };
   const c = new Conversation({ webview, services });
@@ -119,7 +119,12 @@ function initOf(proc) {
   return new Promise((res) => proc.on('message', (m) => { if (m.type === 'system' && m.subtype === 'init') res(m); }));
 }
 
-test('switching model restarts the CLI with --model, the three default-model variables and --resume', async () => {
+// F-8: the user's ~/.claude/settings.json `env` names the old model for every alias; it beats the
+// process environment, so the aliases must arrive through --settings.
+test('switching model restarts the CLI with --model, every alias through --settings and --resume', async () => {
+  process.env.FAKE_CLAUDE_USER_SETTINGS_ENV = JSON.stringify({
+    ANTHROPIC_DEFAULT_OPUS_MODEL: 'qwen3.8:27b', ANTHROPIC_DEFAULT_SONNET_MODEL: 'qwen3.8:27b', ANTHROPIC_DEFAULT_HAIKU_MODEL: 'qwen3.8:27b',
+  });
   const { c, posted } = setup();
   try {
     await until(() => c.sessionId);
@@ -130,8 +135,32 @@ test('switching model restarts the CLI with --model, the three default-model var
     const init = await initOf(c.proc);
     assert.strictEqual(init.model, 'gpt-oss:20b');
     assert.strictEqual(init.session_id, session);
-    assert.deepStrictEqual(init.fake_default_models, ['gpt-oss:20b', 'gpt-oss:20b', 'gpt-oss:20b']);
+    assert.deepStrictEqual(init.fake_default_models, ['gpt-oss:20b', 'gpt-oss:20b', 'gpt-oss:20b', 'gpt-oss:20b']);
     assert.ok(posted.some((m) => m.type === 'model' && m.value === 'gpt-oss:20b'));
+  } finally {
+    delete process.env.FAKE_CLAUDE_USER_SETTINGS_ENV;
+    c.dispose();
+  }
+});
+
+// F-9: on the default model the CLI resolves "<model>[1m]" and assumes 1,000,000 unless 1M is off.
+test('the default model uses the configured window, not 1M', async () => {
+  const { c, posted } = setup({ environmentVariables: { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000' } });
+  try {
+    const init = await initOf(c.proc);
+    assert.strictEqual(init.model, 'fake-model');
+    await until(() => posted.some((m) => m.type === 'context'));
+    assert.strictEqual(posted.find((m) => m.type === 'context').max, 64000);
+  } finally {
+    c.dispose();
+  }
+});
+
+test('without a configured window the default model keeps the CLI value', async () => {
+  const { c, posted } = setup();
+  try {
+    await until(() => posted.some((m) => m.type === 'context'));
+    assert.strictEqual(posted.find((m) => m.type === 'context').max, 1000000);
   } finally {
     c.dispose();
   }

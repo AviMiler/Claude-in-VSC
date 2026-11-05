@@ -55,7 +55,7 @@ C:\Users\206861775\.vscode\extensions\local.claude-local-0.1.0
 | `CLAUDE_ENABLE_STREAM_WATCHDOG` | `0`. כמו הקודם: מונע ניתוק של זרם איטי |
 | `CLAUDE_CODE_MAX_CONTEXT_TOKENS` | `64000`. ה-CLI לא מכיר את `qwen3.8:27b` ומניח חלון של 200 אלף טוקנים (מיליון עם הסיומת `[1m]`), ומד ההקשר וה-auto-compact מסתמכים על ההנחה הזו. החלון האמיתי נמדד: לפחות 50,000 ו-`context_length: 64000` ב-Ollama (`DEPENDENCIES.md` סעיפים 3.5 ו-3.6). אם החלון היה קטן מכ-25 אלף טוקנים, ההוראות של Claude Code היו נחתכות בשקט, והיה צריך לבקש ממנהל השרת להגדיל `num_ctx` |
 
-שלושת המשתנים האחרונים (`API_TIMEOUT_MS`, `CLAUDE_ENABLE_STREAM_WATCHDOG`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`) התוסף מעביר בעצמו דרך ההגדרה `claudeLocal.environmentVariables` (ראו סעיף 7), והם מוגדרים שם כברירת מחדל. אפשר להשאיר אותם גם בקובץ הזה; ערך שמוגדר בהגדרת התוסף גובר.
+שלושת המשתנים האחרונים (`API_TIMEOUT_MS`, `CLAUDE_ENABLE_STREAM_WATCHDOG`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`) התוסף מעביר בעצמו דרך ההגדרה `claudeLocal.environmentVariables` (ראו סעיף 7), והם מוגדרים שם כברירת מחדל. אפשר להשאיר אותם גם בקובץ הזה. שימו לב: ה-CLI מעדיף את ה-`env` של הקובץ הזה על פני משתני הסביבה שהתוסף מעביר, ולכן כשמשתנה מוגדר בשני המקומות, הערך בקובץ הזה הוא שקובע. יוצא מן הכלל: `CLAUDE_CODE_MAX_CONTEXT_TOKENS` ומשתני המודל, שהתוסף מעביר דרך `--settings`, ושם הערך של התוסף גובר. עם החלון התוסף מוסיף גם `CLAUDE_CODE_DISABLE_1M_CONTEXT=1`, כדי שמודל ברירת המחדל לא יקבל את הסיומת `[1m]` (חלון של מיליון).
 
 ## 4. הגדרת הנתיב ל-CLI בתוסף
 ב-VS Code: `Ctrl+,` ← חיפוש `claudeLocal.claudePath` ← הערך הוא הקובץ האמיתי `claude-bin.exe`:
@@ -74,7 +74,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 3. התשובה צריכה להגיע מהמודל המקומי. אם ההודעה הראשונה מתעכבת עד כמה דקות, זו טעינה קרה של המודל ולא תקלה.
 
 ## 6. דברים שכדאי לדעת
-- **בחירת מודל:** בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר המודל בתוסף שולף את הרשימה בעצמו ומחליף מודל בהפעלה מחדש של התהליך עם `--model`, שלושת `ANTHROPIC_DEFAULT_*_MODEL` ו-`--resume` (החלטות 1 ו-4 ב-`PLAN.md` סעיף 3; עדיין לא נבנה).
+- **בחירת מודל:** בלי העטיפה, המודל נקבע מ-`settings.json` (כרגע `qwen3.8:27b`). בהרצה ישירה: `claude-bin.exe --model <id>`, כשהמזהים מגיעים מ-`GET http://172.27.5.5:11436/v1/models`. בורר המודל בתוסף שולף את הרשימה בעצמו ומחליף מודל בהפעלה מחדש של התהליך עם `--model`, כל משתני המודל (`ANTHROPIC_DEFAULT_*_MODEL` ו-`ANTHROPIC_SMALL_FAST_MODEL`) דרך `--settings`, ו-`--resume` (החלטות 1 ו-4 ב-`PLAN.md` סעיף 3).
 - **מודל בלי תמיכה בכלים** (למשל `gemma3:27b`) נכשל עם `API Error: 400 ... does not support tools` ואינו שמיש עם Claude Code.
 - **Checkpoints:** ההגדרה "Rewind code (checkpoints)" של ה-CLI (`/config checkpoints=true`) **אינה** מפעילה rewind בהרצה של התוסף. התוסף מפעיל אותו בעצמו עם `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING=1` ו-`--replay-user-messages`. אין צורך לשנות את ההגדרה הקבועה; מי שרוצה לכבות אותה: `claude -p "/config checkpoints=false"`.
 - **הפרויקט `claude-gui`** נפרד, וההגדרות שלו (`config.json`) לא משפיעות על התוסף.
