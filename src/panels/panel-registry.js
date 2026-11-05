@@ -38,13 +38,17 @@ function createRegistry() {
       return map;
     },
     // Newest closed conversation that is not open again; removes it from the list.
+    // Emits so the `claude-local:hasClosed` context key is refreshed when the list shrinks (F-6).
     popClosed() {
-      while (closed.length) {
+      const before = closed.length;
+      let found = null;
+      while (closed.length && !found) {
         const { sessionId } = closed[closed.length - 1];
         closed = closed.slice(0, -1);
-        if (!this.findBySession(sessionId)) return sessionId;
+        if (!this.findBySession(sessionId)) found = sessionId;
       }
-      return null;
+      if (closed.length !== before) emit();
+      return found;
     },
     hasClosed: () => closed.length > 0,
     onChange(fn) {

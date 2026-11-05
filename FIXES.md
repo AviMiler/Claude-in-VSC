@@ -16,7 +16,7 @@ Fixes run in the usual workflow, one model per task as `AGENT_CONTEXT.md` requir
 ## P1
 
 ### F-6 Ctrl+Shift+T and tab colour dots do not work (test 12.3, FAIL)
-- **Status:** `when` clause widened 2026-11-05 to include a focused sidebar view (probable cause: with the sidebar as default place and a file editor open, the old clause never matched). Unverified in real VS Code; the user gave no details. Reopen only conversations that have a session id and messages (by design). Tab dots exist only with `preferredLocation=panel`; in the sidebar the signals are the drawer dots and the view badge.
+- **Status:** code done 2026-11-05 (`when` clause widened to a focused sidebar view; `popClosed` now refreshes `hasClosed`; by-design limits documented in `spec.md`/`SETUP.md`; see `CHANGELOG.md`). **Still open: the user's check in real VS Code** (Ctrl+Shift+T from the sidebar with a file editor open; test 12.3). Delete this item once it passes.
 
 ## P2
 

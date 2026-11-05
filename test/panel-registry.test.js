@@ -38,6 +38,20 @@ test('popClosed skips a session that is open again', () => {
   assert.strictEqual(r.popClosed(), null);
 });
 
+test('popClosed notifies listeners so the hasClosed context key is refreshed', () => {
+  const r = createRegistry();
+  const a = entry('a');
+  r.add(a);
+  r.remove(a);
+  let n = 0;
+  r.onChange(() => { n += 1; });
+  r.popClosed();
+  assert.strictEqual(n, 1);
+  assert.strictEqual(r.hasClosed(), false);
+  r.popClosed(); // nothing left: no notification
+  assert.strictEqual(n, 1);
+});
+
 test('openStates and change listeners', () => {
   const r = createRegistry();
   let n = 0;

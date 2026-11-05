@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (Fix 2 part 3: F-6 `hasClosed` refresh, docs)
+- **F-6:** `registry.popClosed()` removed entries from the closed list without notifying listeners, so the `claude-local:hasClosed` context key stayed true after the last reopen (or after only stale entries were skipped). It now emits when the list shrinks. Test added in `test/panel-registry.test.js`. Documented by design: only conversations with a session id and messages are reopenable; tab dots exist only with `preferredLocation=panel` (sidebar: drawer dots and view badge) in `spec.md` and `SETUP.md`. F-7 was already done in part 1.
+- **Not verified:** unit tests NOT run (no Node on this machine); real VS Code untested.
+
 ## 2026-11-05 (Fix 2 part 2: F-5 `/plan` visible result, F-13 local commands in the `/` menu)
 - **F-5:** `/plan` now posts a Hebrew notice ("עברתם למצב תכנון…", or "כבר במצב תכנון…" when already in plan mode); refused mid-turn it keeps the existing refusal notice. `/plan open` with no plan keeps its notice. Logged as `session /plan (mode, busy)`. Probable cause of "shows nothing": the mode pill changed silently and the plan document needs assistant text before `ExitPlanMode`.
 - **F-13:** `/plan`, `/plan open` and `/diff` are listed in the `/` menu under a new group "פקודות של התוסף" (`slash-menu.js` LOCAL list); picking one runs it at once (no second Enter).

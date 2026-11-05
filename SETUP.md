@@ -98,5 +98,7 @@ C:\Users\206861775\AppData\Local\Programs\ClaudeCode\claude-bin.exe
 
 **קיצורי VS Code** (ניתנים לשינוי): `Ctrl+Alt+C` פותח את Claude (באותו מקום, לפי הכלל למעלה), `Ctrl+Alt+E` עובר בין העורך לצ'אט (החליף את `Ctrl+Esc` ש-Windows תופס; `Ctrl+Shift+Esc` הוסר מאותה סיבה), ו-`Ctrl+N` (רק אם הופעל). לשינוי: Command Palette ← "Claude Code Local: קיצורי מקלדת" (פותח את עורך הקיצורים מסונן ל-`claude-local`). הקיצורים בתוך תיבת ההודעה אינם מופיעים שם, כי ה-webview לא רואה את קיצורי VS Code; משנים אותם בהגדרות `claudeLocal.keybindings.*`.
 
+`Ctrl+Shift+T` פותח מחדש שיחה שנסגרה (רק שיחה שיש לה מזהה ויש בה הודעות; שיחה ריקה לא נשמרת). הנקודות הצבעוניות על לשונית הצ'אט קיימות רק כש-`claudeLocal.preferredLocation` הוא `panel`; בסרגל הצד (ברירת המחדל) האותות הם הנקודות במגירת השיחות והמספר על סמל התצוגה.
+
 ### בדיקה שנדרשת אצלכם: האם `Ctrl+Alt+E` עובד?
 `Ctrl+Esc` הוחלף ב-`Ctrl+Alt+E` (2026-11-05), כי Windows תופס את `Ctrl+Esc`. **זה לא נבדק ב-VS Code אמיתי.** הבדיקה: לוחצים `Ctrl+Alt+E` כשהמיקוד בעורך קוד; אמור להיפתח הצ'אט. אם לא: `Ctrl+K Ctrl+S`, חיפוש `claude-local.focusToggle`, והקלדת קיצור אחר.
