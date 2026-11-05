@@ -29,7 +29,11 @@ if (-not (Test-Path $claude)) {
 if (Test-Path $claude) { 'נמצא: ' + $claude } else { 'לא נמצא - עצרו והעתיקו לי את הפלט' }
 $env:API_TIMEOUT_MS = '1200000'
 $env:CLAUDE_ENABLE_STREAM_WATCHDOG = '0'
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 & $claude --version
+
+(שתי שורות ה-Encoding מבטיחות ש-PowerShell 5.1 שולח ל-CLI ומקבל ממנו UTF-8; בלעדיהן טקסט שאינו אנגלית מתעוות ל-"?".)
 
 צפוי: שורה "נמצא: ...claude-bin.exe", ואחריה 2.1.246 (Claude Code), ובלי שום שאלה "Select model number".
 אם מופיעה השאלה, הנתיב מצביע על העטיפה ולא על הקובץ האמיתי: עצרו והעתיקו לי את הפלט.
@@ -76,10 +80,10 @@ function Ask($label, $text) {
   if (-not $got) { Write-Host 'לא התקבלה תשובה. הפלט הגולמי:'; $out | Select-Object -First 5 }
 }
 Push-Location $dir
-Ask '1: @ עם נתיב מלא' "@$abs מהי המילה הסודית בקובץ? ענו במילה אחת."
-Ask '2: @ עם נתיב יחסי' "@secret.txt מהי המילה הסודית בקובץ? ענו במילה אחת."
-Ask '3: בקרה, בלי @ (אמור להיכשל)' "מהי המילה הסודית בקובץ secret.txt שבתיקייה הנוכחית? ענו במילה אחת."
-Ask '4: הוראה מפורשת, בלי כלים' "התחל את העבודה מהקובץ @$abs. מהי המילה הסודית בו? ענו במילה אחת."
+Ask '1: @ with full path' "@$abs What is the secret word in this file? Answer with one word."
+Ask '2: @ with relative path' "@secret.txt What is the secret word in this file? Answer with one word."
+Ask '3: control, no @ (should fail)' "What is the secret word in the file secret.txt in the current folder? Answer with one word."
+Ask '4: explicit instruction, no tools' "Start your work from the file @$abs. What is the secret word in it? Answer with one word."
 Pop-Location
 
 איך לקרוא את התוצאה:
