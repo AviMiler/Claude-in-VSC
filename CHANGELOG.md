@@ -2,6 +2,10 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-05 (dev/check-cli.txt: terminal-only checks on the CLI)
+- New user-run file `dev/check-cli.txt` (UTF-8 BOM, CRLF like the other check files): only the checks that run in PowerShell against the CLI, no extension. Step 0 finds `claude-bin.exe` (the `claude.cmd` wrapper asks "Select model number" and swallowed the piped JSON, so the earlier `@` and `/btw` runs returned nothing), sets `API_TIMEOUT_MS` and the watchdog variable, and lets the user pick the model from the gateway list (fallback: the list the wrapper showed). Then `@` expansion, `/btw`, an optional live `/btw`, the `/api/ps` window check for `qwen3.8:27b`, and the unit tests. Each check prints the raw output when no answer comes back.
+- The earlier paste showed `/api/ps` `context_length` 64000 for `gemma4:26b` only; `qwen3.8:27b` was not loaded, so its window is still unverified.
+
 ## 2026-11-05 (Math: placeholder in a link title)
 - A math placeholder inside a link's target or title is now dropped (`math-logic.stripPlaceholders`, used by `renderer.link` in `markdown.js`), so `[a](u "$x$")` no longer breaks the link's markup. One unit test added. The indented-code case from the review stays open on purpose (see `FIXES.md`). **Verified:** `node --test` 164/164. **Not verified:** in a browser.
 
