@@ -11,6 +11,7 @@ Updated: 2026-11-03. This is the **single source of truth for what to build next
 | Environment | A machine that will end up without internet; local model `qwen3.8:27b` through the LiteLLM 1.80.0 gateway (`172.27.5.5:11436`) over Ollama (`:11435`) | `SETUP.md`, checks |
 | The CLI | Claude Code 2.1.246 (`claude-bin.exe`) | checks |
 | VS Code | 1.91.1 (no secondary side bar; every API must fit) | checks |
+| Internet | **None on the user's machine.** A few files can be brought in; nothing is installed from the network; code libraries only in special cases with no other way (rule in `AGENT_CONTEXT.md`) | User, 2026-11-05 | 👤 |
 | Principles | The extension stores no data; the CLI is the source of truth; plain JS with no build and no npm; every user-facing string in Hebrew | `spec.md` |
 | Real context window | **64,000 measured for `gemma4:26b`** (`/api/ps`); for `qwen3.8:27b` **at least 50,000 measured** (no plateau), and 64,000 is an **assumption** (the window is probably set at server level, so it applies to all models) to be confirmed with `/api/ps` at the start of package D. The gateway setting (12,288) is not enforced. Claude Code itself sends about 25,000 tokens for a simple message, so the context meter starts at roughly 40% | 🔧 |
 | Cold model load | 285 seconds; keep-alive about 5 minutes | 🔧 |
