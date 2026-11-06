@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const { TOOLS, createNavTools, capLines, isInsideWorkspace, resolveSymbolPosition } = require('../src/mcp/nav-tools');
+const { TOOLS, createNavTools, capLines, isInsideWorkspace, resolveSymbolPosition, textPositions } = require('../src/mcp/nav-tools');
 
 const ROOT = path.resolve('/ws');
 const FILE = path.join(ROOT, 'a.js');
@@ -23,6 +23,7 @@ function make(over) {
     readFile: async () => SRC,
     toUri: (p) => ({ fsPath: p }),
     openDocument: async () => {},
+    readyWaitMs: 0,
     ...over,
   });
 }
@@ -95,18 +96,19 @@ test('path limit: every tool answers no access outside the workspace', async () 
   }
 });
 
-test('no provider: plain text, no throw', async () => {
+test('no provider: a non-JS file says use Grep; a JS file that never answers says not ready', async () => {
   const t = make({ executeDocumentSymbolProvider: async () => undefined });
+  const cs = path.join(ROOT, 'P.cs');
   for (const [n, a] of [['documentSymbols', {}], ['readSymbol', { symbol: 'foo' }], ['findReferences', { symbol: 'foo' }]]) {
-    const r = await t.call(n, { file: FILE, ...a });
-    assert.match(r.text, /use Grep/);
+    assert.match((await t.call(n, { file: cs, ...a })).text, /use Grep/);
+    assert.match((await t.call(n, { file: FILE, ...a })).text, /not answer|yet/);
   }
 });
 
 test('readSymbol: returns only the symbol lines; unknown name explained', async () => {
   const t = make();
   assert.strictEqual((await t.call('readSymbol', { file: FILE, symbol: 'foo' })).text, 'function foo() {\n  return 1;\n}');
-  assert.match((await t.call('readSymbol', { file: FILE, symbol: 'zzz' })).text, /not found/);
+  assert.match((await t.call('readSymbol', { file: FILE, symbol: 'zzz' })).text, /not declared in this file; goToDefinition/);
 });
 
 test('readSymbol: capped at 2000 characters', async () => {
@@ -131,7 +133,7 @@ test('findReferences: groups by file, one source line each, skips outside worksp
   assert.deepStrictEqual(r.text.split('\n'), ['a.js:4: const x = foo();', 'b.js:3: foo();']);
 });
 
-test('findReferences: caps at 50, falls back to findSymbolPosition, empty result explained', async () => {
+test('findReferences: caps at 50, empty result explained, unknown name not found', async () => {
   const refs = Array.from({ length: 60 }, (_, i) => ({ uri: { fsPath: FILE }, range: rng(i, i) }));
   const t = make({ readFile: async () => 'l\n'.repeat(80), executeReferenceProvider: async () => refs });
   const capped = (await t.call('findReferences', { file: FILE, symbol: 'foo' })).text.split('\n');
@@ -139,8 +141,6 @@ test('findReferences: caps at 50, falls back to findSymbolPosition, empty result
   assert.strictEqual(capped[50], '10 more not shown');
   const empty = make();
   assert.match((await empty.call('findReferences', { file: FILE, symbol: 'foo' })).text, /no references/);
-  const fb = make({ findSymbolPosition: async () => ({ line: 1, character: 1 }), executeReferenceProvider: async () => [] });
-  assert.match((await fb.call('findReferences', { file: FILE, symbol: 'unlisted' })).text, /no references/);
   const missing = await make().call('findReferences', { file: FILE, symbol: 'unlisted' });
   assert.match(missing.text, /not found/);
 });
@@ -164,7 +164,7 @@ test('documentSymbols: keeps a real object property, drops export shorthand and 
   ];
   const t = make({ executeDocumentSymbolProvider: async () => syms });
   const out = (await t.call('documentSymbols', { file: FILE })).text.split('\n');
-  assert.deepStrictEqual(out, ['function helper lines 10-10', 'variable cfg lines 1-6', 'property cfg lines 3-3']);
+  assert.deepStrictEqual(out, ['variable cfg lines 1-6', 'property cfg lines 3-3', 'function helper lines 10-10']);
 });
 
 test('goToDefinition: Location and LocationLink, workspace only, deduped, one line each', async () => {
@@ -187,55 +187,92 @@ test('goToDefinition: caps at 50, plain text for none, missing dep, unknown symb
   assert.strictEqual(lines.length, 51);
   assert.strictEqual(lines[50], '10 more not shown');
   const none = make({ executeDefinitionProvider: async () => [loc(OUTSIDE, 1)] });
-  assert.strictEqual((await none.call('goToDefinition', { file: FILE, symbol: 'foo' })).text, 'no definition found');
+  assert.match((await none.call('goToDefinition', { file: FILE, symbol: 'foo' })).text, /^defined outside the open workspace/);
+  assert.strictEqual((await make().call('goToDefinition', { file: FILE, symbol: 'foo' })).text, 'no definition found');
   const nodep = make({ executeDefinitionProvider: undefined });
   assert.strictEqual((await nodep.call('goToDefinition', { file: FILE, symbol: 'foo' })).text, 'not available here');
   assert.match((await make().call('goToDefinition', { file: FILE, symbol: 'zzz' })).text, /not found/);
 });
 
-test('findImporters: primary uses export references, skips the module itself, tagged [ref]', async () => {
-  const files = { [FILE]: SRC, [OTHER]: "const a = 1;\nconst { foo } = require('./a');\nfoo();" };
-  const t = make({
-    readFile: async (p) => files[p],
-    executeDocumentSymbolProvider: async () => [sym('foo', 11, 0, 2), sym('x', 12, 3, 3)],
-    executeReferenceProvider: async () => [loc(FILE, 3), loc(OTHER, 2), loc(OTHER, 1), loc(OUTSIDE, 1)],
-    searchWorkspaceText: async () => { throw new Error('should not run'); },
-  });
-  const r = await t.call('findImporters', { file: FILE });
-  assert.strictEqual(r.text, "b.js:2 const { foo } = require('./a'); [ref]");
-});
+// findImporters: a relative specifier counts only when it resolves to this file (Node resolution).
+const IMP = path.join(ROOT, 'src', 'math.js');
+const SRCDIR = path.join(ROOT, 'src');
+const hit = (rel, line, text) => ({ path: path.join(ROOT, rel), line, text });
 
-test('findImporters: falls back to text search, tagged [text], pattern uses the base name', async () => {
+test('findImporters: resolves relative specifiers; skips decoys, comments, strings, itself and outside', async () => {
   let seen;
   const t = make({
-    executeDocumentSymbolProvider: async () => [],
     searchWorkspaceText: async (pattern, folders) => {
       seen = { pattern, folders };
       return [
-        { path: OTHER, line: 4, text: "  import x from './a.js';  " },
-        { path: OTHER, line: 9, text: "import y from './a'" },
-        { path: FILE, line: 1, text: "require('./a')" },
-        { path: OUTSIDE, line: 1, text: "require('./a')" },
+        hit('src/App.jsx', 2, "import Calculator, { multiply } from './math';"),
+        hit('src/report.js', 4, "} from './math';"),
+        hit('src/legacy.js', 1, "const math = require('./math');"),
+        hit('src/lazy.js', 1, "export const loadMath = () => import('./math.js');"),
+        hit('src/setup.js', 1, "import './math';"),
+        hit('src/api.js', 1, "export * from './math';"),
+        hit('src/utils/format.js', 1, "import { add } from '../math';"),
+        hit('src/utils/format.js', 9, "import { add2 } from '../math';"),
+        hit('src/other/use.js', 1, "import { add } from './math';"),
+        hit('src/c.js', 1, "// import { add } from './math';"),
+        hit('src/d.js', 1, "const s = \"from './math'\";"),
+        hit('src/math.js', 1, "import x from './math';"),
+        { path: OUTSIDE, line: 1, text: "import x from './math';" },
       ];
     },
   });
-  const r = await t.call('findImporters', { file: FILE });
-  assert.strictEqual(r.text, "b.js:4 import x from './a.js'; [text]");
+  const r = await t.call('findImporters', { file: IMP });
+  assert.deepStrictEqual(r.text.split('\n'), [
+    "src/App.jsx:2 import Calculator, { multiply } from './math';",
+    "src/api.js:1 export * from './math';",
+    "src/lazy.js:1 export const loadMath = () => import('./math.js');",
+    "src/legacy.js:1 const math = require('./math');",
+    "src/report.js:4 } from './math';",
+    "src/setup.js:1 import './math';",
+    "src/utils/format.js:1 import { add } from '../math';",
+  ]);
   assert.deepStrictEqual(seen.folders, [ROOT]);
   const re = new RegExp(seen.pattern);
-  assert.ok(re.test("import x from './a.js'") && re.test("const q = require('../lib/a')") && !re.test("require('./ab')"));
+  assert.ok(re.test("import x from './math.js'") && re.test("const q = require('../lib/math')") && !re.test("require('./mathx')"));
 });
 
-test('findImporters: only-self references use fallback; none, cap and missing dep are plain text', async () => {
-  const onlySelf = make({ executeReferenceProvider: async () => [loc(FILE, 3)], searchWorkspaceText: async () => [] });
-  assert.strictEqual((await onlySelf.call('findImporters', { file: FILE })).text, 'no importers found');
-  const hits = Array.from({ length: 60 }, (_, i) => ({ path: path.join(ROOT, 'f' + i + '.js'), line: 1, text: "require('./a')" }));
-  const capped = make({ executeDocumentSymbolProvider: async () => [], searchWorkspaceText: async () => hits });
-  const lines = (await capped.call('findImporters', { file: FILE })).text.split('\n');
+test('findImporters: a folder index is found through the folder name; .js specifier finds a .ts file', async () => {
+  const idx = path.join(SRCDIR, 'utils', 'index.js');
+  const t = make({ searchWorkspaceText: async () => [hit('src/consumer.js', 1, "import { formatSum } from './utils';"), hit('src/x.js', 1, "import { y } from './other/utils';")] });
+  assert.strictEqual((await t.call('findImporters', { file: idx })).text, "src/consumer.js:1 import { formatSum } from './utils';");
+  const ts = path.join(SRCDIR, 'm.ts');
+  const t2 = make({ searchWorkspaceText: async () => [hit('src/a.ts', 1, "import { m } from './m.js';")] });
+  assert.strictEqual((await t2.call('findImporters', { file: ts })).text, "src/a.ts:1 import { m } from './m.js';");
+});
+
+test('findImporters: a bare or aliased specifier is checked with the definition provider, else [unverified]', async () => {
+  const hits = [hit('src/a.js', 3, "import { add } from '@lib/math';"), hit('src/b.js', 1, "import { add } from 'some-pkg/math';")];
+  const asked = {};
+  const t = make({
+    searchWorkspaceText: async () => hits,
+    executeDefinitionProvider: async (uri, pos) => {
+      asked[path.basename(uri.fsPath)] = pos;
+      return uri.fsPath.endsWith('a.js') ? [loc(IMP, 0)] : [loc(OUTSIDE, 0)];
+    },
+  });
+  assert.strictEqual((await t.call('findImporters', { file: IMP })).text, "src/a.js:3 import { add } from '@lib/math';");
+  // Asked inside the module string, on the hit's line (0-based).
+  assert.deepStrictEqual(asked['a.js'], { line: 2, character: "import { add } from '".length + 1 });
+  assert.strictEqual(asked['b.js'].line, 0);
+  const nodef = make({ searchWorkspaceText: async () => hits.slice(0, 1), executeDefinitionProvider: undefined });
+  assert.strictEqual((await nodef.call('findImporters', { file: IMP })).text, "src/a.js:3 import { add } from '@lib/math'; [unverified]");
+});
+
+test('findImporters: none, cap, capped search note, missing dep, no access', async () => {
+  assert.strictEqual((await make().call('findImporters', { file: IMP })).text, 'no importers found');
+  const many = Array.from({ length: 60 }, (_, i) => hit(`src/f${String(i).padStart(2, '0')}.js`, 1, "require('./math')"));
+  const lines = (await make({ searchWorkspaceText: async () => many }).call('findImporters', { file: IMP })).text.split('\n');
   assert.strictEqual(lines.length, 51);
   assert.strictEqual(lines[50], '10 more not shown');
-  const nodep = make({ searchWorkspaceText: undefined });
-  assert.strictEqual((await nodep.call('findImporters', { file: FILE })).text, 'not available here');
+  const capped = Object.assign([hit('src/a.js', 1, "require('./math')")], { capped: true });
+  assert.match((await make({ searchWorkspaceText: async () => capped }).call('findImporters', { file: IMP })).text, /stopped at its limit/);
+  assert.strictEqual((await make({ searchWorkspaceText: undefined }).call('findImporters', { file: IMP })).text, 'not available here');
+  assert.match((await make().call('findImporters', { file: OUTSIDE })).text, /^no access/);
 });
 
 const wsym = (name, kind, p, l) => ({ name, kind, location: { uri: { fsPath: p }, range: rng(l, l) } });
@@ -308,4 +345,154 @@ test('callHierarchy: direction validation, unsupported, empty, cap, missing dep'
   assert.strictEqual((await make().call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'not available here');
   const noIn = make({ ...base, incomingCalls: undefined });
   assert.strictEqual((await noIn.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text, 'not available here');
+});
+
+// ---- reliability fixes (2026-11-06, checked in real VS Code with dev/nav-check) ----
+
+const APP = path.join(ROOT, 'App.jsx');
+const APP_SRC = [
+  "import { bar } from './b';", // 0
+  '// bar in a comment', // 1
+  "const s = 'bar';", // 2
+  'export function App() {', // 3
+  '  return bar(`${bar}`);', // 4
+  '}', // 5
+].join('\n');
+const APP_SYMS = [sym('App', 11, 3, 5)];
+
+test('textPositions: whole words in code; skips comments and plain strings, keeps template code', () => {
+  assert.deepStrictEqual(textPositions(APP_SRC.split('\n'), 'bar'), [
+    { line: 0, character: 9 }, { line: 4, character: 9 }, { line: 4, character: 16 },
+  ]);
+  assert.deepStrictEqual(textPositions(['barx bar_ $bar bar$ xbar'], 'bar'), []);
+});
+
+test('first JS call waits for the language server; later empty files do not wait', async () => {
+  let n = 0;
+  let slept = 0;
+  let clock = 0;
+  const t = make({
+    readyWaitMs: 5000,
+    sleep: async (ms) => { slept += ms; clock += ms; },
+    now: () => clock,
+    executeDocumentSymbolProvider: async (uri) => (uri.fsPath === FILE && ++n >= 3 ? SYMS : []),
+  });
+  assert.strictEqual((await t.call('documentSymbols', { file: FILE })).text.split('\n')[0], 'function foo lines 1-3');
+  assert.ok(slept > 0);
+  slept = 0;
+  const other = path.join(ROOT, 'empty.js');
+  assert.strictEqual((await t.call('documentSymbols', { file: other })).text, 'no symbols in this file');
+  assert.strictEqual(slept, 0);
+});
+
+test('never ready within the wait: says so instead of "use Grep"', async () => {
+  let clock = 0;
+  const t = make({ readyWaitMs: 1000, sleep: async (ms) => { clock += ms; }, now: () => clock, executeDocumentSymbolProvider: async () => [] });
+  const r = await t.call('documentSymbols', { file: FILE });
+  assert.match(r.text, /language server/);
+  assert.doesNotMatch(r.text, /Grep/);
+});
+
+test('goToDefinition/hover/findReferences work on a name that is only imported or used in the file', async () => {
+  const asked = [];
+  const t = make({
+    readFile: async (p) => (p === APP ? APP_SRC : 'export function bar() {}'),
+    executeDocumentSymbolProvider: async () => APP_SYMS,
+    executeDefinitionProvider: async (uri, pos) => { asked.push(pos); return [loc(OTHER, 0)]; },
+    executeHoverProvider: async (uri, pos) => [{ contents: [{ value: '```typescript\n(loading...) function bar(): void\n```' }] }],
+    executeReferenceProvider: async (uri, pos) => [loc(OTHER, 0), loc(APP, 0), loc(APP, 4)],
+  });
+  assert.strictEqual((await t.call('goToDefinition', { file: APP, symbol: 'bar' })).text, 'b.js:1 export function bar() {}');
+  assert.deepStrictEqual(asked[0], { line: 0, character: 9 });
+  assert.strictEqual((await t.call('hover', { file: APP, symbol: 'bar' })).text, 'function bar(): void');
+  assert.deepStrictEqual((await t.call('findReferences', { file: APP, symbol: 'bar' })).text.split('\n'),
+    ["App.jsx:1: import { bar } from './b';", 'App.jsx:5: return bar(`${bar}`);', 'b.js:1: export function bar() {}']);
+  const lineHint = [];
+  const t2 = make({ readFile: async () => APP_SRC, executeDocumentSymbolProvider: async () => APP_SYMS,
+    executeDefinitionProvider: async (u, pos) => { lineHint.push(pos); return [loc(OTHER, 0)]; } });
+  await t2.call('goToDefinition', { file: APP, symbol: 'bar', line: 5 });
+  assert.deepStrictEqual(lineHint[0], { line: 4, character: 9 });
+});
+
+test('goToDefinition: an answer that stops at an import in the same file is skipped for a use site', async () => {
+  const t = make({
+    readFile: async (p) => (p === APP ? APP_SRC : 'export function bar() {}'),
+    executeDocumentSymbolProvider: async () => APP_SYMS,
+    executeDefinitionProvider: async (uri, pos) => (pos.line === 0 ? [loc(APP, 0)] : [loc(OTHER, 0)]),
+  });
+  assert.strictEqual((await t.call('goToDefinition', { file: APP, symbol: 'bar' })).text, 'b.js:1 export function bar() {}');
+});
+
+test('goToDefinition: when only the import is known, the module is resolved, opened and searched', async () => {
+  const B = path.join(ROOT, 'b.js');
+  const opened = [];
+  const t = make({
+    readFile: async (p) => { if (p === APP) return APP_SRC; if (p === B) return 'x\nexport const bar = () => 1;'; throw new Error('ENOENT'); },
+    openDocument: async (u) => { opened.push(u.fsPath); },
+    executeDocumentSymbolProvider: async (uri) => (uri.fsPath === B ? [sym('bar', 13, 1, 1)] : APP_SYMS),
+    executeDefinitionProvider: async () => [loc(APP, 0)],
+  });
+  assert.strictEqual((await t.call('goToDefinition', { file: APP, symbol: 'bar' })).text, 'b.js:2 export const bar = () => 1;');
+  assert.ok(opened.includes(B));
+});
+
+test('findReferences: opens files that mention the name, and adds uses the provider missed when VS Code resolves them to the same declaration', async () => {
+  const L = path.join(ROOT, 'legacy.js');
+  const D = path.join(ROOT, 'decoy.js');
+  const files = { [FILE]: SRC, [L]: "const m = require('./a');\nm.foo(1);", [D]: 'foo();' };
+  const opened = [];
+  const t = make({
+    readFile: async (p) => files[p],
+    openDocument: async (u) => { opened.push(u.fsPath); },
+    searchWorkspaceText: async () => [{ path: FILE, line: 1, text: 'function foo() {' }, { path: L, line: 2, text: 'm.foo(1);' }, { path: D, line: 1, text: 'foo();' }],
+    executeReferenceProvider: async () => [loc(FILE, 0), loc(FILE, 3)],
+    executeDefinitionProvider: async (uri) => (uri.fsPath === D ? [loc(D, 9)] : [loc(FILE, 0)]),
+  });
+  const r = await t.call('findReferences', { file: FILE, symbol: 'foo' });
+  assert.deepStrictEqual(r.text.split('\n'), ['a.js:1: function foo() {', 'a.js:4: const x = foo();', 'legacy.js:2: m.foo(1);']);
+  assert.ok(opened.includes(L) && opened.includes(D));
+});
+
+test('callHierarchy incoming: a missed call is added with its enclosing named function', async () => {
+  const L = path.join(ROOT, 'legacy.js');
+  const LSRC = "const m = require('./a');\nfunction total(xs) {\n  return xs.reduce((s, x) => m.foo(s, x), 0);\n}";
+  const t = make({
+    readFile: async (p) => (p === L ? LSRC : SRC),
+    searchWorkspaceText: async () => [{ path: L, line: 3, text: '  return xs.reduce((s, x) => m.foo(s, x), 0);' }],
+    executeDocumentSymbolProvider: async (uri) => (uri.fsPath === L
+      ? [sym('total', 11, 1, 3, [sym('xs.reduce() callback', 11, 2, 2)])] : SYMS),
+    executeReferenceProvider: async () => [loc(FILE, 0)],
+    executeDefinitionProvider: async () => [loc(FILE, 0)],
+    prepareCallHierarchy: async () => [item('foo', FILE, 0)],
+    incomingCalls: async () => [{ from: item('caller', OTHER, 4) }],
+    outgoingCalls: async () => [],
+  });
+  assert.strictEqual((await t.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text,
+    'caller b.js:5\ntotal legacy.js:2\n' + NOTE);
+});
+
+test('callHierarchy: the note fits inside the 2,000-character cap', async () => {
+  const many = Array.from({ length: 50 }, (_, i) => ({ from: item('c'.repeat(60) + i, OTHER, i) }));
+  const t = make({ prepareCallHierarchy: async () => [item('foo', FILE, 0)], incomingCalls: async () => many, outgoingCalls: async () => [] });
+  const text = (await t.call('callHierarchy', { file: FILE, symbol: 'foo', direction: 'incoming' })).text;
+  assert.ok(text.length <= 2000, String(text.length));
+  assert.ok(text.endsWith(NOTE));
+});
+
+test('documentSymbols: arrow-function variables are functions; locals inside functions are left out; line order', async () => {
+  const src = ['const handlers = {', '  double: (n) => n * 2,', '};', 'export const Button = ({ label }) => (', '  label', ');', 'export function App() {', '  const [n, setN] = useState(1);', '}'];
+  const syms = [
+    sym('App', 11, 6, 8, [sym('n', 12, 7, 7), sym('setN', 12, 7, 7)]),
+    sym('handlers', 12, 0, 2, [sym('double', 5, 1, 1)]),
+    sym('Button', 12, 3, 5),
+  ];
+  // selectionRange starts at character 9 in sym(); point it at the name instead.
+  syms[1].selectionRange.start.character = 6;
+  syms[2].selectionRange.start.character = 13;
+  const t = make({ readFile: async () => src.join('\n'), executeDocumentSymbolProvider: async () => syms });
+  assert.deepStrictEqual((await t.call('documentSymbols', { file: APP })).text.split('\n'),
+    ['variable handlers lines 1-3', 'method double lines 2-2', 'function Button lines 4-6', 'function App lines 7-9']);
+  assert.deepStrictEqual((await t.call('documentSymbols', { file: APP, kind: 'function' })).text.split('\n'),
+    ['method double lines 2-2', 'function Button lines 4-6', 'function App lines 7-9']);
+  assert.strictEqual((await t.call('documentSymbols', { file: APP, kind: 'variable' })).text, 'variable handlers lines 1-3');
 });

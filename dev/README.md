@@ -57,6 +57,19 @@ A tiny VS Code extension (`package.json`, `probe.js`, `extension.js`) that prove
 
 Result (2026-11-01): all endpoints reachable from the extension host in 15-250 ms; see `DEPENDENCIES.md` section 3.2.
 
+## Navigation tools in real VS Code (`nav-check/`)
+
+Runs all eight tools of `src/mcp/nav-tools.js` inside real VS Code through the real nav server (HTTP + token, JSON-RPC `tools/call`, the way the CLI calls them) against `nav-check/fixture/`, and compares each answer with an expected answer written by hand from the fixture's source (37 checks). No CLI, no model, nothing to install.
+
+```powershell
+code --extensionDevelopmentPath="<repo>\dev\nav-check" --extensionTestsPath="<repo>\dev\nav-check\runner.js" "<repo>\dev\nav-check\fixture"
+```
+
+- A second VS Code window opens, runs the checks (a few seconds) and closes. The report is `dev\nav-check\nav-check-report.txt` (or the path in `RESULT_FILE`): one `PASS`/`FAIL` block per check with the expected and the actual answer, and a `RESULT:` line at the end. Do not commit it.
+- With `jsconfig.json`: create `fixture\jsconfig.json` with `{ "compilerOptions": { "jsx": "react-jsx", "module": "esnext", "moduleResolution": "node" }, "include": ["src"] }`, run again, then delete the file.
+- The order of the checks matters: the first ones run before any other fixture file is open (the hardest case for the TypeScript server).
+- Run 2026-11-06 on Linux with VSCodium 1.91.1 (the same code as VS Code 1.91.1, same built-in TypeScript/JavaScript language features) under `xvfb-run`: 37/37 both ways, 5 runs each. Not yet run on Windows.
+
 ## Chat UI without VS Code
 
 - `fake-claude.js` / `fake-claude.cmd`: a fake stream-json CLI for tests and for trying the UI without a model (`claudeLocal.claudePath` = `dev/fake-claude.cmd`). Scenario by keyword in the message: `tool` (Bash permission), `שאלה` (AskUserQuestion), `slow` (long reply, for the stop button), `edit` (Edit and Write tool calls, for `/diff`), `background` (a background task and the `stop_task` sequence), `tasks` (TaskCreate/TaskUpdate calls for the pinned list), `agent` (an `Agent` call with nested tool lines, `task_progress` and `task_notification`, for the agent cards), `loop` (`CronCreate`, then a self-started turn after `FAKE_CLAUDE_LOOP_MS` milliseconds, default short; a message "CronDelete ... id X" deletes the job); otherwise a Markdown reply. `FAKE_CLAUDE_INTERRUPT=no-result|error` changes what follows an interrupt. It rejects `bypassPermissions` unless started with `--allow-dangerously-skip-permissions`, like the real CLI.

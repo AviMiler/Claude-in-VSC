@@ -56,10 +56,11 @@ const SEARCH_EXCLUDE = '{**/node_modules/**,**/.git/**}';
 const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_MATCHES = 500;
 
-// Plain-text fallback for findImporters: when the reference provider returns nothing
-// (no language server, or the file is not indexed yet), nav-tools can still find
-// import/require lines by scanning file text. Bounded: 1 MB per file, 500 matches total.
-// An invalid regular expression rejects the promise; errors on single files are skipped.
+// Line-by-line text search over the workspace's JS/TS files (on-disk content). nav-tools uses it to find
+// import/require lines (findImporters) and the files that mention a name (opened before a cross-file
+// search so the language server includes them). Bounded: 1 MB per file, 500 matches total; a cut
+// result carries `capped = true`. An invalid regular expression rejects the promise; errors on single
+// files are skipped.
 async function searchWorkspaceText(pattern, folders) {
   const re = new RegExp(pattern);
   const results = [];
@@ -67,7 +68,7 @@ async function searchWorkspaceText(pattern, folders) {
     const include = new vscode.RelativePattern(vscode.Uri.file(folder), SEARCH_GLOB);
     const uris = await vscode.workspace.findFiles(include, SEARCH_EXCLUDE);
     for (const uri of uris) {
-      if (results.length >= MAX_MATCHES) return results;
+      if (results.length >= MAX_MATCHES) { results.capped = true; return results; }
       const p = uri.fsPath;
       try {
         const st = await fs.promises.stat(p);
@@ -76,7 +77,7 @@ async function searchWorkspaceText(pattern, folders) {
         for (let i = 0; i < lines.length; i++) {
           if (!re.test(lines[i])) continue;
           results.push({ path: p, line: i + 1, text: lines[i] });
-          if (results.length >= MAX_MATCHES) return results;
+          if (results.length >= MAX_MATCHES) { results.capped = true; return results; }
         }
       } catch (_) {
         // Unreadable file (deleted, locked, permission): skip it.

@@ -1,0 +1,1 @@
+{ "name": "nav-check", "publisher": "local", "version": "0.0.1", "private": true, "description": "Dev-only harness: runs the navigation tools in real VS Code (dev/README.md).", "engines": { "vscode": "^1.91.0" }, "main": "./ext.js", "activationEvents": [] }
