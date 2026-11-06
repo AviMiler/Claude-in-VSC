@@ -93,7 +93,7 @@ Updated: 2026-11-05. This is the **single source of truth for what to build next
 | Display | **Focus view, timestamps, `spinnerVerbs`, `scrollToBottomOnSend`** | All chosen; light and independent | 👤 |
 | Collapsing user messages | **A function that collapses long user messages in the thread** (display only): a message above a set length shows its first lines with a "הצג עוד" / "כווץ" toggle; the text sent to the CLI and the saved transcript are not changed. The length limit is a proposed setting (`claudeLocal.collapseUserMessageLines`, proposed default 8 lines, not yet decided). Short messages are never collapsed | Requested 2026-11-02 on branch `develop`; read as display-only; to confirm with the user | 👤 (to confirm) |
 | `useTerminal` | **A setting** that makes the main button open a terminal | Chosen | 👤 |
-| Accessibility | **Accessibility and colour settings** (`prefersReducedMotion`, daltonized) + **screen-reader announcements, speaker labels ("אתה"/"Claude") and navigation by headings** | Chosen; testing needs a real screen reader | 👤 |
+| Accessibility | **Colour settings only** (`prefersReducedMotion`, daltonized). **Screen-reader support (announcements, speaker labels, navigation by headings) removed from the plan on 2026-11-06: not needed** | The user decided it is unnecessary | 👤 |
 | More settings | **`enableNewConversationShortcut` (Ctrl+N), `environmentVariables`** | Chosen | 👤 |
 | `claudeProcessWrapper`, `usePythonEnvironment`, `enableReopenClosedSessionShortcut`, `disableLoginPrompt` | **No** | Not needed (a wrapper is possible in the future; no login; Ctrl+Shift+T is already decided) | 👤 |
 | Shortcuts | **Ctrl+Esc** (editor↔chat) + **Ctrl+Alt+C** to open in a new tab (Ctrl+Shift+Esc stays). **Ctrl+Esc is kept, with a check on the user's machine in package A**: on Windows it normally opens the Start menu; if it does, replace it with another key (decided 2026-11-01) | Ctrl+Shift+Esc is taken by Windows Task Manager | 👤 |
@@ -175,7 +175,7 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **E** ✅ done 2026-11-01 (branch `pkg-e-mcp`) | MCP, sign-in error card, URI (the usage line moved to D). **Still open:** nothing run in real VS Code; `claude mcp add -e` argument order and the live `mcp_status` shape unverified against the real CLI | A |
 | **F** | Editor context (chips or IDE server), **Alt+K selected lines**, per-block diff (**reuses B's diff-view module**), autosave | A, B, IDE prototype |
 | **H** (all eight tools built 2026-11-05/06; awaiting manual checks (c), (d), (e) in VS Code) | Code-navigation MCP server for JS/React (section 8): a small prototype first (three tools, with a token measurement), then the rest of the tools | A, E (MCP handling); independent of F |
-| **G** | Display and accessibility (Focus view, timestamps, screen reader), collapsing long user messages | – |
+| **G** | Display (Focus view, timestamps, reduced motion, colour mode), collapsing long user messages | – |
 
 ## 6. What is open
 
