@@ -32,3 +32,23 @@ $pat = 'CLAUDE_CODE_SSE_PORT|ENABLE_IDE_INTEGRATION|CLAUDE_CODE_AUTO_CONNECT_IDE
 - מה השדות בקובץ הנעילה (authToken, workspaceFolders, ideName, transport, runningInWindows);
 - אחרי זה תתקבל ההחלטה: שרת IDE בלי קובץ (אם אפשר), או קובץ נעילה זמני עם ניקוי כחריגה מתועדת, או
   להישאר עם התגיות מעל תיבת ההודעה (שכבר בנויות).
+
+--------------------------------------------------------------------------------
+שלבים נוספים (יש לכם את התוסף הרשמי מותקן): הרצה עם התוסף הרשמי פעיל
+--------------------------------------------------------------------------------
+תנאי: ב-VS Code עם התוסף הרשמי של Claude Code, פתחו תיקייה כלשהי, והשאירו את התוסף הרשמי פתוח
+(אפשר לפתוח אצלו שיחה). אחר כך הדביקו את הבלוק הבא בטרמינל המשולב של אותו VS Code (לא PowerShell חיצוני).
+הבלוק רק קורא, ומסתיר את הטוקן (authToken) כדי שלא תשלחו אותו.
+
+Write-Host "=== 5. קבצי נעילה ב-.claude\ide" -ForegroundColor Cyan
+Get-ChildItem (Join-Path $env:USERPROFILE '.claude\ide') -Filter *.lock -ErrorAction SilentlyContinue | ForEach-Object {
+  Write-Host ("--- " + $_.Name + "  (נוצר: " + $_.LastWriteTime + ")")
+  (Get-Content $_.FullName -Raw) -replace '("authToken"\s*:\s*")[^"]+','$1***'
+}
+Write-Host "=== 6. משתני סביבה בטרמינל הזה" -ForegroundColor Cyan
+Get-ChildItem env: | Where-Object { $_.Name -match 'CLAUDE|SSE|IDE|VSCODE' -and $_.Name -notmatch 'TOKEN|KEY|SECRET' } | Format-Table -AutoSize
+Write-Host "=== 7. הגרסה של ה-CLI" -ForegroundColor Cyan
+& $claude --version
+
+מה להחזיר מהחלק הזה: את כל הפלט של שלבים 5-7. שם קובץ הנעילה הוא מספר הפורט, ומשתנה הסביבה
+CLAUDE_CODE_SSE_PORT (אם הוא מופיע בשלב 6) אומר שה-CLI מתחבר לפי משתנה ולא רק לפי קובץ.
