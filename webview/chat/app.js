@@ -73,7 +73,7 @@
     CL.tasksBar.render([]);
     CL.loopBar.render([]);
     CL.agentCards.reset();
-    CL.contextMeter.set(null, null);
+    CL.contextMeter.set(null);
     CL.menu.close();
     CL.slashMenu.close();
     CL.mentions.close();
@@ -103,7 +103,7 @@
     workFile: (m) => CL.composer.setWorkFile(m.path, m.isDir),
     mode: (m) => CL.composer.setMode(m.value),
     model: (m) => CL.composer.setModel(m.value),
-    context: (m) => CL.contextMeter.set(m.used, m.max),
+    context: (m) => CL.contextMeter.set(m),
     events: (m) => onEvents(m.events),
     busy(m) {
       setBusy(m.value);

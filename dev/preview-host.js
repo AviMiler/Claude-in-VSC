@@ -92,6 +92,24 @@
   ];
   let current = 'c1';
   const rows = () => convs.map((c) => ({ ...c, current: c.id === current }));
+  // A get_context_usage-shaped 'context' message (src/panels/context-meter.js); ?used=N sets the
+  // messages so the gauge's warn (70%) and danger (85%) colours can be looked at.
+  function contextMsg(used) {
+    const fixed = { 'System prompt': 3100, 'System tools': 11800, 'MCP tools': 1300, Skills: 900, 'Memory files': 1200 };
+    const base = Object.values(fixed).reduce((a, b) => a + b, 0);
+    const want = Number(new URLSearchParams(location.search).get('used')) || used;
+    const messages = Math.max(0, want - base);
+    return {
+      type: 'context', used: base + messages, max: 64000, source: 'ollama', memoryFiles: 2, mcpServers: 1,
+      categories: [
+        ...Object.entries(fixed).map(([name, tokens]) => ({ name, tokens, deferred: false })),
+        { name: 'Messages', tokens: messages, deferred: false },
+        { name: 'System tools', tokens: 7400, deferred: true },
+        { name: 'Autocompact buffer', tokens: 13000, deferred: false },
+        { name: 'Free space', tokens: 999999, deferred: false },
+      ],
+    };
+  }
   function states() {
     const hidden = convs.filter((c) => c.id !== current);
     toWebview({ type: 'conversationStates', open: rows(), attention: { waiting: hidden.filter((c) => c.status === 'waiting').length, unread: hidden.filter((c) => c.status === 'unread').length } });
@@ -104,7 +122,7 @@
       { ev: { kind: 'tool', key: `${c.id}:1`, id: `${c.id}-bash`, name: 'Bash', input: { command: 'npm test', description: 'Run tests' }, final: true } },
     ];
     if (c.status === 'unread') items.push({ ev: { kind: 'toolResult', toolUseId: `${c.id}-bash`, text: '12 passing', isError: false } }, { ev: { kind: 'result', isError: false, durationMs: 5200, inputTokens: 9100, outputTokens: 400 } });
-    const snapshots = [{ type: 'mode', value: c.id === 'c2' ? 'acceptEdits' : 'default' }, { type: 'context', used: c.id === 'c1' ? 0 : 23400, max: 64000 }];
+    const snapshots = [{ type: 'mode', value: c.id === 'c2' ? 'acceptEdits' : 'default' }, (c.id === 'c1' ? { type: 'context', used: 0, max: 64000 } : contextMsg(23400))];
     if (c.id === 'c2') snapshots.push({ type: 'backgroundTasks', tasks: [
       { id: 'b1', type: 'local_bash', description: 'npm run watch', running: true },
       { id: 'b2', type: 'local_agent', description: 'סריקת קבצי הבדיקה', running: false, status: 'completed' },
@@ -177,13 +195,13 @@
           { value: 'sonnet', displayName: 'Sonnet', description: 'Fast and capable' },
           { value: 'haiku', displayName: 'Haiku', description: 'Fastest' },
         ] });
-        toWebview({ type: 'context', used: 23400, max: 64000 });
+        toWebview(contextMsg(23400));
         states();
         // ?conv=c2 shows another conversation; ?open=drawer|mcp|slash opens that part (for screenshots).
         later(60, () => {
           const q = new URLSearchParams(location.search);
           if (q.get('conv')) switchTo(q.get('conv'));
-          const open = { drawer: 'drawer-btn', mcp: 'mcp-btn', slash: 'slash-btn', attach: 'attach-btn', mode: 'mode-btn' }[q.get('open')];
+          const open = { drawer: 'drawer-btn', mcp: 'mcp-btn', slash: 'slash-btn', attach: 'attach-btn', mode: 'mode-btn', gauge: 'usage-gauge' }[q.get('open')];
           if (open) later(80, () => document.getElementById(open).click());
         });
         break;

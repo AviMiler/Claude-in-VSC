@@ -159,6 +159,11 @@
           "default": "",
           "markdownDescription": "כתובת שרת המודלים (LiteLLM) שממנו נטענת רשימת המודלים (`/v1/models`). ריק = נלקח מ-`ANTHROPIC_BASE_URL`."
         },
+        "claudeLocal.ollamaUrl": {
+          "type": "string",
+          "default": "http://172.27.5.5:11435",
+          "markdownDescription": "כתובת Ollama שממנה נקרא גודל החלון האמיתי של המודל הטעון (`GET /api/ps`, קריאה בלבד, בזיכרון) עבור מד השימוש. ברירת המחדל היא הכתובת בסביבה הנוכחית; אפשר לשנות כאן. ריק או `off` = לא לקרוא, ואז החלון נלקח מ-`CLAUDE_CODE_MAX_CONTEXT_TOKENS` או מ-Claude Code."
+        },
         "claudeLocal.modelDenylist": {
           "type": "array",
           "items": {

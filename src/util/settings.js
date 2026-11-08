@@ -24,6 +24,7 @@ function read() {
     ideServerVerboseLog: c.get('ideServerVerboseLog') === true,
     display: readDisplay((name) => c.get(name)),
     gatewayUrl: String(c.get('gatewayUrl') || ''),
+    ollamaUrl: String(c.get('ollamaUrl') || ''),
     modelDenylist: Array.isArray(c.get('modelDenylist')) ? c.get('modelDenylist') : [],
     keybindings: {
       send: c.get('keybindings.send'),

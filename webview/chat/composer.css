@@ -96,16 +96,79 @@
 .mode-btn.active-mode .chip-icon { color: var(--cl-orange); }
 .mode-btn.danger, .mode-btn.danger .chip-icon { color: var(--cl-warn); }
 
-.context-meter {
+/* usage gauge: a ring that fills with the window (usage-gauge.js); orange from 70%, red from 85% */
+.usage-gauge {
+  --gauge: var(--cl-muted);
   flex: none;
-  padding: 0 4px;
-  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 5px;
+  border: none;
+  border-radius: var(--cl-radius-s);
+  background: transparent;
   color: var(--cl-muted);
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
-  cursor: default;
 }
-.context-meter.warn { color: var(--cl-warn); }
-.context-meter.danger { color: var(--cl-err); }
+.usage-gauge:hover, .usage-gauge[aria-expanded="true"] { background: var(--cl-hover); color: var(--cl-fg); }
+.usage-gauge.warn { --gauge: var(--cl-gauge-warn); color: var(--cl-gauge-warn); }
+.usage-gauge.danger { --gauge: var(--cl-err); color: var(--cl-err); }
+.gauge-ring { width: 15px; height: 15px; flex: none; }
+.gauge-ring circle { fill: none; stroke-width: 2.25; }
+.gauge-track { stroke: var(--cl-divider); }
+.gauge-fill { stroke: var(--gauge); stroke-linecap: round; stroke-dasharray: 0 100; transition: stroke-dasharray .3s ease; }
+@media (max-width: 340px) { .gauge-pct { display: none; } }
+
+/* the card behind the gauge, in the style of the Claude app's "Context" panel */
+.usage-card {
+  bottom: calc(100% - 6px);
+  width: 300px;
+  max-width: calc(100% - 16px);
+  padding: 12px 14px 10px;
+  font-size: 12px;
+  overflow: visible;
+}
+.usage-card:focus { outline: none; }
+.usage-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.usage-title { font-weight: 600; font-size: 13px; }
+.usage-pct { color: var(--cl-muted); font-variant-numeric: tabular-nums; }
+.usage-pct.lvl-warn { color: var(--cl-gauge-warn); }
+.usage-pct.lvl-danger { color: var(--cl-err); }
+.usage-total { margin-top: 2px; color: var(--cl-muted); font-size: 11.5px; }
+.usage-card .num { font-variant-numeric: tabular-nums; }
+.usage-bar {
+  display: flex;
+  height: 8px;
+  margin: 10px 0 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--cl-tint);
+  gap: 1px;
+}
+.usage-seg { flex: none; min-width: 2px; height: 100%; }
+.usage-rows { display: grid; grid-template-columns: 10px 1fr auto auto; column-gap: 8px; row-gap: 3px; align-items: center; }
+.usage-row { display: contents; }
+.usage-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-tokens, .usage-share { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.usage-share { min-width: 42px; color: var(--cl-muted); }
+.usage-row.sub .usage-name, .usage-row.sub .usage-tokens { color: var(--cl-muted); }
+.usage-deferred { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--cl-divider); }
+.usage-card .dot { width: 9px; height: 9px; border-radius: 2px; }
+.usage-row.sub .dot { box-shadow: inset 0 0 0 1px var(--cl-strong-border); }
+.usage-foot { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--cl-divider); color: var(--cl-muted); font-size: 11px; display: grid; gap: 2px; }
+/* category colours: VS Code chart colours, so they follow light, dark and high-contrast themes */
+.uc-messages { background: var(--vscode-charts-blue, #3794ff); }
+.uc-system-prompt { background: var(--vscode-charts-purple, #b180d7); }
+.uc-system-tools { background: var(--vscode-charts-green, #89d185); }
+.uc-mcp-tools { background: var(--vscode-terminal-ansiCyan, #29b8db); }
+.uc-agents { background: var(--vscode-charts-yellow, #cca700); }
+.uc-skills { background: var(--cl-orange); }
+.uc-memory { background: var(--vscode-terminal-ansiMagenta, #d670d6); }
+.uc-other { background: var(--cl-muted); }
+.uc-buffer { background: repeating-linear-gradient(135deg, var(--cl-strong-border) 0 2px, transparent 2px 4px); }
+.uc-free { background: var(--cl-tint); box-shadow: inset 0 0 0 1px var(--cl-divider); }
 
 .cwd-note { font-size: 11px; color: var(--cl-warn); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 

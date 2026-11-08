@@ -1,5 +1,7 @@
 # dev/ — development-only tools
 
+**Open manual checks:** `open-checks.txt` is the single list (the older `check-*.txt` files were removed on 2026-11-08 once done or replaced); `check-7.html` is an interactive checklist for check 7 and the usage gauge.
+
 Nothing in this folder is packaged (`.vscodeignore`). Findings produced by the probes are recorded in `DEPENDENCIES.md` (sections 2-5); this file only says how to run the tools again.
 
 ## CLI probes (feasibility checks against the real `claude` CLI)

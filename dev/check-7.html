@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה 7 - Claude Code Local</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#5b6475; --line:#dfe3ea; --pass:#1a7f4b; --fail:#c0392b; --skip:#8a6d00; --accent:#2f5bd8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14171d; --card:#1c2029; --text:#e8ebf2; --muted:#9aa3b5; --line:#2c3240; --pass:#4cc38a; --fail:#ff7b6b; --skip:#e0b84a; --accent:#7a9cff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 "Segoe UI", Arial, sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:var(--card); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; flex:1 1 auto; }
+  #progress { color:var(--muted); font-size:14px; }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:8px; padding:6px 12px; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  main { max-width:820px; margin:0 auto; padding:16px; }
+  .intro { color:var(--muted); margin:0 0 16px; }
+  section { margin:0 0 22px; }
+  section > h2 { font-size:17px; margin:0 0 8px; }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:0 0 10px; border-inline-start:5px solid var(--line); }
+  .item.pass { border-inline-start-color:var(--pass); }
+  .item.fail { border-inline-start-color:var(--fail); }
+  .item.skip { border-inline-start-color:var(--skip); }
+  .do { margin:0 0 4px; }
+  .expect { margin:0 0 8px; color:var(--muted); font-size:14px; }
+  .expect b { color:var(--text); }
+  .row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .row button.sel-pass { background:var(--pass); color:#fff; border-color:var(--pass); }
+  .row button.sel-fail { background:var(--fail); color:#fff; border-color:var(--fail); }
+  .row button.sel-skip { background:var(--skip); color:#fff; border-color:var(--skip); }
+  input.note { flex:1 1 220px; min-width:0; font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); }
+  code { background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:0 4px; font-size:14px; direction:ltr; unicode-bidi:embed; }
+  .hint { font-size:14px; color:var(--muted); }
+  #out { width:100%; min-height:140px; margin-top:10px; font:14px/1.5 Consolas, monospace; direction:rtl; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>בדיקה 7 - מה שנבנה, ב-VS Code (כ-25 דקות)</h1>
+  <span id="progress"></span>
+  <button class="primary" id="copy">העתקת דוח</button>
+  <button id="reset">איפוס</button>
+</header>
+<main>
+  <p class="intro">מריצים בחלון VS Code שבו התוסף פעיל (<code>code --extensionDevelopmentPath=...</code>). פותחים שיחה חדשה לפני כל קבוצה.
+  לכל סעיף: עושים, משווים ל"צפוי", ולוחצים עבר / נכשל / דילגתי. אפשר לכתוב הערה. הכול נשמר בדפדפן. בסוף "העתקת דוח" והדביקו בצ'אט.</p>
+  <div id="app"></div>
+  <section>
+    <h2>הדוח</h2>
+    <p class="hint">הטקסט כאן הוא מה שמדביקים בצ'אט. אם משהו נכשל, צרפו גם שורות מהיומן (Ctrl+Shift+P, "העתקת יומן").</p>
+    <textarea id="out" readonly></textarea>
+  </section>
+</main>
+<script>
+const GROUPS = [
+  { id:'7.1', title:'7.1 קיצורי מקלדת', items:[
+    ['Ctrl+Alt+C','הצ'+"'"+'ט נפתח או מקבל מיקוד.'],
+    ['Ctrl+Alt+E בעורך טקסט, ושוב.','המיקוד עובר לצ'+"'"+'ט ואז חוזר לעורך. תפריט התחל של Windows לא נפתח.'],
+    ['סגרו שיחה שיש בה הודעות (X בלשונית או מהרשימה) ולחצו Ctrl+Shift+T.','השיחה נפתחת מחדש. אם לא: רשמו בהערה אם הצ'+"'"+'ט היה בסרגל הצד או בלשונית, ואם היה קובץ פתוח בעורך (F-6).'] ]},
+  { id:'7.2', title:'7.2 פקודות התוסף ב-/', items:[
+    ['בתיבה הקלידו /','בראש הרשימה קבוצה "פקודות של התוסף" עם plan, plan open, diff.'],
+    ['בחרו plan.','הודעה "עברתם למצב תכנון", והכפתור מציג תכנון. בחירה חוזרת: "כבר במצב תכנון".'],
+    ['הקלידו /plan open בלי תוכנית.','הודעה שעדיין אין תוכנית.'] ]},
+  { id:'7.3', title:'7.3 תיבת ההודעה', items:[
+    ['הדביקו תמונה בלי טקסט ושלחו.','ההודעה נשלחת (F-11).'],
+    ['גררו קובץ תמונה מחוץ ל-VS Code לתיבה.','התמונה מצורפת. אם לא, העתיקו את שורת [drop] מהיומן.'],
+    ['לחצו על כפתור נקודות השמירה בכותרת (חץ מעוגל).','נפתחת רשימת נקודות השמירה (F-12).'],
+    ['שלחו הודעה של יותר מ-8 שורות.','ההודעה מוצגת מכווצת עם "הצג עוד"; לחיצה מרחיבה, "כווץ" מכווץ.'],
+    ['גרמו לשגיאה (כבו את שרת המודלים או את הרשת) ושלחו הודעה, ואז הדליקו ולחצו "נסה שוב".','תיבת השגיאה כוללת "נסה שוב", והלחיצה שולחת שוב את אותה הודעה.'] ]},
+  { id:'7.4', title:'7.4 נוסחאות (LaTeX)', items:[
+    ['שלחו: כתוב את נוסחת השורשים של משוואה ריבועית ב-LaTeX עם $$ ... $$ ואת x^2 בתוך שורה עם $...$','נוסחה מעוצבת, לא טקסט גולמי. "5$ ו-10$" בטקסט רגיל נשאר כמו שהוא.'] ]},
+  { id:'7.5', title:'7.5 הגדרות', items:[
+    ['בהגדרות VS Code חפשו collapseUserMessageLines.','ברירת מחדל 8; 0 מבטל כיווץ.'] ]},
+  { id:'7.6', title:'7.6 הקשר מהעורך וה-diff (נוסף)', items:[
+    ['סמנו כמה שורות בקובץ ולחצו Alt+K.','בתיבה מוסף @path#שורות, ובצ'+"'"+'ט מופיעים צ'+"'"+'יפים עם הקובץ והשורות. הסרת צ'+"'"+'יפ מונעת את שליחתו.'],
+    ['בקשו מ-Claude לערוך קובץ קטן (למשל: הוסף שורת הערה בראש הקובץ).','מוצג diff עם בלוקים לאישור (CodeLens, או רשימת בחירה אם diffEditor.codeLens כבוי). אישור בלוק מחיל אותו, דחייה לא.'],
+    ['הקלידו /diff אחרי העריכה.','רשימת הקבצים ש-Claude שינה; בחירה בקובץ פותחת השוואה בעורך.'],
+    ['הסתכלו על מד השימוש בשורת תיבת ההודעה (טבעת קטנה ליד מצב ההרשאות).','מוצגת טבעת שמתמלאת ואחוז (למשל 37%). אחרי כל תור האחוז מתעדכן. מ-70% הטבעת כתומה ומ-85% אדומה (בערכה בהירה ובכהה).'],
+    ['לחצו על הטבעת (או Tab אליה ו-Enter). אחר כך Escape.','נפתח כרטיס "הקשר": פס צבעוני ושורות עם אסימונים ואחוז מהחלון (הודעות, הנחיית מערכת, כלי מערכת ועוד), "מקום פנוי", מספר קובצי הזיכרון ושרתי MCP. אין עלות. Escape סוגר והפוקוס חוזר לטבעת. ריחוף עם העכבר מציג את הכרטיס לרגע.'],
+    ['בכרטיס, קראו את השורה "גודל החלון".','"לפי Ollama (המודל הטעון)" והסכום הוא 64,000 עבור qwen3.8:27b. אם Ollama לא זמין: "לפי ההגדרות". ביומן (תג context) מופיע source=ollama.'],
+    ['החליפו מודל בבורר המודלים ושלחו הודעה קצרה.','אחרי ההפעלה מחדש הטבעת מתעדכנת, והחלון בכרטיס הוא של המודל החדש כפי ש-Ollama מדווח.'] ]}
+];
+const KEY = 'check7.v1';
+let state = {}; try { state = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+const app = document.getElementById('app');
+GROUPS.forEach(g => {
+  const sec = document.createElement('section');
+  sec.innerHTML = '<h2></h2>'; sec.firstChild.textContent = g.title;
+  g.items.forEach((it, i) => {
+    const id = g.id + '.' + (i + 1);
+    const d = document.createElement('div'); d.className = 'item'; d.dataset.id = id;
+    d.innerHTML = '<p class="do"></p><p class="expect"><b>צפוי:</b> <span></span></p><div class="row"></div>';
+    d.querySelector('.do').textContent = id + '  ' + it[0];
+    d.querySelector('.expect span').textContent = it[1];
+    const row = d.querySelector('.row');
+    [['pass','עבר'],['fail','נכשל'],['skip','דילגתי']].forEach(([v, label]) => {
+      const b = document.createElement('button'); b.textContent = label; b.dataset.v = v;
+      b.onclick = () => { const s = state[id] = state[id] || {}; s.v = s.v === v ? '' : v; save(); render(); };
+      row.appendChild(b);
+    });
+    const n = document.createElement('input'); n.className = 'note'; n.placeholder = 'הערה (מה קרה בפועל)';
+    n.oninput = () => { (state[id] = state[id] || {}).n = n.value; save(); report(); };
+    row.appendChild(n);
+    sec.appendChild(d);
+  });
+  app.appendChild(sec);
+});
+
+function all() { const out = []; GROUPS.forEach(g => g.items.forEach((it, i) => out.push([g.id + '.' + (i + 1), it[0]]))); return out; }
+function render() {
+  document.querySelectorAll('.item').forEach(d => {
+    const s = state[d.dataset.id] || {};
+    d.className = 'item' + (s.v ? ' ' + s.v : '');
+    d.querySelectorAll('button').forEach(b => { b.className = s.v === b.dataset.v ? 'sel-' + b.dataset.v : ''; });
+    const n = d.querySelector('.note'); if (n.value !== (s.n || '')) n.value = s.n || '';
+  });
+  const list = all(); const done = list.filter(([id]) => (state[id] || {}).v).length;
+  const fails = list.filter(([id]) => (state[id] || {}).v === 'fail').length;
+  document.getElementById('progress').textContent = done + ' מתוך ' + list.length + ' · נכשלו: ' + fails;
+  report();
+}
+function report() {
+  const names = { pass:'עבר', fail:'נכשל', skip:'דילגתי', '':'לא נבדק' };
+  document.getElementById('out').value = 'בדיקה 7 (' + new Date().toLocaleDateString('he-IL') + ')\n' +
+    all().map(([id, text]) => { const s = state[id] || {}; return id + ' ' + names[s.v || ''] + (s.n ? ' - ' + s.n : ''); }).join('\n');
+}
+document.getElementById('copy').onclick = () => { const t = document.getElementById('out'); t.select(); try { navigator.clipboard.writeText(t.value); } catch (e) { document.execCommand('copy'); } };
+document.getElementById('reset').onclick = () => { if (confirm('למחוק את כל התשובות?')) { state = {}; save(); render(); } };
+render();
+</script>
+</body>
+</html>

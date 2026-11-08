@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
 const path = require('path');
+const http = require('http');
 
 const vscodeStub = { workspace: { workspaceFolders: [{ uri: { fsPath: process.cwd() } }] } };
 const resolve = Module._resolveFilename;
@@ -16,14 +17,15 @@ const FAKE_CMD = path.join(__dirname, '..', 'dev', 'fake-claude.cmd');
 const FAKE_JS = path.join(__dirname, '..', 'dev', 'fake-claude.js');
 
 // Port 1 refuses at once, so the model list falls back without real network.
-function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables } = {}) {
+// ollamaUrl 'off' keeps the usage gauge from reading a real Ollama on this machine.
+function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off' } = {}) {
   const posted = [];
   const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage: (m) => posted.push(m) };
   // On Windows the .cmd wrapper is the realistic path; elsewhere run the script directly.
   const claudePath = process.platform === 'win32' ? FAKE_CMD : FAKE_JS;
   const services = {
     logger: { info() {}, warn() {}, debug() {} },
-    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, modelDenylist: ['gemma3:27b'], environmentVariables }), onDidChange: () => ({ dispose() {} }) },
+    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables }), onDidChange: () => ({ dispose() {} }) },
     registry: { findBySession: () => null },
   };
   const c = new Conversation({ webview, services });
@@ -156,6 +158,31 @@ test('the default model uses the configured window, not 1M', async () => {
   }
 });
 
+// Usage gauge: the real window from Ollama's /api/ps caps the CLI value; unreachable falls back.
+test('the usage gauge takes the window from Ollama /api/ps, else the configured one', async () => {
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ models: [{ name: 'fake-model', model: 'fake-model', context_length: 32000 }] }));
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const env = { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000' };
+  const live = setup({ environmentVariables: env, ollamaUrl: `http://127.0.0.1:${server.address().port}` });
+  const down = setup({ environmentVariables: env, ollamaUrl: 'http://127.0.0.1:1' });
+  try {
+    await until(() => live.posted.some((m) => m.type === 'context') && down.posted.some((m) => m.type === 'context'));
+    const a = live.posted.find((m) => m.type === 'context');
+    assert.strictEqual(a.max, 32000);
+    assert.strictEqual(a.source, 'ollama');
+    assert.ok(Array.isArray(a.categories));
+    const b = down.posted.find((m) => m.type === 'context');
+    assert.strictEqual(b.max, 64000);
+    assert.strictEqual(b.source, 'settings');
+  } finally {
+    live.c.dispose();
+    down.c.dispose();
+    server.close();
+  }
+});
 test('without a configured window the default model keeps the CLI value', async () => {
   const { c, posted } = setup();
   try {
@@ -219,7 +246,6 @@ test('/plan always gives a visible Hebrew result (F-5)', async () => {
 });
 
 test('the model list comes from the gateway, filtered; the context meter follows get_context_usage', async () => {
-  const http = require('http');
   const server = http.createServer((req, res) => {
     const body = {
       '/v1/models': { data: [{ id: 'qwen3.8:27b' }, { id: 'gemma3:27b' }, { id: 'gemma4:31b' }] },
