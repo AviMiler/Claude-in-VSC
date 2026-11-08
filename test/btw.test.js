@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const { buildBtwArgs, parseBtwOutput, runBtw } = require('../src/cli/btw');
+const { buildBtwArgs, parseBtwOutput, runBtw, btwCwd, BTW_TIMEOUT_MS } = require('../src/cli/btw');
+const os = require('os');
 
 test('btw args: no tools, no persistence, no resume, print mode with json output', () => {
   const a = buildBtwArgs({ model: 'sonnet' });
@@ -34,4 +35,11 @@ test('runBtw reports a CLI error result and a missing executable', async () => {
   assert.ok(bad.error.includes('fake btw failure'));
   const missing = await runBtw({ claudePath: path.join(__dirname, 'no-such-claude-binary'), question: 'x' }).promise;
   assert.ok(missing.error);
+});
+
+test('btw runs in a neutral temp folder and waits long enough for a cold model load', () => {
+  const dir = btwCwd();
+  assert.ok(dir.startsWith(os.tmpdir()), dir);
+  assert.ok(require('fs').statSync(dir).isDirectory());
+  assert.ok(BTW_TIMEOUT_MS >= 1200000);
 });

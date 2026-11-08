@@ -1,9 +1,24 @@
 // `/btw`: a side question answered by a separate short-lived CLI process that has no tools
-// and no conversation history. One process per question; nothing is persisted.
+// and no conversation history. One process per question. The extension persists nothing; the CLI still
+// writes a session file per call, so the process runs in a neutral temp folder (see btwCwd).
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { spawnCli } = require('./spawn');
 
-const BTW_TIMEOUT_MS = 180000;
+// A cold model load measured 175-285 s, so the limit matches API_TIMEOUT_MS (20 minutes).
+const BTW_TIMEOUT_MS = 1200000;
+
+// The CLI 2.1.246 writes a session file for every -p call even with --no-session-persistence
+// (measured by the user, dev/check-btw.txt). The files are keyed by the process's cwd, so /btw runs
+// in a neutral temp folder: they land in a project the extension's history list never shows,
+// and the project's CLAUDE.md and settings are not loaded. /btw has no tools, so it loses nothing.
+function btwCwd() {
+  const dir = path.join(os.tmpdir(), 'claude-local-btw');
+  try { fs.mkdirSync(dir, { recursive: true }); } catch { /* spawn then fails with a clear error */ }
+  return dir;
+}
 
 // `--tools ""` disables every tool; `--no-session-persistence` keeps the question out of the
 // CLI's history; no `--resume`, so the main conversation's context is never loaded.
@@ -30,7 +45,7 @@ function parseBtwOutput(stdout) {
 }
 
 // Returns { promise, cancel }. The promise resolves { text } or { error }; it never rejects.
-function runBtw({ claudePath, question, cwd, env, model, settings, timeoutMs = BTW_TIMEOUT_MS }) {
+function runBtw({ claudePath, question, cwd = btwCwd(), env, model, settings, timeoutMs = BTW_TIMEOUT_MS }) {
   let child;
   const promise = new Promise((resolve) => {
     let out = '';
@@ -57,4 +72,4 @@ function runBtw({ claudePath, question, cwd, env, model, settings, timeoutMs = B
   return { promise, cancel: () => child && child.kill() };
 }
 
-module.exports = { buildBtwArgs, parseBtwOutput, runBtw };
+module.exports = { buildBtwArgs, parseBtwOutput, runBtw, btwCwd, BTW_TIMEOUT_MS };
