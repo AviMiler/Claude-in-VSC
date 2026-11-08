@@ -59,12 +59,13 @@ function Ask($title, $q) {
 Ask '3א. תשובה רגילה (צפוי: 4)' 'What is 2+2? Answer with the number only.'
 Ask '3ב. בקשת כלי (צפוי: לא מריץ כלי, מסביר שאין)' 'Use a tool to list the files in the current folder.'
 Ask '3ג. היסטוריה (צפוי: NONE או לא יודע)' 'What did I ask you before this message? If nothing, say NONE.'
+Ask '3ד. הפקודה /btw המקורית של ה-CLI (ייתכן שלא נתמכת ב-p)' '/btw What is 2+2? Answer with the number only.'
 Pop-Location
 
 Show-Header '4. האם נוצר קובץ שיחה חדש (צפוי: אין)'
 $after = @(Get-ChildItem $projDir -Recurse -Filter *.jsonl -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
 $new = $after | Where-Object { $before -notcontains $_ }
-if ($new) { Write-Host 'נוצרו קבצים חדשים:' -ForegroundColor Red; $new } else { Write-Host 'לא נוצר קובץ שיחה חדש (תקין)' -ForegroundColor Green }
+if ($new) { Write-Host 'נוצרו קבצים חדשים (זו התנהגות ה-CLI, נרשום ונחליט):' -ForegroundColor Yellow; $new | ForEach-Object { '{0}  ({1} שורות)' -f $_, (Get-Content $_ | Measure-Object -Line).Lines } } else { Write-Host 'לא נוצר קובץ שיחה חדש (תקין)' -ForegroundColor Green }
 
 Write-Host ""; Write-Host "הסתיים. נשמר ב: $out" -ForegroundColor Green
 Stop-Transcript | Out-Null
