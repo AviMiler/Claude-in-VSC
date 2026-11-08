@@ -5,9 +5,9 @@
 
 $out = Join-Path ([Environment]::GetFolderPath('Desktop')) 'check-btw-result.txt'
 Start-Transcript -Path $out -Force | Out-Null
-function H($t) { Write-Host ""; Write-Host "=== $t" -ForegroundColor Cyan }
+function Show-Header($t) { Write-Host ""; Write-Host "=== $t" -ForegroundColor Cyan }
 
-H '1. איתור claude-bin.exe'
+Show-Header '1. איתור claude-bin.exe'
 $cands = @()
 $cmd = Get-Command claude -ErrorAction SilentlyContinue
 if ($cmd) { $cands += (Split-Path $cmd.Source) }
@@ -20,7 +20,7 @@ if (-not $bin) { Write-Host 'לא נמצא claude-bin.exe. הגדירו $bin י�
 Write-Host "בינארי: $bin"
 & $bin --version
 
-H '2. האם הדגלים קיימים ב---help'
+Show-Header '2. האם הדגלים קיימים ב---help'
 $h = & $bin --help 2>&1 | Out-String
 foreach ($f in '--tools','--no-session-persistence','--output-format') { "{0}: {1}" -f $f, ($h -match [regex]::Escape($f)) }
 
@@ -31,7 +31,7 @@ $before = @(Get-ChildItem $projDir -Recurse -Filter *.jsonl -ErrorAction Silentl
 Push-Location $work
 
 function Ask($title, $q) {
-  H $title
+  Show-Header $title
   $r = $q | & $bin -p --output-format json --tools "" --no-session-persistence 2>&1 | Out-String
   Write-Host $r
 }
@@ -40,7 +40,7 @@ Ask '3ב. בקשת כלי (צפוי: לא מריץ כלי, מסביר שאין)'
 Ask '3ג. היסטוריה (צפוי: NONE או לא יודע)' 'What did I ask you before this message? If nothing, say NONE.'
 Pop-Location
 
-H '4. האם נוצר קובץ שיחה חדש (צפוי: אין)'
+Show-Header '4. האם נוצר קובץ שיחה חדש (צפוי: אין)'
 $after = @(Get-ChildItem $projDir -Recurse -Filter *.jsonl -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
 $new = $after | Where-Object { $before -notcontains $_ }
 if ($new) { Write-Host 'נוצרו קבצים חדשים:' -ForegroundColor Red; $new } else { Write-Host 'לא נוצר קובץ שיחה חדש (תקין)' -ForegroundColor Green }
