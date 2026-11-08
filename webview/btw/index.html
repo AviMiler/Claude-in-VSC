@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="{{csp}}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{chat}}/chat.css">
+  <link rel="stylesheet" href="{{vendor}}/katex/katex.min.css">
+  <link rel="stylesheet" href="{{chat}}/highlight-theme.css">
+  <link rel="stylesheet" href="{{btw}}/btw.css">
+  <title>שאלה צדדית</title>
+</head>
+<body>
+  <div id="btw-app" class="btw-app">
+    <header class="btw-header">
+      <span class="btw-title">שאלה צדדית <span dir="ltr">/btw</span></span>
+      <button id="clear-btn" class="btw-clear" type="button" title="ניקוי שיחה" aria-label="ניקוי שיחה">ניקוי שיחה</button>
+    </header>
+    <div class="btw-notice">בלי כלים ובלי גישה לקבצים. ההקשר הוא רק השיחה הצדדית הזו.</div>
+
+    <main id="btw-thread" class="btw-thread" aria-live="polite">
+      <div id="btw-empty" class="btw-empty">
+        כתבו שאלה בתיבה למטה ולחצו Enter. אפשר להמשיך ולשאול שאלות המשך, והשיחה הצדדית תיזכר כל עוד החלונית פתוחה.
+      </div>
+      <div id="btw-items" class="btw-items"></div>
+    </main>
+
+    <footer class="btw-composer">
+      <textarea id="btw-input" rows="2" dir="auto" placeholder="שאלה צדדית... (Enter לשליחה, Shift+Enter לשורה חדשה)" aria-label="שאלה צדדית"></textarea>
+      <button id="btw-send" class="btw-send" type="button" title="שליחה" aria-label="שליחה" disabled>
+        <svg class="i-send" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="i-stop" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" rx="1" fill="currentColor"/></svg>
+      </button>
+    </footer>
+  </div>
+
+  <script nonce="{{nonce}}" src="{{vendor}}/marked.umd.js"></script>
+  <script nonce="{{nonce}}" src="{{vendor}}/highlight.min.js"></script>
+  <script nonce="{{nonce}}" src="{{vendor}}/powershell.min.js"></script>
+  <script nonce="{{nonce}}" src="{{vendor}}/katex/katex.min.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/util.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/math-logic.js"></script>
+  <script nonce="{{nonce}}" src="{{chat}}/markdown.js"></script>
+  <script nonce="{{nonce}}" src="{{btw}}/btw.js"></script>
+</body>
+</html>

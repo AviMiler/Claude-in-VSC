@@ -8,6 +8,7 @@ const { createEditorTracker } = require('./editor-context');
 const { registerSidebar } = require('./sidebar-view');
 const { createPlaces } = require('./places');
 const { registerStatusBar } = require('./status-bar');
+const { createBtwPanel } = require('./btw-panel');
 
 function register(context, services) {
   services.planDocs = createPlanDocs();
@@ -16,6 +17,8 @@ function register(context, services) {
   context.subscriptions.push(services.diffView);
   services.blockReview = createBlockReview(services.diffView);
   context.subscriptions.push(services.blockReview);
+  services.btwPanel = createBtwPanel(services); // /btw side panel (singleton, opened on demand)
+  context.subscriptions.push(services.btwPanel);
   services.editorTracker = createEditorTracker(); // editor context chips (package F)
   context.subscriptions.push(services.editorTracker);
   require('../ide').register(context, services); // IDE server + lock file (needs the tracker)

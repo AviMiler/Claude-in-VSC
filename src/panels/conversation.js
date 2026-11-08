@@ -29,8 +29,6 @@ const taskMap = require('../background/task-map');
 const claudeTasks = require('../tasks/claude-tasks');
 const agentCards = require('../agents/agent-cards');
 const loopHost = require('../loop/loop-host');
-const { runBtw } = require('../cli/btw');
-const { isWrapper } = require('./error-card');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -649,35 +647,16 @@ class Conversation {
     return this.services.planDocs.open(this.planText);
   }
 
-  // `/btw <question>`: a side question in its own short-lived, tool-less, history-less CLI process
-  // (src/cli/btw.js). Never touches the main process, the transcript or the queue.
-  btwCommand(id, question) {
-    if (!id || !question.trim()) return;
+  // Options for the /btw side panel's one-shot CLI calls (src/panels/btw-session.js): the same
+  // executable, environment and model as this conversation, but no history, tools or session.
+  btwRunOptions() {
     const { claudePath, environmentVariables } = this.services.settings.get();
-    this.services.logger.info('btw', `ask (${question.length} chars)`);
-    const job = runBtw({
+    return {
       claudePath,
-      question,
       env: mergeEnv(process.env, environmentVariables),
       model: this.model !== 'default' ? this.model : undefined,
       settings: launchSettings({ model: this.model, environmentVariables }),
-    });
-    this.btwJobs = this.btwJobs || new Map();
-    this.btwJobs.set(id, job);
-    const env = mergeEnv(process.env, environmentVariables);
-    job.promise.then((r) => {
-      this.btwJobs.delete(id);
-      // Same wrapper warning as the main connection's error card (error-card.js), shown after a failure.
-      if (r.error && isWrapper(claudePath, env)) {
-        r = { error: `${r.error} claudePath מצביע על קובץ עטיפה (.cmd/.bat) ששואלת "Select model number" ונתקעת. הצביעו על claude-bin.exe.` };
-      }
-      this.post({ type: 'btwResult', id, ...r });
-    });
-  }
-
-  btwCancel(id) {
-    const job = this.btwJobs && this.btwJobs.get(id);
-    if (job) job.cancel();
+    };
   }
 
   // `/diff`: the files this session's Edit/Write tool calls changed (no git).
@@ -791,7 +770,6 @@ class Conversation {
 
   dispose() {
     this.disposed = true;
-    for (const job of (this.btwJobs || new Map()).values()) job.cancel();
     clearTimeout(this.stopTimer);
     this.killProcess();
     for (const s of this.subs) s.dispose();

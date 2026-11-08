@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const { buildBtwArgs, parseBtwOutput, runBtw, btwCwd, BTW_TIMEOUT_MS } = require('../src/cli/btw');
+const { buildBtwPrompt, buildBtwArgs, parseBtwOutput, runBtw, btwCwd, BTW_TIMEOUT_MS } = require('../src/cli/btw');
 const os = require('os');
 
 test('btw args: no tools, no persistence, no resume, print mode with json output', () => {
@@ -42,4 +42,26 @@ test('btw runs in a neutral temp folder and waits long enough for a cold model l
   assert.ok(dir.startsWith(os.tmpdir()), dir);
   assert.ok(require('fs').statSync(dir).isDirectory());
   assert.ok(BTW_TIMEOUT_MS >= 1200000);
+});
+
+test('buildBtwPrompt: empty history keeps the question and carries the no-tools hint', () => {
+  const p = buildBtwPrompt([], 'מה זה let?');
+  assert.ok(p.endsWith('מה זה let?'));
+  assert.ok(/no tools/i.test(p));
+  assert.ok(!p.includes('The conversation so far'));
+});
+
+test('buildBtwPrompt: a follow-up includes the earlier turns, then the new message', () => {
+  const p = buildBtwPrompt([{ q: 'one?', a: 'answer one' }, { q: 'two?', a: 'answer two' }], 'three?');
+  assert.ok(p.indexOf('User: one?') < p.indexOf('Assistant: answer one'));
+  assert.ok(p.indexOf('answer one') < p.indexOf('User: two?'));
+  assert.ok(p.endsWith('New message from the user:\nthree?'));
+});
+
+test('buildBtwPrompt: the oldest turns are dropped beyond the size limit, the newest kept', () => {
+  const big = 'x'.repeat(10000);
+  const p = buildBtwPrompt([{ q: 'oldest', a: big }, { q: 'middle', a: big }, { q: 'newest', a: big }], 'now');
+  assert.ok(!p.includes('User: oldest'));
+  assert.ok(p.includes('User: newest'));
+  assert.ok(p.endsWith('now'));
 });

@@ -1,0 +1,38 @@
+/* The /btw side panel. Tokens (--cl-*) come from ../chat/chat.css; Markdown and code styles too. */
+
+.btw-app { display: flex; flex-direction: column; height: 100%; }
+.btw-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border-bottom: 1px solid var(--cl-divider);
+}
+.btw-title { font-weight: 600; }
+.btw-clear {
+  height: 26px; padding: 0 10px; border: 1px solid var(--cl-border); border-radius: var(--cl-radius-s);
+  background: transparent;
+}
+.btw-clear:hover { background: var(--cl-hover); }
+.btw-notice { padding: 6px 12px; color: var(--cl-muted); font-size: .92em; border-bottom: 1px solid var(--cl-divider); }
+
+.btw-thread { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
+.btw-empty { color: var(--cl-muted); padding: 24px 8px; text-align: center; }
+.btw-items { display: flex; flex-direction: column; gap: 12px; }
+.btw-wait { color: var(--cl-muted); }
+.btw-error { color: var(--cl-err); white-space: pre-wrap; }
+
+.btw-composer { display: flex; align-items: flex-end; gap: 8px; padding: 8px 12px 12px; border-top: 1px solid var(--cl-divider); }
+#btw-input {
+  flex: 1; min-width: 0; resize: none; max-height: 40vh; padding: 7px 11px; font: inherit;
+  border: 1px solid var(--cl-border); border-radius: var(--cl-radius);
+  background: var(--cl-input-bg); color: var(--cl-input-fg);
+}
+#btw-input:focus { outline: 1px solid var(--cl-focus); outline-offset: -1px; }
+.btw-send {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center; padding: 0;
+  border: none; border-radius: var(--cl-radius-s); background: var(--cl-fg); color: var(--cl-input-bg);
+}
+.btw-send:hover:not(:disabled) { background: var(--cl-orange); color: #fff; }
+.btw-send:disabled { opacity: .35; }
+.btw-send svg { width: 16px; height: 16px; }
+.btw-send .i-stop { display: none; }
+.btw-send.stop .i-send { display: none; }
+.btw-send.stop .i-stop { display: block; }

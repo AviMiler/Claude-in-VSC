@@ -146,11 +146,6 @@ textarea.card-input { height: auto; padding: 4px 8px; }
   background: transparent; color: inherit; cursor: pointer; font: inherit;
 }
 .info-card-btn:hover { background: var(--cl-hover); }
-.btw-card { display: block; }
-.btw-title { font-weight: 600; margin-bottom: 4px; }
-.btw-question { opacity: 0.8; margin-bottom: 6px; white-space: pre-wrap; }
-.btw-body { margin-bottom: 8px; }
-.btw-error { color: var(--cl-err); }
 .plan-open { align-self: flex-start; }
 .error-card { display: block; border-color: color-mix(in srgb, var(--cl-err) 55%, transparent); }
 .error-card .card-title { padding: 0; }

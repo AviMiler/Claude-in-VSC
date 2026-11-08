@@ -1,4 +1,4 @@
-// Builds the chat webview HTML from webview/chat/index.html: fills in the CSP, the nonce and
+// Builds the webview HTML from webview/<page>/index.html: fills in the CSP, the nonce and
 // the resource URIs. Only webview/ and resources/ may be loaded.
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +12,8 @@ function webviewOptions(extensionUri) {
   };
 }
 
-function chatHtml(webview, extensionUri) {
+// Shared by the chat page and the /btw side panel page (same CSP and placeholder scheme).
+function fillTemplate(page, webview, extensionUri) {
   const n = nonce();
   const root = vscode.Uri.joinPath(extensionUri, 'webview');
   const uri = (...p) => webview.asWebviewUri(vscode.Uri.joinPath(root, ...p)).toString();
@@ -23,12 +24,16 @@ function chatHtml(webview, extensionUri) {
     `font-src ${webview.cspSource}`,
     `script-src 'nonce-${n}'`,
   ].join('; ');
-  const template = fs.readFileSync(path.join(root.fsPath, 'chat', 'index.html'), 'utf8');
+  const template = fs.readFileSync(path.join(root.fsPath, page, 'index.html'), 'utf8');
   return template
     .replace(/\{\{csp\}\}/g, csp)
     .replace(/\{\{nonce\}\}/g, n)
     .replace(/\{\{chat\}\}/g, uri('chat'))
+    .replace(/\{\{btw\}\}/g, uri('btw'))
     .replace(/\{\{vendor\}\}/g, uri('vendor'));
 }
 
-module.exports = { chatHtml, webviewOptions };
+const chatHtml = (webview, extensionUri) => fillTemplate('chat', webview, extensionUri);
+const btwHtml = (webview, extensionUri) => fillTemplate('btw', webview, extensionUri);
+
+module.exports = { chatHtml, btwHtml, webviewOptions };

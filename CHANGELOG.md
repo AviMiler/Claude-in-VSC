@@ -2,6 +2,12 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-08 (`/btw` becomes a side panel with follow-ups)
+- **Changed** `/btw` (with or without text) now opens a separate VS Code WebviewPanel beside the chat (`claudeLocalBtw`, title "שאלה צדדית", `src/panels/btw-panel.js`, page `webview/btw/`) where the side conversation continues. The in-thread card (`webview/chat/btw.js`, `.btw-*` styles, `btwResult`, `Conversation.btwCommand`/`btwCancel`) is removed; `/btw` with no text no longer shows a "write a question" notice.
+- **Added** `src/panels/btw-session.js` (pure): the side conversation's in-memory history, one question in flight, cancel, clear. Each call is still a separate one-shot CLI process (`runBtw`: no tools, no `--resume`, neutral temp cwd); a follow-up works by putting the earlier turns into the stdin text (`buildBtwPrompt` in `src/cli/btw.js`, newest turns kept within 24,000 chars, plus a "no tools" hint). A failed question is not kept in the history. The panel has a stop button, "ניקוי שיחה", Markdown answers and copy/link handling like the main chat; closing the panel drops the history (nothing is persisted).
+- **Why:** the user could not continue the side conversation and wanted the official extension's side-panel behaviour.
+- **Verified:** `node --test` 257/257 (9 new: 3 for `buildBtwPrompt` in `test/btw.test.js`, 6 in `test/btw-session.test.js` against the fake CLI). **Not verified:** everything in real VS Code (panel placement, focus, rendering) and against the real CLI.
+- **Limits:** follow-ups re-send the earlier turns, so each costs more tokens and time, and the first call can take minutes on a cold model. `/btw` still does NOT see the main conversation (open decision for the user).
 ## 2026-11-08 (`/btw` side question, package C leftover)
 - **Added** `/btw <question>`: a closable card in the thread, answered by a separate short-lived CLI process (`src/cli/btw.js`: `claude -p --output-format json --tools "" --no-session-persistence`, question on stdin, no `--resume`, 180 s timeout). It is not a turn: no queue, no busy state, not in the main conversation's context or history. Host: `Conversation.btwCommand/btwCancel` (messages `btw`, `btwCancel`, reply `btwResult`); webview: `webview/chat/btw.js`, composer interception, `/btw` in the `/` menu, log tag `btw`.
 - **Changed** `quoteForCmd` quotes an empty argument (the `.cmd` route would otherwise drop `--tools ""`). `dev/fake-claude.js` got a one-shot json mode that echoes the flags it received.

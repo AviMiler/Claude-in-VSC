@@ -44,6 +44,25 @@ function parseBtwOutput(stdout) {
   return text ? { text } : { error: 'לא התקבלה תשובה.' };
 }
 
+// A side conversation has no CLI session (each call is a separate process with no history), so a
+// follow-up carries the earlier turns of THIS side conversation in its stdin text. Kept in memory by
+// the side panel only. The tool-less hint stops the model from announcing tool calls it cannot make.
+const HISTORY_CHAR_LIMIT = 24000;
+const NO_TOOLS_HINT = 'This is a side question: you have no tools here (no file access, no commands). Answer from your own knowledge and from what the user writes below, in the language of the question.';
+
+function buildBtwPrompt(history, question) {
+  const turns = [];
+  let size = 0;
+  for (let i = (history || []).length - 1; i >= 0; i--) {
+    const t = `User: ${history[i].q}\nAssistant: ${history[i].a}`;
+    if (turns.length && size + t.length > HISTORY_CHAR_LIMIT) break; // drop the oldest turns first
+    turns.unshift(t);
+    size += t.length;
+  }
+  const prior = turns.length ? `The conversation so far:\n\n${turns.join('\n\n')}\n\n` : '';
+  return `${NO_TOOLS_HINT}\n\n${prior}${turns.length ? 'New message from the user:\n' : ''}${question}`;
+}
+
 // Returns { promise, cancel }. The promise resolves { text } or { error }; it never rejects.
 function runBtw({ claudePath, question, cwd = btwCwd(), env, model, settings, timeoutMs = BTW_TIMEOUT_MS }) {
   let child;
@@ -72,4 +91,4 @@ function runBtw({ claudePath, question, cwd = btwCwd(), env, model, settings, ti
   return { promise, cancel: () => child && child.kill() };
 }
 
-module.exports = { buildBtwArgs, parseBtwOutput, runBtw, btwCwd, BTW_TIMEOUT_MS };
+module.exports = { buildBtwPrompt, buildBtwArgs, parseBtwOutput, runBtw, btwCwd, BTW_TIMEOUT_MS };

@@ -210,11 +210,10 @@
       post({ type: 'planCommand', open: Boolean(plan[1]) });
       return clearInput();
     }
-    // /btw <question>: a side question for the extension's own tool-less, history-less process.
+    // /btw [question]: opens the side panel (a separate panel where the side conversation continues).
     const btw = /^\/btw(?:\s+([\s\S]*))?$/i.exec(text.trim());
     if (btw) {
-      if (!btw[1] || !btw[1].trim()) CL.app.notice('כתבו שאלה אחרי /btw, למשל: /btw מה ההבדל בין let ל-const?');
-      else CL.btw.ask(btw[1].trim());
+      post({ type: 'btwOpen', question: (btw[1] || '').trim() });
       return clearInput();
     }
     if (/^\/diff\s*$/i.test(text.trim())) {

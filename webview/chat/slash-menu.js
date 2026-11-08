@@ -15,7 +15,7 @@
   const LOCAL = [
     { name: 'plan', description: 'מעבר למצב תכנון (פקודה של התוסף)' },
     { name: 'plan open', description: 'פתיחת התוכנית האחרונה בעורך (פקודה של התוסף)' },
-    { name: 'btw', description: 'שאלה צדדית בלי כלים ובלי היסטוריה (פקודה של התוסף)', argumentHint: '<שאלה>' },
+    { name: 'btw', description: 'שאלה צדדית בחלונית נפרדת (פקודה של התוסף)', argumentHint: '<שאלה>' },
     { name: 'diff', description: 'השינויים שClaude עשה בשיחה (פקודה של התוסף)' },
   ].map((c) => ({ ...c, group: 'local', local: true }));
 
