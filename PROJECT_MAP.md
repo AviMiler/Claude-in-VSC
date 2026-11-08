@@ -34,6 +34,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `message-router.js` — webview message `type` to `Conversation` method.
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
 - `work-file.js` — the working-file button: tracks the open file (or the user's pick), a QuickPick to choose another, and `withWorkFile` which puts `@path` in front of the next message when the file changed (package H).
+- `editor-context.js` — editor context chips (open file, selected lines), `withContext` for the next message, the editor tracker, Alt+K's `linesMention`, autosave helpers (package F).
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
@@ -87,7 +88,9 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## src/diff/ — shared diff view and `/diff`
 - `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
-- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; reused by package F and `openDiff`.
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F and `openDiff`.
+- `blocks.js` — pure line diff for per-block approval: `diffBlocks`, `applyBlocks`, `reviewTexts` (Edit/Write), `decision` (allow / partial `updatedInput` / deny) (package F).
+- `block-review.js` — `createBlockReview(diffView).review(...)`: CodeLens toggles on the diff view, or a multi-select QuickPick when `diffEditor.codeLens` is off; `cancel(requestId)` (package F).
 - `diff-command.js` — `/diff` QuickPick to diff.
 
 ## src/history/ — read-only transcripts
@@ -134,6 +137,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `message-router.js` — webview message `type` to `Conversation` method.
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
 - `work-file.js` — the working-file button: tracks the open file (or the user's pick), a QuickPick to choose another, and `withWorkFile` which puts `@path` in front of the next message when the file changed (package H).
+- `editor-context.js` — editor context chips (open file, selected lines), `withContext` for the next message, the editor tracker, Alt+K's `linesMention`, autosave helpers (package F).
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
@@ -183,8 +187,19 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## src/diff/ — shared diff view and `/diff`
 - `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
-- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; reused by package F and `openDiff`.
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F and `openDiff`.
+- `blocks.js` — pure line diff for per-block approval: `diffBlocks`, `applyBlocks`, `reviewTexts` (Edit/Write), `decision` (allow / partial `updatedInput` / deny) (package F).
+- `block-review.js` — `createBlockReview(diffView).review(...)`: CodeLens toggles on the diff view, or a multi-select QuickPick when `diffEditor.codeLens` is off; `cancel(requestId)` (package F).
 - `diff-command.js` — `/diff` QuickPick to diff.
+
+## src/ide/ — IDE server for the CLI (package F, PLAN.md section 7)
+- `ws-frames.js` — pure RFC 6455 codec: `acceptKey`, `encodeFrame`, `createDecoder` (masking, 7/16/64-bit lengths, fragmentation, control frames, `WsError` close codes).
+- `ws-server.js` — `startWsServer`: 127.0.0.1, random port, token check (`TOKEN_HEADERS`), local-Origin check, subprotocol `mcp` echo, handshake logging with the token masked.
+- `ide-rpc.js` — pure MCP JSON-RPC: `TOOLS` (`getDiagnostics`, `getOpenEditors`, `openFile`), `createIdeRpc({deps})`, `selectionChanged`.
+- `ide-lock.js` — the lock file `<config dir>/ide/<port>.lock`: `lockDir`, `lockContent`, `writeLock`, `removeLock`, `cleanStaleLocks` (pid dead AND port refusing).
+- `ide-service.js` — `createIdeService`: server + RPC + lock, `envFor(cwd)` (`CLAUDE_CODE_SSE_PORT`), `watchConnection`, `notifySelection`, verbose message log (no vscode).
+- `ide-vscode.js` — the vscode side: tool functions, `editorSelection`, `workspaceFolderPaths`.
+- `index.js` — `register`: follows `claudeLocal.ideServer`, feeds the editor tracker into `selection_changed`, sets `services.ide`.
 
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
@@ -214,6 +229,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `check-btw-process.txt` — Hebrew check run by the user for the `/btw` one-shot process (flags, no tools, no history, no persistence) against the real CLI, then in VS Code. Code: `src/cli/btw.js`, `webview/chat/btw.js`, `test/btw.test.js`.
 - `check-btw-and-files.txt` — Hebrew checks run by the user: `/btw` against the real CLI (script, then interactive), the `@` pointer, and the file-attachment flows in VS Code (`@` list, Alt+K, drag, working-file button, no persistence).
 - `check-all.txt` — the single full Hebrew check pack for the user (setup, unit tests, `@`, `/btw`, file attachment, model switch, context window, everything built on 2026-11-05) with step-by-step instructions; built from the other check files.
+- `check-ide.ps1` / `check-ide.txt` — read-only check of how the CLI finds IDEs (binary strings, lock folder). `check-ide-server.ps1` — Hebrew user-run check of our IDE server (UTF-8 BOM, CRLF): lists the locks with pid/port state; `-Probe` runs `claude-bin.exe` once with `CLAUDE_CODE_SSE_PORT` and prints the CLI's MCP servers.
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; `--settings` env over `FAKE_CLAUDE_USER_SETTINGS_ENV`; default model `fake-model[1m]` unless 1M is off; answers `get_context_usage`).
 - `manual-tests.html` — Hebrew manual test checklist.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host (several conversations, drawer, restore, MCP, bars; URL params `?conv=c2`, `?open=drawer|mcp|slash|attach|mode`, `?theme=light`).
@@ -224,7 +240,9 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 
 ## test/
 - `work-file.test.js` — withWorkFile (once per change) and current.
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all eight tools, incl. the 2026-11-06 reliability fixes), `nav-vscode.test.js`. 218 tests in all (all pass on Windows, run after the 2026-11-08 merge; on Linux `chmod +x dev/fake-claude.js` first).
+- `blocks.test.js` — block diff, partial apply, Edit/Write review texts, the permission decision.
+- `editor-context.test.js` — Alt+K `@path#lines`, chips and removal, context once per change, tool file paths.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all eight tools, incl. the 2026-11-06 reliability fixes), `nav-vscode.test.js`, `ws-frames.test.js` (codec), `ide-server.test.js` (lock lifecycle in a temp dir, token/Origin refusal, MCP over a real socket). 243 tests in all (all pass on Windows, run after the 2026-11-08 merge; on Linux `chmod +x dev/fake-claude.js` first).
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

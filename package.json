@@ -81,6 +81,31 @@
           "default": true,
           "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
         },
+        "claudeLocal.attachSelection": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "השורות שנבחרו בעורך מוצגות כתגית מעל תיבת ההודעה ונשלחות ל-Claude עם ההודעה הבאה (אפשר להסיר את התגית)."
+        },
+        "claudeLocal.attachOpenFile": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "הקובץ הפתוח בעורך מוצג כתגית מעל תיבת ההודעה, ו-Claude מקבל את הנתיב שלו כשהוא משתנה (אפשר להסיר את התגית)."
+        },
+        "claudeLocal.autosave": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "שמירה אוטומטית של קבצים פתוחים שלא נשמרו, לפני ששולחים הודעה ולפני ש-Claude קורא או עורך אותם, כדי ש-Claude יראה את מה שמוצג בעורך."
+        },
+        "claudeLocal.ideServer": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "שרת IDE מקומי (127.0.0.1 בלבד) ש-Claude מתחבר אליו כדי לקבל את הבחירה בעורך, שגיאות ועורכים פתוחים. לשם כך התוסף כותב קובץ נעילה זמני `~/.claude/ide/<port>.lock` ומוחק אותו בסגירה. כשהוא כבוי, ההקשר מהעורך נשלח כצ'יפים בלבד."
+        },
+        "claudeLocal.ideServerVerboseLog": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "רישום מפורט של שרת ה-IDE ביומן (תג `ide`): כותרות החיבור וכל הודעת JSON-RPC, עם הטוקן מוסתר. ההודעות יכולות לכלול טקסט מהקבצים. לבדיקה בלבד."
+        },
         "claudeLocal.focusView": {
           "type": "boolean",
           "default": false,

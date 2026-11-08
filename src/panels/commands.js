@@ -4,7 +4,7 @@ const { mergeEnv } = require('../cli/env');
 const { terminalLaunch } = require('../cli/terminal');
 const { workspaceCwd } = require('../util/workspace');
 const transcripts = require('../history/transcripts');
-const { mentionText, toSlashes } = require('./mentions');
+const editorContext = require('./editor-context');
 
 function registerCommands(context, services) {
   const { registry, logger, settings, places } = services;
@@ -70,14 +70,14 @@ function registerCommands(context, services) {
       return open();
     },
     'claude-local.keyboardShortcuts': () => vscode.commands.executeCommand('workbench.action.openGlobalKeybindings', 'claude-local'),
-    // Alt+K: put @path of the open file into the chat box (selected lines are package F).
+    // Alt+K: put @path of the open file into the chat box, with #5-10 when lines are selected
+    // (package F). Absolute: the CLI does not expand "@relative" (F-4).
     'claude-local.insertAtMention': async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor || editor.document.uri.scheme !== 'file') return;
-      const rel = toSlashes(editor.document.uri.fsPath); // absolute: the CLI does not expand "@relative" (F-4)
+      const ctx = editorContext.fromEditor(vscode.window.activeTextEditor);
+      if (!ctx) return;
       const host = places.active() && places.active().current ? places.active() : await places.main();
       host.revealPlace();
-      if (host.current) host.current.insertText(`${mentionText(rel)} `);
+      if (host.current) host.current.insertText(`${editorContext.linesMention(ctx)} `);
     },
     'claude-local.reopenClosed': () => {
       const id = registry.popClosed();

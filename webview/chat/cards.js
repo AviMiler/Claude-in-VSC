@@ -64,6 +64,13 @@
     actions.classList.add('card-options');
     const options = [option(1, 'כן', () => allow(false), 'btn-primary')];
     if (req.suggestions) options.push(option(2, 'כן, ואל תשאל שוב בפרויקט הזה', () => allow(true)));
+    // Package F: opens the diff view with an approve/reject toggle per block; the card stays until it is sent.
+    if (req.blockReview) {
+      options.push(el('div', { class: 'opt' }, el('button', {
+        class: 'opt-btn', type: 'button', title: 'פתיחת השינוי בעורך ההשוואה, עם אישור או דחייה לכל בלוק בנפרד',
+        onclick: () => post({ type: 'reviewBlocks', requestId: req.requestId }),
+      }, el('span', { class: 'opt-num', text: '⇄' }), el('span', { text: 'סקירה לפי בלוקים…' }))));
+    }
     const reason = el('input', { class: 'card-input', type: 'text', dir: 'auto', placeholder: 'לא – ומה Claude יעשה אחרת? (Enter)' });
     const deny = () => {
       const text = reason.value.trim();
@@ -168,5 +175,11 @@
     if (card) card.finish('הבקשה בוטלה', false);
   }
 
-  CL.cards = { show, cancel };
+  // Answered from the per-block review in the diff view (package F).
+  function resolve(requestId, text, ok) {
+    const card = open.get(requestId);
+    if (card) card.finish(text, ok);
+  }
+
+  CL.cards = { show, cancel, resolve };
 })();

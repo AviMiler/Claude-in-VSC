@@ -24,12 +24,14 @@ function createDiffView() {
 
   return {
     // left/right: the texts; filePath: names the documents; title: the editor tab title.
+    // Returns both URIs (per-block review puts its CodeLens on the right one).
     async show({ left, right, filePath, title }) {
       counter += 1;
       const fileName = nodePath.basename(filePath || 'קובץ.txt');
       const leftUri = virtualUri('before', fileName, String(left || ''));
       const rightUri = virtualUri('after', fileName, String(right || ''));
       await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, title || `${fileName} (לפני ↔ אחרי)`, { preview: false });
+      return { leftUri, rightUri };
     },
     dispose() {
       registration.dispose();

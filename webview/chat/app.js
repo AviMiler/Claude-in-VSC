@@ -111,6 +111,8 @@
     },
     permission: (m) => CL.cards.show(m),
     permissionCancelled: (m) => CL.cards.cancel(m.requestId),
+    permissionResolved: (m) => CL.cards.resolve(m.requestId, m.text, m.ok),
+    editorContext: (m) => CL.composer.setEditorContext(m.file, m.lines),
     sessionLoaded(m) {
       CL.thread.reset();
       CL.claudeTasks.render([]); // the task list is live only, not rebuilt from transcripts

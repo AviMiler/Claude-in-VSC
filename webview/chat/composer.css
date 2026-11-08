@@ -243,6 +243,16 @@
 }
 
 /* Attached images */
+/* Editor context chips (package F): open file and selected lines, removable. */
+.editor-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 0; }
+.editor-chips[hidden] { display: none; }
+.editor-chip {
+  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 1px 4px 1px 8px;
+  border: 1px solid var(--cl-border); border-radius: var(--cl-radius-s); font-size: 0.9em; color: var(--cl-fg);
+}
+.editor-chip-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.editor-chip button { padding: 0 4px; border: 0; background: none; color: inherit; cursor: pointer; font-size: 10px; opacity: 0.7; }
+.editor-chip button:hover { opacity: 1; background: var(--cl-hover); }
 .attachments { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 0; }
 .attach-chip { position: relative; display: inline-flex; }
 .attach-chip img { height: 44px; max-width: 80px; object-fit: cover; border-radius: var(--cl-radius-s); border: 1px solid var(--cl-border); }
