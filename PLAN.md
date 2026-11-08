@@ -47,7 +47,7 @@ Updated: 2026-11-05. This is the **single source of truth for what to build next
 | Effort | **Removed** | `output_config.effort: high` is fixed in the gateway; the check showed no difference | 🔧 |
 | Ultracode, cache clock | **No** | Anthropic features, irrelevant to a local model | 👤 |
 | A copy button on every answer | **Yes** | Simple and useful | 👤 |
-| `/btw` panel | **Yes** (a side question with no tools and no history) | Chosen by the user | 👤 |
+| `/btw` panel | **Yes** (a side question with no tools and no history). **Built 2026-11-08** as a separate one-shot process (`--tools ""`, `--no-session-persistence`); real-CLI check pending (`dev/check-btw-process.txt`) | Chosen by the user | 👤 |
 | Bookmarks | **No** | They need storage and contradict "no storage" | 👤 |
 | Context meter + `/compact` | **Yes**, by `get_context_usage` and `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`. No cost | The CLI assumes 200,000 for an unknown model; the cost it reports is meaningless | 👤 + 🔧 |
 | Agent map | **A collapsible card in the chat** per sub-agent call (state: running / finished; when opened, the tools it ran, grouped by `parent_tool_use_id`). No separate panel. Package B, which starts with a short check against the real CLI that the local model launches sub-agents at all; if it does not, postpone (decided 2026-11-01) | Sub-agent messages are filtered out today (`event-translator.js`); the data is available. The local model may rarely use sub-agents | 👤 |

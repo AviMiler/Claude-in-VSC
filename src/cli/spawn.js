@@ -22,7 +22,7 @@ function resolveExecutable(command, env = process.env, platform = process.platfo
 }
 
 function quoteForCmd(arg) {
-  return /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg;
+  return arg === '' || /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg;
 }
 
 function spawnCli(claudePath, args, { cwd, env = process.env } = {}) {

@@ -211,6 +211,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `check-context-window.txt` — Hebrew `/api/ps` check of the 64,000 window, for the user.
 - `check-model-switch.txt` — Hebrew check of F-8/F-9 on the user's CLI (log lines, `/api/ps`).
 - `check-at-mention.txt` — Hebrew check, run by the user: does the real CLI expand `@path` in stream-json (tools blocked, a secret word in a temp file).
+- `check-btw-process.txt` — Hebrew check run by the user for the `/btw` one-shot process (flags, no tools, no history, no persistence) against the real CLI, then in VS Code. Code: `src/cli/btw.js`, `webview/chat/btw.js`, `test/btw.test.js`.
 - `check-btw-and-files.txt` — Hebrew checks run by the user: `/btw` against the real CLI (script, then interactive), the `@` pointer, and the file-attachment flows in VS Code (`@` list, Alt+K, drag, working-file button, no persistence).
 - `check-all.txt` — the single full Hebrew check pack for the user (setup, unit tests, `@`, `/btw`, file attachment, model switch, context window, everything built on 2026-11-05) with step-by-step instructions; built from the other check files.
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; `--settings` env over `FAKE_CLAUDE_USER_SETTINGS_ENV`; default model `fake-model[1m]` unless 1M is off; answers `get_context_usage`).

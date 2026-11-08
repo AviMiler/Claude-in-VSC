@@ -130,6 +130,7 @@
     conversationStates: (m) => CL.drawer.setStates(m),
     title: (m) => setTitle(m.text),
     notice: (m) => showNotice(m.text),
+    btwResult: (m) => CL.btw.result(m),
     mentionResults: (m) => CL.mentions.setResults(m.items, m.seq),
     insertText: (m) => CL.composer.insertText(m.text),
     planReady() {

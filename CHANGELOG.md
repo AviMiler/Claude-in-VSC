@@ -2,6 +2,12 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-08 (`/btw` side question, package C leftover)
+- **Added** `/btw <question>`: a closable card in the thread, answered by a separate short-lived CLI process (`src/cli/btw.js`: `claude -p --output-format json --tools "" --no-session-persistence`, question on stdin, no `--resume`, 180 s timeout). It is not a turn: no queue, no busy state, not in the main conversation's context or history. Host: `Conversation.btwCommand/btwCancel` (messages `btw`, `btwCancel`, reply `btwResult`); webview: `webview/chat/btw.js`, composer interception, `/btw` in the `/` menu, log tag `btw`.
+- **Changed** `quoteForCmd` quotes an empty argument (the `.cmd` route would otherwise drop `--tools ""`). `dev/fake-claude.js` got a one-shot json mode that echoes the flags it received.
+- **Why a separate process:** the long-lived stream-json process shares one history and has tools; a one-shot process with `--tools ""` and no persistence is the only way to get "no tools, no history" without touching the main conversation.
+- **Verified:** `node --test` 222/222 (4 new in `test/btw.test.js`: args, output parsing, fake-CLI round trip, error and missing executable). **Not verified:** that the real CLI accepts `--tools ""` and `--no-session-persistence` and behaves as intended, and the card in real VS Code. Checks for the user: `dev/check-btw-process.txt`.
+
 ## 2026-11-08 (typed @ mentions made absolute; VS 2022 plan added)
 - **Added** `mentions.resolveMentions` (from branch `ccr-c1355f82-dma9hi`, commit 8ce21e9) and called it in `conversation.js` before the source-button instruction: an `@rel/path` the user TYPED, naming an existing file or folder inside the workspace, is sent as an absolute path; unknown names, `me@a.js` and paths outside the workspace are left alone. Why: picked and dragged files already became absolute, but typed ones stayed relative and the CLI does not expand `@relative` in stream-json mode (test 7.1; the local model guessed wrong locations). Harmless if package I step 1 shows the CLI expands `@path` itself.
 - **Added** `vs2022/PLAN.md` (the Visual Studio 2022 port plan, from branch `ccr-b88ad856-rasbs3`), unchanged.

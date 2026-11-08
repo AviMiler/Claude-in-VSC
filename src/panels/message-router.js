@@ -19,6 +19,8 @@ const ROUTES = {
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),
   diffCommand: (c) => c.diffCommand(),
+  btw: (c, m) => c.btwCommand(String(m.id || ''), String(m.question || '')),
+  btwCancel: (c, m) => c.btwCancel(String(m.id || '')),
   rewindMenu: (c) => c.rewindMenu(),
   stopTask: (c, m) => c.stopTask(String(m.id || '')),
   stopLoop: (c, m) => c.stopLoop(String(m.id || '')),

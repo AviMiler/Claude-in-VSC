@@ -49,6 +49,25 @@ function effectiveEnv() {
 }
 
 const ENV = effectiveEnv();
+
+// One-shot mode (`/btw`): `-p --output-format json` without stream-json input. The question comes
+// on stdin; one result object is printed. Echoes the flags so tests can see no tools/history.
+if (argValue('--output-format') === 'json' && !process.argv.includes('--input-format')) {
+  let q = '';
+  process.stdin.on('data', (d) => { q += d; });
+  process.stdin.on('end', () => {
+    const tools = process.argv.includes('--tools') ? argValue('--tools') : '(all)';
+    const resume = process.argv.includes('--resume');
+    const persist = !process.argv.includes('--no-session-persistence');
+    const failing = q.includes('FAIL');
+    process.stdout.write(`${JSON.stringify({
+      type: 'result', subtype: failing ? 'error' : 'success', is_error: failing,
+      result: failing ? 'fake btw failure' : `btw: ${q.trim()} [tools=${JSON.stringify(tools)} resume=${resume} persist=${persist}]`,
+    })}\n`);
+    process.exit(0);
+  });
+  return;
+}
 const SESSION = argValue('--resume') || '00000000-0000-4000-8000-000000000001';
 let mode = argValue('--permission-mode') || 'default';
 const allowBypass = process.argv.includes('--allow-dangerously-skip-permissions');

@@ -26,6 +26,7 @@ const taskMap = require('../background/task-map');
 const claudeTasks = require('../tasks/claude-tasks');
 const agentCards = require('../agents/agent-cards');
 const loopHost = require('../loop/loop-host');
+const { runBtw } = require('../cli/btw');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -540,6 +541,33 @@ class Conversation {
     return this.services.planDocs.open(this.planText);
   }
 
+  // `/btw <question>`: a side question in its own short-lived, tool-less, history-less CLI process
+  // (src/cli/btw.js). Never touches the main process, the transcript or the queue.
+  btwCommand(id, question) {
+    if (!id || !question.trim()) return;
+    const { claudePath, environmentVariables } = this.services.settings.get();
+    this.services.logger.info('btw', `ask (${question.length} chars)`);
+    const job = runBtw({
+      claudePath,
+      question,
+      cwd: this.cwd,
+      env: mergeEnv(process.env, environmentVariables),
+      model: this.model !== 'default' ? this.model : undefined,
+      settings: launchSettings({ model: this.model, environmentVariables }),
+    });
+    this.btwJobs = this.btwJobs || new Map();
+    this.btwJobs.set(id, job);
+    job.promise.then((r) => {
+      this.btwJobs.delete(id);
+      this.post({ type: 'btwResult', id, ...r });
+    });
+  }
+
+  btwCancel(id) {
+    const job = this.btwJobs && this.btwJobs.get(id);
+    if (job) job.cancel();
+  }
+
   // `/diff`: the files this session's Edit/Write tool calls changed (no git).
   async diffCommand() {
     this.services.logger.info('diff', 'command');
@@ -651,6 +679,7 @@ class Conversation {
 
   dispose() {
     this.disposed = true;
+    for (const job of (this.btwJobs || new Map()).values()) job.cancel();
     clearTimeout(this.stopTimer);
     this.killProcess();
     for (const s of this.subs) s.dispose();
