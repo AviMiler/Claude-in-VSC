@@ -20,6 +20,8 @@ function read() {
     attachSelection: c.get('attachSelection') !== false,
     attachOpenFile: c.get('attachOpenFile') !== false,
     autosave: c.get('autosave') !== false,
+    ideServer: c.get('ideServer') !== false,
+    ideServerVerboseLog: c.get('ideServerVerboseLog') === true,
     display: readDisplay((name) => c.get(name)),
     gatewayUrl: String(c.get('gatewayUrl') || ''),
     modelDenylist: Array.isArray(c.get('modelDenylist')) ? c.get('modelDenylist') : [],

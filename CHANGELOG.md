@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-08 (package F: the IDE server, with a temporary lock file)
+- **Added** the IDE server (`src/ide/`): hand-written RFC 6455 codec (`ws-frames.js`), WebSocket server on 127.0.0.1 with a random port and token, refusing a missing/wrong token and a non-local Origin (`ws-server.js`), MCP JSON-RPC with `getDiagnostics`, `getOpenEditors`, `openFile` and `selection_changed` notifications fed by the existing editor tracker (`ide-rpc.js`, `ide-vscode.js`), the lock file lifecycle (`ide-lock.js`), and the per-window service (`ide-service.js`, `index.js`). Why: `PLAN.md` section 7; the user decided the lock file on 2026-11-08 (`DECISIONS.md`).
+- **Added** `CLAUDE_CODE_SSE_PORT` in the CLI child env when the cwd is a workspace folder, and a Hebrew notice when the CLI does not connect within 30 s; chips stay as the fallback (unchanged).
+- **Added** settings `claudeLocal.ideServer` (default on) and `claudeLocal.ideServerVerboseLog` (default off; handshake headers and every JSON-RPC message, token masked, tag `ide`), and log tag `ide`. The editor tracker exposes `editor()`.
+- **Added** `dev/check-ide-server.ps1` (user-run; lists the locks with pid/port state, `-Probe` runs `claude-bin.exe` once with `CLAUDE_CODE_SSE_PORT`) and tests `ws-frames.test.js`, `ide-server.test.js` (243/243 in all).
+- **Exception:** the lock file breaks "the extension writes no files" by design (user decision). **Not built:** `openDiff` (its blocking accept/reject does not fall out of `src/diff/` cheaply). **Unverified:** the token header, method names and whether the stream-json CLI connects.
+
 ## 2026-11-08 (package F: editor context chips, Alt+K lines, per-block diff approval, autosave)
 - **Added** editor context as removable chips above the box (`src/panels/editor-context.js`, `webview/chat/composer.js`): "קובץ: app.ts" and "שורות 5–10". The open file's path goes in front of the next message once per change; the selected lines go with their text (capped at 8,000 chars, since the CLI does not expand `@path` in stream-json). A removed chip returns when the file or selection changes. Settings `attachOpenFile`, `attachSelection` (default on). Why: `PLAN.md` stage 3, the chips fallback; the IDE-server route waits for the lock-file decision (section 6 item 9).
 - **Changed** Alt+K: inserts `@path#5-10` (or `#5`) when lines are selected, plain `@path` otherwise.

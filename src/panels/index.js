@@ -18,6 +18,7 @@ function register(context, services) {
   context.subscriptions.push(services.blockReview);
   services.editorTracker = createEditorTracker(); // editor context chips (package F)
   context.subscriptions.push(services.editorTracker);
+  require('../ide').register(context, services); // IDE server + lock file (needs the tracker)
   const sidebarHost = registerSidebar(context, services);
   services.places = createPlaces(services, sidebarHost);
   registerCommands(context, services);

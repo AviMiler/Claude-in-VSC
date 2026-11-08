@@ -2,8 +2,8 @@
 // lines are shown as removable chips above the box and handed to the model in front of the next
 // message, each only when it changed (to spare tokens). Also the autosave helpers (settings
 // `attachOpenFile`, `attachSelection`, `autosave`). Nothing is persisted.
-// The IDE-server route (the CLI's own `/ide` context) is not built: it needs the lock-file decision
-// (PLAN.md section 6 item 9); see dev/check-ide.txt.
+// The IDE-server route (src/ide/) reuses the tracker below to send selection_changed to the CLI;
+// the chips stay as the fallback when the CLI does not connect.
 const vscode = require('vscode');
 const nodePath = require('path');
 const { toSlashes, mentionText } = require('./mentions');
@@ -100,6 +100,7 @@ function createEditorTracker() {
   ];
   return {
     current: () => fromEditor(last),
+    editor: () => last, // the raw editor, for the IDE server's selection_changed (src/ide/)
     onDidChange(fn) {
       listeners.add(fn);
       return { dispose: () => listeners.delete(fn) };
