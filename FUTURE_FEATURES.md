@@ -10,10 +10,10 @@ This is a **parking place for ideas**. Nothing here is decided, scheduled or bui
 
 **Still here (not yet reviewed):**
 
-### 1.1 Navigation results shown in the chat — 💡 (not chosen so far)
+### 1.1 Navigation results shown in the chat — ✅ approved 2026-11-08, moved to `PLAN.md` section 9
 The chat renders a navigation call as a compact Hebrew card ("מקומות שימוש של X: 12 תוצאות") whose lines open the file at that line in the editor. Gives the user the same view Claude has. Open: whether the chat already makes `path:line` clickable.
 
-### 1.2 Other helpers — 💡
+### 1.2 Other helpers — repository map stays 💡 (decided 2026-11-08: waits for a stronger model with the servers installed); "open at symbol" ✅ moved to `PLAN.md` section 9 as an extension-side setting, off by default, not a model tool (a tool would grow the context)
 - **Repository map:** one call that returns folders plus the top-level symbols per file, so Claude can orient itself cheaply. Open: worth a tool, given that `Glob` and `documentSymbols` exist?
 - **Open at symbol:** `openFile` that jumps to a symbol, so the user sees what Claude is looking at.
 
