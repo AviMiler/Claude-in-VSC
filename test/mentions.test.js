@@ -55,3 +55,19 @@ test('listEntries without git ignore skips node_modules and .git, and lists fold
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('resolveMentions makes existing mentions absolute and leaves the rest alone', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-resolve-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'my dir'));
+    fs.writeFileSync(path.join(dir, 'a.js'), '');
+    fs.writeFileSync(path.join(dir, 'my dir', 'b.js'), '');
+    const abs = (r) => m.mentionText(path.join(dir, r));
+    assert.strictEqual(m.resolveMentions('read @a.js now', dir), `read ${abs('a.js')} now`);
+    assert.strictEqual(m.resolveMentions('@"my dir/b.js"', dir), abs('my dir/b.js'));
+    assert.strictEqual(m.resolveMentions('see @a.js, and @a.js.', dir), `see ${abs('a.js')}, and ${abs('a.js')}.`);
+    assert.strictEqual(m.resolveMentions('mail me@a.js @nope.js @../x', dir), 'mail me@a.js @nope.js @../x');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

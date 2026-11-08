@@ -119,4 +119,28 @@ function mentionText(relPath) {
   return /\s/.test(relPath) ? `@"${relPath}"` : `@${relPath}`;
 }
 
-module.exports = { foldersOf, rankPaths, parseGitList, listEntries, mentionText, toSlashes, absPath, relativeQuery };
+// Rewrites the `@rel/path` mentions of a prompt that name an existing file or folder under `cwd`
+// into absolute paths: the CLI does not expand `@path` in stream-json mode, and a model given a
+// bare relative path guessed a wrong location (FIXES F-4). Unknown names are left untouched.
+function resolveMentions(text, cwd) {
+  if (!text || !cwd || !text.includes('@')) return text;
+  const inCwd = (rel) => {
+    const abs = path.resolve(cwd, rel);
+    const inside = path.relative(cwd, abs);
+    return !inside.startsWith('..' + path.sep) && inside !== '..' && !path.isAbsolute(inside) && fs.existsSync(abs) ? abs : null;
+  };
+  return text.replace(/(^|\s)@(?:"([^"\n]+)"|([^\s"@]+))/g, (whole, lead, quoted, bare) => {
+    let abs = inCwd(quoted || bare);
+    let tail = '';
+    if (!abs && bare) { // "@a.js," / "(@a.js)": retry without the trailing punctuation
+      const m = /[.,;:!?)\]}]+$/.exec(bare);
+      if (m) {
+        abs = inCwd(bare.slice(0, m.index));
+        tail = m[0];
+      }
+    }
+    return abs ? `${lead}${mentionText(abs)}${tail}` : whole;
+  });
+}
+
+module.exports = { resolveMentions, foldersOf, rankPaths, parseGitList, listEntries, mentionText, toSlashes, absPath, relativeQuery };

@@ -344,7 +344,7 @@ class Conversation {
     this.services.logger.info('stream', `send (${text.length} chars, ${valid.length} images, session=${this.sessionId || 'new'})`);
     this.busy = true;
     if (!hidden) replayLog.addUser(this.log, valid.length ? `${text}\n[תמונות: ${valid.length}]` : text);
-    this.proc.sendUserText(hidden ? text : workFile.applyToSend(this, text), valid);
+    this.proc.sendUserText(hidden ? text : workFile.applyToSend(this, mentions.resolveMentions(text, this.cwd)), valid);
   }
 
   // The client-side queue of a conversation the user switched away from: the host keeps it and
