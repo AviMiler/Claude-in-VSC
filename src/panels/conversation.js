@@ -551,7 +551,6 @@ class Conversation {
     const job = runBtw({
       claudePath,
       question,
-      cwd: this.cwd,
       env: mergeEnv(process.env, environmentVariables),
       model: this.model !== 'default' ? this.model : undefined,
       settings: launchSettings({ model: this.model, environmentVariables }),
