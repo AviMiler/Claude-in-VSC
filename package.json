@@ -81,6 +81,21 @@
           "default": true,
           "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
         },
+        "claudeLocal.attachSelection": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "השורות שנבחרו בעורך מוצגות כתגית מעל תיבת ההודעה ונשלחות ל-Claude עם ההודעה הבאה (אפשר להסיר את התגית)."
+        },
+        "claudeLocal.attachOpenFile": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "הקובץ הפתוח בעורך מוצג כתגית מעל תיבת ההודעה, ו-Claude מקבל את הנתיב שלו כשהוא משתנה (אפשר להסיר את התגית)."
+        },
+        "claudeLocal.autosave": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "שמירה אוטומטית של קבצים פתוחים שלא נשמרו, לפני ששולחים הודעה ולפני ש-Claude קורא או עורך אותם, כדי ש-Claude יראה את מה שמוצג בעורך."
+        },
         "claudeLocal.focusView": {
           "type": "boolean",
           "default": false,

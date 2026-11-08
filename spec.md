@@ -234,6 +234,11 @@ VS Code settings are user configuration, not conversation data, so they do not c
 | `claudeLocal.collapseUserMessageLines` | integer 0-200, 8 | user messages longer than this many lines are shown collapsed with "הצג עוד" (0 = never) |
 | `claudeLocal.prefersReducedMotion` | boolean, false | turns animations off (also follows the OS preference) |
 | `claudeLocal.colorMode` | `default` / `daltonized`, `default` | colour-blind-safe status colours |
+| `claudeLocal.attachOpenFile` | boolean, true | the open file shows as a chip above the box; its path goes in front of the next message once per change (package F) |
+| `claudeLocal.attachSelection` | boolean, true | the selected lines show as a chip; their text goes with the next message (capped at 8,000 chars) when the selection changed (package F) |
+| `claudeLocal.autosave` | boolean, true | saves unsaved open files in the workspace on send, and the file a permission request or file tool names before the tool runs (package F) |
+
+**Editor context and change review (package F).** Chips are removable; a removed chip comes back when the file or the selection changes. Alt+K inserts `@path#5-10` (`#5` for one line; plain `@path` with no selection). An Edit/Write permission card has "סקירה לפי בלוקים…": the shared diff view opens with a CodeLens toggle per block and "send"/"cancel" on line 1, or, when `diffEditor.codeLens` is off (VS Code's default), a multi-select list of the blocks. The kept blocks go back as `updatedInput`; none kept = deny; cancelling leaves the card open. The IDE-server route is not built (`PLAN.md` section 6 item 9; `dev/check-ide.txt`).
 
 - Changes apply live; `claudePath` and `environmentVariables` apply to the next process start and the chat says "ההגדרה תחול בשיחה הבאה".
 - Code: `package.json` `contributes.configuration`, `src/util/settings.js`, `src/cli/env.js`, `src/panels/display-settings.js`, `webview/chat/keys.js`, `webview/chat/display.js`.

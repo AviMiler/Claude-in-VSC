@@ -12,6 +12,9 @@ const replayLog = require('./replay-log');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const workFile = require('./work-file');
+const fs = require('fs');
+const editorContext = require('./editor-context');
+const blocks = require('../diff/blocks');
 const { translateTranscript } = require('../history/transcript-events');
 const { buildErrorCard } = require('./error-card');
 const { launchSettings } = require('../models/launch');
@@ -88,13 +91,17 @@ class Conversation {
     this.workFile = null; // the file or folder picked with the source button (null = none, the default)
     this.workFileIsDir = false;
     this.lastWorkFileSent = null; // the file last handed to the model as an @mention
+    this.editorDismissed = {}; // editor-context chips the user removed: {file, sel} keys (package F)
+    this.lastContextSent = {}; // editor context last handed to the model: {file, sel} keys
     this.models = new ModelSwitcher(this);
     this.subs = [
       services.settings.onDidChange((s) => {
         this.post({ type: 'settings', settings: this.webviewSettings(s) });
+        this.postEditorContext();
         if (this.proc) this.post({ type: 'notice', text: 'ההגדרה תחול בשיחה הבאה.' });
       }),
     ];
+    if (services.editorTracker) this.subs.push(services.editorTracker.onDidChange(() => this.postEditorContext()));
     ({ cwd: this.cwd, noFolder: this.noFolder } = workspaceCwd());
   }
 
@@ -127,6 +134,7 @@ class Conversation {
     if (!this.started) return this.onReady();
     this.webview.postMessage(this.restoreMessage());
     workFile.postState(this);
+    this.postEditorContext();
     this.ui = null; // the webview owns the draft and the queue again (no second send)
     this.webviewReady = true;
     this.flushPrefill();
@@ -181,6 +189,7 @@ class Conversation {
     this.started = true;
     this.post(this.initMessage());
     workFile.postState(this);
+    this.postEditorContext();
     if (this.pendingResume) {
       const id = this.pendingResume;
       this.pendingResume = null;
@@ -243,6 +252,7 @@ class Conversation {
         }
       }
       this.trackPlan(events);
+      this.autosaveForTools(events);
       for (const ev of events) editLog.addEvent(this.edits, ev);
       if (events.length) this.post({ type: 'events', events });
       // After the events, so the Agent tool row the card attaches to already exists.
@@ -344,7 +354,89 @@ class Conversation {
     this.services.logger.info('stream', `send (${text.length} chars, ${valid.length} images, session=${this.sessionId || 'new'})`);
     this.busy = true;
     if (!hidden) replayLog.addUser(this.log, valid.length ? `${text}\n[תמונות: ${valid.length}]` : text);
-    this.proc.sendUserText(hidden ? text : workFile.applyToSend(this, mentions.resolveMentions(text, this.cwd)), valid);
+    // Not awaited: the model answers long before any tool reads the saved files.
+    this.autosave((p) => editorContext.insideDir(this.cwd, p));
+    this.proc.sendUserText(hidden ? text : this.applyEditorContext(workFile.applyToSend(this, mentions.resolveMentions(text, this.cwd))), valid);
+  }
+
+  // --- editor context and autosave (package F) -----------------------------------------------
+
+  editorFlags(s = this.services.settings.get()) {
+    return { attachOpenFile: s.attachOpenFile !== false, attachSelection: s.attachSelection !== false };
+  }
+
+  // The chips above the box. Not part of the replay log: it is always current.
+  postEditorContext() {
+    if (this.disposed || !this.webview || !this.services.editorTracker) return;
+    const shown = editorContext.chips(this.services.editorTracker.current(), this.editorFlags(), this.editorDismissed);
+    this.webview.postMessage({ type: 'editorContext', ...shown });
+  }
+
+  dismissEditorContext(which) {
+    const ctx = this.services.editorTracker && this.services.editorTracker.current();
+    if (!ctx) return;
+    if (which === 'file') this.editorDismissed.file = ctx.path;
+    else if (which === 'lines' && ctx.lines) this.editorDismissed.sel = `${ctx.path}#${ctx.lines.start}-${ctx.lines.end}`;
+    this.services.logger.info('session', `editor context: ${which} chip removed`);
+    this.postEditorContext();
+  }
+
+  applyEditorContext(text) {
+    if (!this.services.editorTracker) return text;
+    const out = editorContext.withContext(text, this.services.editorTracker.current(), this.editorFlags(), this.editorDismissed, this.lastContextSent);
+    if (out.text !== text) this.services.logger.info('session', 'editor context attached');
+    this.lastContextSent = out.last;
+    return out.text;
+  }
+
+  // Saves unsaved open files (setting `autosave`) so Claude sees what the editor shows.
+  autosave(filter) {
+    if (!this.services.settings.get().autosave) return Promise.resolve(0);
+    return editorContext.saveDirty(filter).then((n) => {
+      if (n) this.services.logger.info('session', `autosave: ${n} file(s) saved`);
+      return n;
+    }, (err) => {
+      this.services.logger.warn('session', `autosave failed: ${err.message}`);
+      return 0;
+    });
+  }
+
+  // Before Claude's file tools run: save the file they name.
+  autosaveForTools(events) {
+    for (const ev of events) {
+      const p = ev.kind === 'tool' && ev.final ? editorContext.toolFilePath(ev.input) : null;
+      if (p) this.autosave((f) => editorContext.samePath(f, p));
+    }
+  }
+
+  // Per-block approval of an Edit/Write request: the diff view with CodeLens toggles (block-review.js).
+  // The answer goes back like a card answer; cancelling the review leaves the card open.
+  async reviewBlocks(requestId) {
+    const entry = this.pending.get(requestId);
+    if (!entry || !this.services.blockReview) return;
+    const { tool_name: tool, input = {} } = entry.req;
+    const filePath = editorContext.toolFilePath(input);
+    if (!filePath) return;
+    await this.autosave((f) => editorContext.samePath(f, filePath));
+    let fileText = '';
+    try {
+      fileText = fs.readFileSync(filePath, 'utf8');
+    } catch {
+      fileText = ''; // a new file
+    }
+    const result = await this.services.blockReview.review({ key: requestId, tool, input, fileText, filePath });
+    if (!result) {
+      if (this.pending.has(requestId) && !blocks.reviewTexts(tool, input, fileText)) {
+        this.post({ type: 'notice', text: 'אי אפשר לסקור את השינוי הזה לפי בלוקים (הטקסט המקורי לא נמצא פעם אחת בקובץ). השתמשו בכרטיס.' });
+      }
+      return;
+    }
+    if (!this.pending.has(requestId)) return;
+    const { partial, ...answer } = result;
+    this.services.logger.info('permission', `block review ${requestId}: ${partial ? `${partial.kept}/${partial.total} blocks` : answer.behavior}`);
+    this.answerPermission({ requestId, ...answer });
+    const done = answer.behavior === 'deny' ? '✕ כל הבלוקים נדחו' : partial ? `✓ אושרו ${partial.kept} מתוך ${partial.total} בלוקים` : '✓ אושר';
+    this.post({ type: 'permissionResolved', requestId, text: done, ok: answer.behavior !== 'deny' });
   }
 
   // The client-side queue of a conversation the user switched away from: the host keeps it and
@@ -418,7 +510,11 @@ class Conversation {
       toolUseId: req.tool_use_id,
       suggestions: Array.isArray(req.permission_suggestions) && req.permission_suggestions.length > 0,
       reason: req.decision_reason || req.title || '',
+      // Edit/Write can be approved block by block (package F); the card shows the button.
+      blockReview: Boolean(this.services.blockReview) && (req.tool_name === 'Edit' || req.tool_name === 'Write'),
     };
+    const touched = editorContext.toolFilePath(req.input);
+    if (touched) this.autosave((f) => editorContext.samePath(f, touched));
     // Kept with the request: a hidden conversation's card is drawn when the user switches to it.
     this.pending.set(id, { proc, req, msg });
     this.services.logger.info('permission', `request ${id} tool=${req.tool_name}${this.webview ? '' : ` (conversation ${this.id} is hidden)`}`);
@@ -429,6 +525,7 @@ class Conversation {
     const entry = this.pending.get(requestId);
     if (!entry) return;
     this.pending.delete(requestId);
+    if (this.services.blockReview) this.services.blockReview.cancel(requestId); // answered on the card
     const { proc, req } = entry;
     this.services.logger.info('permission', `answer ${requestId} ${behavior === 'allow' ? 'allow' : 'deny'}${always ? ' (always)' : ''}`);
     if (behavior === 'allow') {
@@ -446,6 +543,7 @@ class Conversation {
       this.services.logger.info('permission', `auto-deny ${id} (interrupted)`);
       proc.respond(id, { behavior: 'deny', message: INTERRUPTED, interrupt: true });
       this.pending.delete(id);
+      if (this.services.blockReview) this.services.blockReview.cancel(id);
       this.post({ type: 'permissionCancelled', requestId: id });
     }
   }

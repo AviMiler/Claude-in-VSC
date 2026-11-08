@@ -14,6 +14,8 @@ const ROUTES = {
   setModel: (c, m) => c.setModel(String(m.value)),
   stopAndSwitchModel: (c, m) => c.stopAndSwitchModel(String(m.value)),
   permissionAnswer: (c, m) => c.answerPermission(m),
+  reviewBlocks: (c, m) => c.reviewBlocks(String(m.requestId)),
+  dismissEditorContext: (c, m) => c.dismissEditorContext(m.which === 'lines' ? 'lines' : 'file'),
   openFile: (c, m) => c.openFile(String(m.path), m.line),
   pickWorkFile: (c) => c.pickWorkFile(),
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),

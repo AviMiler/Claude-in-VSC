@@ -1,0 +1,34 @@
+﻿בדיקה: איך ה-CLI מתחבר ל-IDE (שרת IDE, חבילה F), ועל אילו קבצים הוא מסתמך?
+================================================================================
+
+למה: עדיפות התוכנית היא הקשר מהעורך דרך שרת IDE (כמו התוסף הרשמי). ידוע שהתוסף הרשמי כותב קובץ נעילה
+ל-%USERPROFILE%\.claude\ide\<port>.lock, וזה מתנגש עם הכלל "התוסף לא כותב קבצים". לפני שמחליטים
+(PLAN.md סעיף 6 פריט 9), צריך לדעת מה ה-CLI שלכם מצפה לו: דגל --ide, משתני סביבה, ומבנה קובץ הנעילה.
+הבדיקה רק קוראת: היא לא כותבת קבצים, לא מפעילה שרת ולא שולחת שום דבר למודל.
+
+הרצה: פתחו PowerShell, הדביקו את כל הבלוק הבא (אם claudePath שלכם הוא נתיב מלא ל-claude-bin.exe,
+שנו את השורה הראשונה לנתיב הזה):
+
+$claude = 'claude'
+$bin = (Get-Command $claude).Source
+Write-Host "=== 1. הקובץ: $bin" -ForegroundColor Cyan
+Write-Host "=== 2. דגלים שקשורים ל-IDE ב---help" -ForegroundColor Cyan
+& $claude --help | Select-String -Pattern 'ide' -SimpleMatch
+Write-Host "=== 3. התיקייה .claude\ide קיימת?" -ForegroundColor Cyan
+Test-Path (Join-Path $env:USERPROFILE '.claude\ide')
+Write-Host "=== 4. מחרוזות בקובץ ההרצה (עד 40, עם הקשר)" -ForegroundColor Cyan
+$text = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($bin))
+$pat = 'CLAUDE_CODE_SSE_PORT|ENABLE_IDE_INTEGRATION|CLAUDE_CODE_AUTO_CONNECT_IDE|x-claude-code-ide-authorization|authToken|runningInWindows|workspaceFolders|ideName|\.lock'
+[regex]::Matches($text, $pat) | Select-Object -First 40 | ForEach-Object {
+  $s = [Math]::Max(0, $_.Index - 100); $t = $text.Substring($s, [Math]::Min(260, $text.Length - $s)) -replace '[^\x20-\x7e]', '.'
+  Write-Host ("--- " + $_.Value); Write-Host $t
+}
+
+אם הקובץ אינו קובץ הרצה אחד (למשל claude.cmd שמפעיל node), החליפו את $bin בנתיב של cli.js או של claude-bin.exe.
+אם שלב 4 איטי מדי (הקובץ גדול), זה תקין: הוא קורא את כל הקובץ פעם אחת.
+
+מה להחזיר: הדביקו את כל הפלט (או צילומי מסך). מהפלט נדע:
+- האם יש --ide, והאם ה-CLI מתחבר לפי משתנה סביבה בלבד (CLAUDE_CODE_SSE_PORT) או מחפש קובץ נעילה;
+- מה השדות בקובץ הנעילה (authToken, workspaceFolders, ideName, transport, runningInWindows);
+- אחרי זה תתקבל ההחלטה: שרת IDE בלי קובץ (אם אפשר), או קובץ נעילה זמני עם ניקוי כחריגה מתועדת, או
+  להישאר עם התגיות מעל תיבת ההודעה (שכבר בנויות).

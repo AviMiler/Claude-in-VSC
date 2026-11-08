@@ -2,7 +2,7 @@
 // send/stop. Each conversation keeps its own draft and queue: they leave with `uiState()` when the
 // user switches away and come back with `restore()`.
 (function () {
-  const { post } = CL;
+  const { post, el } = CL;
 
   const input = document.getElementById('input');
   const sendBtn = document.getElementById('send-btn');
@@ -357,7 +357,25 @@
   workFileBtn.textContent = 'מקור השיחה: ללא';
   workFileBtn.addEventListener('click', () => post({ type: 'pickWorkFile' }));
 
+  // Editor context chips (package F): the open file and the selected lines, each removable.
+  const editorChips = document.getElementById('editor-chips');
+  function editorChip(label, title, which) {
+    return el('span', { class: 'editor-chip', dir: 'auto', title },
+      el('span', { class: 'editor-chip-label', text: label }),
+      el('button', { type: 'button', text: '✕', title: 'הסרה', 'aria-label': `הסרת ${label}`, onclick: () => post({ type: 'dismissEditorContext', which }) }));
+  }
+
   CL.composer = {
+    setEditorContext(file, lines) {
+      const nodes = [];
+      if (file) nodes.push(editorChip(`קובץ: ${file.name}`, `${file.path}\nClaude יקבל את הנתיב עם ההודעה הבאה (פעם אחת לכל קובץ)`, 'file'));
+      if (lines) {
+        const range = lines.start === lines.end ? `שורה ${lines.start}` : `שורות ${lines.start}–${lines.end}`;
+        nodes.push(editorChip(range, `${range} ב-${lines.name}\nהשורות שנבחרו יישלחו עם ההודעה הבאה`, 'lines'));
+      }
+      editorChips.replaceChildren(...nodes);
+      editorChips.hidden = nodes.length === 0;
+    },
     setWorkFile(path, isDir) {
       const name = path ? String(path).split('/').filter(Boolean).pop() : '';
       workFileBtn.textContent = name ? `${isDir ? '📁' : '📄'} ${name}` : 'מקור השיחה: ללא';
