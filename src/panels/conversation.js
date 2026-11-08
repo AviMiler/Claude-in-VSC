@@ -27,6 +27,7 @@ const claudeTasks = require('../tasks/claude-tasks');
 const agentCards = require('../agents/agent-cards');
 const loopHost = require('../loop/loop-host');
 const { runBtw } = require('../cli/btw');
+const { isWrapper } = require('./error-card');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
@@ -557,8 +558,13 @@ class Conversation {
     });
     this.btwJobs = this.btwJobs || new Map();
     this.btwJobs.set(id, job);
+    const env = mergeEnv(process.env, environmentVariables);
     job.promise.then((r) => {
       this.btwJobs.delete(id);
+      // Same wrapper warning as the main connection's error card (error-card.js), shown after a failure.
+      if (r.error && isWrapper(claudePath, env)) {
+        r = { error: `${r.error} claudePath מצביע על קובץ עטיפה (.cmd/.bat) ששואלת "Select model number" ונתקעת. הצביעו על claude-bin.exe.` };
+      }
       this.post({ type: 'btwResult', id, ...r });
     });
   }
