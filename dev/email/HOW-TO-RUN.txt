@@ -1,0 +1,26 @@
+בדיקות MCP לחבילה H
+====================
+
+מה צריך במחשב:
+  - Node.js גרסה 18 ומעלה (בדיקה: node --version ב-PowerShell)
+  - הנתיב המלא ל-claude-bin.exe (לא claude.cmd)
+  - המודל המקומי זמין (הטעינה הראשונה לוקחת כ-5 דקות, זה תקין)
+
+שלב 1: שמור את שני הקבצים בתיקייה אחת (למשל C:\h-checks):
+  - run-h-checks.txt
+  - probe-mcp-standalone.txt
+
+שלב 2: פתח PowerShell בתיקייה הזו והרץ פקודה אחת (החלף את הנתיב):
+
+  powershell -ExecutionPolicy Bypass -File .\run-h-checks.txt -ClaudePath "C:\הנתיב\claude-bin.exe"
+
+הבדיקה לוקחת כ-5 עד 20 דקות. אל תסגור את החלון.
+הסקריפט בונה לבד את קובץ ה-js מהעותק ה-txt, ואין צורך לשנות שמות.
+
+שלב 3: בסוף תיווצר בתיקייה הקובץ mcp-report.txt. שלח אותו בחזרה במייל.
+  (הקובץ מכיל תשובות של המודל ונתיבי תיקיות, כדאי לקרוא לפני השליחה.)
+
+ניקוי (אופציונלי, אחרי שליחת הדוח):
+  powershell -ExecutionPolicy Bypass -File .\run-h-checks.txt -ClaudePath "C:\הנתיב\claude-bin.exe" -Cleanup
+
+אם משהו נכשל: שלח גם את החלון כטקסט (העתק והדבק), או את הדוח גם אם הוא חלקי.

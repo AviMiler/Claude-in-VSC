@@ -155,6 +155,11 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Alternatives considered:** keeping the separate chip next to a disabled picker.
 **Why:** one control instead of two in the narrow footer; behaviour unchanged. Not explicitly asked of the user.
 
+## [2026-11-05] Navigation server config passed inline, not as a file (builder decision)
+**Decision:** `--mcp-config` receives the server config as an inline JSON string (`claude-local-nav`, http on 127.0.0.1 with a Bearer token); no `--strict-mcp-config`. Unverified that CLI 2.1.246 accepts inline JSON; if it does not, a temp config file is needed as an explicit exception to "the extension writes no files", deleted on exit.
+**Alternatives considered:** a temp config file (as the probe used); stdio through a helper script (passed the pre-check too).
+**Why:** no file keeps the no-storage rule intact. Cost: the token is visible in the child's command line (loopback only, one process lifetime).
+
 ## [2026-11-02] Fix 1: context meter only displays; mascot icons (user decisions)
 **Decision:** The context meter shows a percentage with a tooltip and no longer sends `/compact` on click (F-10; `/compact` stays as a typed command). The hand-drawn spark logo was replaced by the Claude Code mascot (`resources/claude-mascot.svg` full colour, `claude-mascot-mono.svg` `currentColor`); `claude-logo.svg` was deleted. The UI follows the official extension's look as closely as the guide and screenshots allow, VS Code theme variables only.
 **Alternatives considered:** keeping the click-to-compact; keeping the spark logo.
@@ -186,3 +191,8 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and are record
 **Decision:** The button is "מקור השיחה", default none; a click opens the system file explorer in the project folder and takes one file or one folder; the next message carries the agreed instruction once (again only when the choice changes). In memory only. Decided by the user with the discussion session; see the "Attaching files" row in `PLAN.md`.
 **Alternatives considered:** keeping the QuickPick of project files (rejected by the user: they want the explorer and folders), several sources at once, persistence (both rejected in the discussion).
 **Why:** it matches how the CLI treats `@` (a one-time tag kept in history) and keeps token cost low. The explorer dialog is the system one, not VS Code's own tree.
+
+## [2026-11-06] Navigation tools: VS Code answers, our layer adds position, loading and verification (builder decision, after the user's request for proven reliability)
+**Decision:** `findImporters` no longer asks the reference provider about one export; it text-searches `from`/`import`/`import()`/`require` lines and keeps only those whose specifier resolves to the file (Node rules for relative paths; `executeDefinitionProvider` on the module string for bare or aliased ones, `[unverified]` without it). `findReferences` and incoming `callHierarchy` open (in memory) the files that mention the name before asking, and add a text occurrence the provider missed only when the definition provider resolves it to the same declaration. Symbol tools find the position from a declared symbol or an occurrence in code, so imported and used-only names work. The first JS/TS call waits up to 20 s for the language server.
+**Alternatives considered:** require a `jsconfig.json` in every project (not under our control, and the user's projects may lack one); reference-provider-only importers (found 1 of 8 in the check); opening every workspace file at start (slow, loads memory for nothing).
+**Why:** running the tools in real VS Code showed wrong answers from the first design. Every answer still comes from VS Code's providers; text matches are never reported unless a provider confirms them (except plain `import` text hits whose path resolves to the file). Cost: an extra definition call per unmatched occurrence (bounded to 100), and tens of files opened in memory on a cross-file search (bounded to 200).

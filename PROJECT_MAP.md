@@ -11,7 +11,8 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `DECISIONS.md` — architecture-level decisions with alternatives and reasons.
 - `ARCHITECTURE.md` — structure and boundaries.
 - `DEPENDENCIES.md` — vendored libraries and the measured findings about the CLI, the gateway/Ollama and VS Code (with evidence and what is unknown).
-- `PLAN.md` — the roadmap: every feature decision with its reason, the settings table, build order (packages A-G), open points, IDE-server design notes.
+- `PLAN.md` — the roadmap: every feature decision with its reason, the settings table, build order (packages A-H), open points, IDE-server design notes, code-navigation MCP server design.
+- `FUTURE_FEATURES.md` — ideas not yet decided; each is reviewed with the user and, once approved, moves into `PLAN.md`.
 - `FIXES.md` — the open items of the user-reported fix list (Fix 1 is done and moved to `CHANGELOG.md`).
 - `git-instructions.md` — the git workflow.
 - `CHANGELOG.md` — what changed and why, newest first.
@@ -54,6 +55,10 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `mcp-model.js` — normalizes the `mcp_status` response into a server list (defensive parsing).
 - `mcp-cli.js` — runs `claude mcp add/remove` via `runClaude` with the resolved `claudePath` and merged environment.
 - `mcp-handler.js` — handles the webview `mcp` message (status, reconnect, toggle, add, remove).
+- `nav-server.js` — code-navigation MCP server: HTTP on 127.0.0.1, Bearer token, hand-written JSON-RPC.
+- `nav-config.js` — inline `--mcp-config` JSON and allowed-tool name for `claude-local-nav`.
+- `nav-tools.js` — the eight navigation tools (`documentSymbols`, `readSymbol`, `findReferences`, `goToDefinition`, `findImporters`, `workspaceSymbols`, `hover`, `callHierarchy`): position finding, language-server wait, file loading, verification of missed uses, caps, workspace path limit; no `vscode` import.
+- `nav-vscode.js` — the only file that requires `vscode`; supplies the dependencies to `createNavTools` (providers, bounded workspace text search that marks a cut result).
 
 ## src/uri/ — URI handler
 - `index.js` — registers the handler for `vscode://local.claude-local/open`: modal confirm, prefill, open through `places.main()`.
@@ -214,10 +219,11 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
 - `probe4-standalone.js` — self-contained probe: background tasks, Task tools, sub-agents, cron tools.
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
+- `nav-check/` — dev-only check of the eight navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
 
 ## test/
 - `work-file.test.js` — withWorkFile (once per change) and current.
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`. 138 tests in all.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all eight tools, incl. the 2026-11-06 reliability fixes), `nav-vscode.test.js`. 217 tests in all (all pass on Windows, run after the 2026-11-08 merge; on Linux `chmod +x dev/fake-claude.js` first).
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

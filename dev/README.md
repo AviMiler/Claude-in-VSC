@@ -13,6 +13,7 @@ Each probe spawns the CLI the way the extension does (stream-json + control prot
 | `probe2-standalone.js` | `q1_rewind`, `q2_updated_input`, `q3_permission_shapes`, `q4_modes`, `q5_vision`, `q6_thinking_effort`, `q7_mcp`, `q8_loop`, `q9_interrupt_resume`, `q10_bang_shell` | same |
 | `probe4-standalone.js` | background tasks and `stop_task`, unsupported background requests, Task tools, sub-agents (`Agent`), `/loop` cron tools | same (copied from the user's probe) |
 | `probe3-standalone.js` | `s1a_rewind_with_env`, `s1b_rewind_without_env`, `s2_updated_input`, `s3_permission_shapes`, `s4_set_model`, `s5_auto_mode` | same; `--alt-model` (default `gemma3:27b`) for `s4` |
+| `probe-mcp-standalone.js` | package H pre-check (`PLAN.md` section 8): starts a small MCP server (HTTP on 127.0.0.1 with a token, or stdio), runs `claude -p` without and with it, reports whether the CLI lists and calls the tools, whether the model gets the answer, and the extra input tokens. Instructions for the user: `check-mcp-tools.txt` | same; options `--transport http\|stdio\|both`, `--model`, `--turn-timeout`. Tested only against a mock CLI, not the real one |
 
 The standalone files do not need the repo, git or the network: copy one file to the machine that has the CLI and the local model.
 
@@ -55,6 +56,19 @@ A tiny VS Code extension (`package.json`, `probe.js`, `extension.js`) that prove
 3. Reading it: OK on `/v1/models` from VS Code means the extension can fetch the model list; `401` = another key is needed; `404/405` = endpoint not exposed; `ECONNREFUSED` / `ETIMEDOUT` / `ENOTFOUND` = network or proxy block. If the terminal works and VS Code does not, the cause is VS Code's proxy settings.
 
 Result (2026-11-01): all endpoints reachable from the extension host in 15-250 ms; see `DEPENDENCIES.md` section 3.2.
+
+## Navigation tools in real VS Code (`nav-check/`)
+
+Runs all eight tools of `src/mcp/nav-tools.js` inside real VS Code through the real nav server (HTTP + token, JSON-RPC `tools/call`, the way the CLI calls them) against `nav-check/fixture/`, and compares each answer with an expected answer written by hand from the fixture's source (37 checks). No CLI, no model, nothing to install.
+
+```powershell
+code --extensionDevelopmentPath="<repo>\dev\nav-check" --extensionTestsPath="<repo>\dev\nav-check\runner.js" "<repo>\dev\nav-check\fixture"
+```
+
+- A second VS Code window opens, runs the checks (a few seconds) and closes. The report is `dev\nav-check\nav-check-report.txt` (or the path in `RESULT_FILE`): one `PASS`/`FAIL` block per check with the expected and the actual answer, and a `RESULT:` line at the end. Do not commit it.
+- With `jsconfig.json`: create `fixture\jsconfig.json` with `{ "compilerOptions": { "jsx": "react-jsx", "module": "esnext", "moduleResolution": "node" }, "include": ["src"] }`, run again, then delete the file.
+- The order of the checks matters: the first ones run before any other fixture file is open (the hardest case for the TypeScript server).
+- Run 2026-11-06 on Linux with VSCodium 1.91.1 (the same code as VS Code 1.91.1, same built-in TypeScript/JavaScript language features) under `xvfb-run`: 37/37 both ways, 5 runs each. Not yet run on Windows.
 
 ## Chat UI without VS Code
 

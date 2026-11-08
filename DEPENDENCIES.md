@@ -162,12 +162,14 @@ Plateau test (`/v1/chat/completions`, a prompt of N words; the method is in `dev
 | VS Code **1.91.1** | `code --version` | No secondary side bar (falls back to the activity bar); every new feature must fit the 1.91 API |
 | The existing extension **works** there | The user's report | The manual checks were marked as passing on the user's report (not checked one by one; the plan-approval buttons failed and were left for last) |
 | Ctrl+Shift+Esc and Ctrl+Esc are taken by Windows | Resolved 2026-11-05 (`DECISIONS.md`) | Ctrl+Alt+C opens, Ctrl+Alt+E switches editor and chat |
+| VS Code's JS/TS providers (measured 2026-11-06 in VSCodium 1.91.1 = VS Code 1.91.1 code, Linux, `dev/nav-check`, 37 checks) | The built-in TypeScript server starts after the window: the first `executeDocumentSymbolProvider` call returns `[]` and answers within seconds. Without `jsconfig.json` it knows only open files and what they import: `executeReferenceProvider` and incoming calls miss files that are not open, and `executeDefinitionProvider` on an import of a closed `.jsx` file stops at the import line. A use through `require` of an ES module (`math.add`) is missing from references and incoming calls, but `executeDefinitionProvider` on that use resolves to the declaration. `executeHoverProvider` returns `(loading...)` while loading and Markdown code fences. `executeDefinitionProvider` on a module string leads to the module file | The navigation tools wait for the server, open the files that mention the name, and verify missed uses with the definition provider (`spec.md` "Code navigation MCP server"). With these, `jsconfig.json` is not needed for correct answers. Not measured on Windows |
 
 ## 5. Assumptions and what is still unknown
 
 | Item | State |
 |---|---|
 | IDE server (lock-file format, protocol, whether the CLI connects) | Not verified; a prototype by me; fallback: chips |
+| Navigation tools (package H) | Verified in real VS Code code on Linux (37/37, `dev/nav-check`); **not verified:** on Windows VS Code, inline `--mcp-config` on the real CLI, the token cost of the 2,957-character tool list, whether the local model chooses the tools |
 | Rewinding the conversation to a point (and "both") | The CLI message for it was never captured, so the extension offers only `rewind_files` (code) and fork. Also unverified: the `rewind_files` response shape beyond `filesChanged`, fork together with `--replay-user-messages`, rewinding to a uuid from an earlier process |
 | Exact sequence of a self-started `/loop` turn; whether a next-run time is ever reported | Not captured (`probe4` saw only a `result` with no user message). The extension's self-turn detection (`src/loop/self-turn.js`) is a defensive guess |
 | `/loop` indicator assumptions: cron fires in local time; the model obeys "Run CronDelete with id <id>..." as the stop mechanism (no control request exists); the stop prompt probably becomes a rewind checkpoint | Not verified |

@@ -2,6 +2,34 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates.
 
+## 2026-11-06 (package H: navigation tools checked in real VS Code and fixed)
+- **Found** by running the tools in real VS Code 1.91.1 code (VSCodium build, Linux) through the real nav server: the first call answered "no language provider; use Grep" because the TypeScript server was still starting; `goToDefinition`/`hover`/`findReferences` answered "not found" for any name that is only imported or used in the file (the `findSymbolPosition` fallback was never supplied by `nav-vscode.js`), so `goToDefinition` could only return a symbol's own location; `findImporters(math.js)` found 1 of 8 importers (references of one export only; the text fallback ran only when that found nothing); `findReferences(add)` found 3 of 6 places (TypeScript knows only open files without `jsconfig.json`); `math.add` after a CommonJS `require` is missing from TypeScript's references and incoming calls; `documentSymbols` listed locals; `hover` carried "(loading...)" and code fences.
+- **Fixed** (`src/mcp/nav-tools.js`): position by declared symbol or whole-word occurrence in code, several candidates tried; wait up to 20 s for the language server on the first JS/TS call; files that mention the name are opened in memory before a cross-file search; uses the provider missed are added when VS Code's definition provider resolves them to the same declaration; a definition that stops at an import is followed (next occurrence, else resolve, open and search the module); `findImporters` rebuilt on text search + specifier resolution (definition provider for bare/alias specifiers); outline without locals, arrow-function variables as functions, line order; clean hover text; call-hierarchy note inside the cap; `line` in the schema of every symbol tool; "defined outside the workspace" instead of "no definition found" for library targets. `nav-vscode.js`: a capped text search is marked. The unused `findSymbolPosition` dependency was removed.
+- **Added:** `dev/nav-check/` (runs every tool in real VS Code against a fixture with decoys and edge cases, compares with hand-written expected answers).
+- **Verified:** `dev/nav-check` 37/37, without and with `jsconfig.json`, 5 runs each, no flaky result; unit tests 191 (190 pass, 1 skipped; 18 of the new/changed nav tests fail on the old code). **Not verified:** Windows VS Code; the real CLI and model (token cost: the tool list grew from 2,734 to 2,957 characters).
+- **Deviation from `PLAN.md` section 8:** `findImporters` no longer uses the reference provider (table updated).
+- **Why:** the user asked for a check of the feature with VS Code's own capabilities and for proven reliability.
+
+## 2026-11-06 (package H batch 3: workspaceSymbols, hover, callHierarchy)
+- **Added:** `workspaceSymbols` (kind filter, workspace-only), `hover` (plain text, 2,000 chars), `callHierarchy` (incoming|outgoing, with a "less reliable in dynamic JavaScript" note). Eight tools now. Caps, path limit and injected deps unchanged.
+- **Verified:** unit tests 180/180 (fake deps); Verify = GO.
+- **Not verified:** all three in real VS Code and against the real CLI; checks (c), (d), (e) open; tool-list token cost with eight tools unmeasured.
+- **Deviation:** the call-hierarchy note is appended after the cap, so a capped answer can exceed 2,000 characters by about 50. Accepted for now.
+- **Why:** `PLAN.md` section 8 table.
+
+## 2026-11-06 (package H batch 2: goToDefinition, findImporters, documentSymbols filter)
+- **Added:** `goToDefinition` and `findImporters` in `nav-tools.js` (deps supplied by `nav-vscode.js`, which also gained a workspace text search returning 1-based lines). `documentSymbols` now drops `<unknown>` entries and export-shorthand property duplicates, keeping real properties. Caps (50 / 2,000) and the workspace path limit unchanged.
+- **Verified:** unit tests 175/175 (fake deps); Verify = GO.
+- **Not verified:** all three changes in real VS Code and against the real CLI; checks (d) jsconfig and (e) `findImporters` accuracy are open.
+- **Why:** `PLAN.md` section 8 table; the filter removes noise seen in `documentSymbols` output.
+
+## 2026-11-05 (package H prototype: code navigation MCP server)
+- **Added:** `src/mcp/nav-server.js` (HTTP on 127.0.0.1, random port and Bearer token, hand-written JSON-RPC), `nav-config.js` (inline `--mcp-config`, server `claude-local-nav`), `nav-tools.js` (`documentSymbols`, `readSymbol`, `findReferences`; 50 results / 2,000 chars; workspace path limit; plain failures), `nav-vscode.js` (the only `vscode` user). `src/cli/process.js` starts the server per CLI process and adds `--mcp-config` and `--allowedTools mcp__claude-local-nav` (no `--strict-mcp-config`; spawn continues without the server if it fails). Tests: `nav-server`, `nav-tools`; full suite 166 pass.
+- **Verified:** unit tests; transport pre-check against real CLI 2.1.246 (http and stdio PASS, reported by the user).
+- **Not verified:** inline `--mcp-config` on the real CLI; the tools in real VS Code; `.cmd` quoting; symlinks; token cost (baseline prompt differed); whether the local model chooses the tools.
+- **Deviations from the Stage 1 plan:** async server start; tool errors as `isError` results; relative paths resolve against the first workspace folder; `findReferences` drops results outside the workspace.
+- **Why:** `PLAN.md` section 8; inline config avoids a written file (`DECISIONS.md`).
+
 ## 2026-11-05 (dev/check-cli.txt: terminal-only checks on the CLI)
 - New user-run file `dev/check-cli.txt` (UTF-8 BOM, CRLF like the other check files): only the checks that run in PowerShell against the CLI, no extension. Step 0 finds `claude-bin.exe` (the `claude.cmd` wrapper asks "Select model number" and swallowed the piped JSON, so the earlier `@` and `/btw` runs returned nothing), sets `API_TIMEOUT_MS` and the watchdog variable, and lets the user pick the model from the gateway list (fallback: the list the wrapper showed). Then `@` expansion, `/btw`, an optional live `/btw`, the `/api/ps` window check for `qwen3.8:27b`, and the unit tests. Each check prints the raw output when no answer comes back.
 - The earlier paste showed `/api/ps` `context_length` 64000 for `gemma4:26b` only; `qwen3.8:27b` was not loaded, so its window is still unverified.
@@ -20,36 +48,8 @@ Newest first. Each entry: what changed + why. Dates are commit dates.
 - **Verified:** `node --test` 163/163 (the work-file tests rewritten for both instructions). **Not verified:** the dialog and the menu in real VS Code, and whether the CLI expands `@path` (step 2 of package I depends on `dev/check-at-mention.txt`). Review by Opus before merging, as the plan asks, was not done (the change is outside stream-json handling).
 
 ## 2026-11-05 (LaTeX math in assistant messages)
-- `$...# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
- and `(...)` (inline) and `$...$` and `[...]` (display) are rendered with bundled KaTeX 0.16.11 (`webview/vendor/katex/`: `katex.min.js`, `katex.min.css` with a woff2-only `@font-face`, 20 woff2 fonts, MIT license). Never inside code spans or fenced code; a lone `# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
- (prices like "$5 and $10") stays text: inline `# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
- needs a non-space after the opening and before the closing `# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
-, and the closing `# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
- may not be followed by a digit; `# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
- is an escape; unfinished math (while streaming) stays plain until it closes. New `webview/chat/math-logic.js` (pure, UMD: `extract` swaps math for placeholders before marked, `restore` puts them back) and `test/math-logic.test.js`; `markdown.js` renders each piece with `katex.renderToString(src, {throwOnError:false, displayMode, trust:false})` inside a `dir="ltr"` span. The CSP is unchanged (no `unsafe-inline`): KaTeX output has inline `style=` attributes, which the CSP would block, so the HTML is parsed inertly and each style is applied through the CSSOM. No setting. Why: requested in PLAN.md (Package C, "LaTeX").
-- **Verified:** `node --check`, the unit tests of the splitting logic, and that `katex.renderToString` runs under Node and emits `style=` attributes. **Not verified:** actual rendering, fonts loading and the CSSOM style workaround in real VS Code or a browser; indented (4-space) code blocks are not recognised as code, so `$x# Changelog
-
-Newest first. Each entry: what changed + why. Dates are commit dates.
-
- inside one would still render.
+- `$...$` and `\(...\)` (inline) and `$$...$$` and `\[...\]` (display) are rendered with bundled KaTeX 0.16.11 (`webview/vendor/katex/`: `katex.min.js`, `katex.min.css` with a woff2-only `@font-face`, 20 woff2 fonts, MIT license). Never inside code spans or fenced code; a lone `$` (prices like "$5 and $10") stays text: inline `$` needs a non-space after the opening and before the closing `$`, and the closing `$` may not be followed by a digit; `\$` is an escape; unfinished math (while streaming) stays plain until it closes. New `webview/chat/math-logic.js` (pure, UMD: `extract` swaps math for placeholders before marked, `restore` puts them back) and `test/math-logic.test.js`; `markdown.js` renders each piece with `katex.renderToString(src, {throwOnError:false, displayMode, trust:false})` inside a `dir="ltr"` span. The CSP is unchanged (no `unsafe-inline`): KaTeX output has inline `style=` attributes, which the CSP would block, so the HTML is parsed inertly and each style is applied through the CSSOM. No setting. Why: requested in PLAN.md (Package C, "LaTeX").
+- **Verified:** `node --check`, the unit tests of the splitting logic, and that `katex.renderToString` runs under Node and emits `style=` attributes. **Not verified:** actual rendering, fonts loading and the CSSOM style workaround in real VS Code or a browser; indented (4-space) code blocks are not recognised as code, so `$x$` inside one would still render.
 
 ## 2026-11-05 (Package H part 3: working-file button)
 - A button in the composer footer shows the working file; by default there is NONE ("קובץ עבודה: ללא"). A click opens a QuickPick: "ללא קובץ", "the file open now in the editor", then the project files. Claude is told to start from the chosen file: the next message begins "התחל את העבודה מהקובץ @path." (an explicit instruction, because it is unverified that the CLI expands `@path` in stream-json), and again only when the file changes (`work-file.js`, `withWorkFile`). New: `src/panels/work-file.js`, `Conversation.loadEntries/pickWorkFile`, message `pickWorkFile`, webview message `workFile`, `#workfile-btn`. Why: requested 2026-11-03; the user chose on 2026-11-05 that it should point the model at the file; the "once per change" rule keeps token cost low (`DECISIONS.md`).
