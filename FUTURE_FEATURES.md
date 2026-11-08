@@ -17,7 +17,7 @@ The chat renders a navigation call as a compact Hebrew card ("מקומות שי�
 - **Repository map:** one call that returns folders plus the top-level symbols per file, so Claude can orient itself cheaply. Open: worth a tool, given that `Glob` and `documentSymbols` exist?
 - **Open at symbol:** `openFile` that jumps to a symbol, so the user sees what Claude is looking at.
 
-### 1.3 Considered and left out — ❌ (proposed; user to confirm)
+### 1.3 Considered and left out — reviewed 2026-11-08: rename/refactor stays open until after the navigation checks; `signatureHelp` waits for a stronger model; MCP resources through `@` (section 3.3) stay open until `dev/check-at-mention.txt` is run
 - **Rename / refactor through providers** (`vscode.executeDocumentRenameProvider`): edits must go through the per-block approval flow of package F, so this is not proposed.
 - **`signatureHelp`:** overlaps `hover`; skipped on 2026-11-05.
 
