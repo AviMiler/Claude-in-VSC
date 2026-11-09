@@ -1,0 +1,62 @@
+/* The cumulative changes card above the composer (changes-card.js): the official card look
+   (menu background, border, 8px radius); one row per changed file with +added / -removed. */
+.changes-card {
+  margin-bottom: 6px;
+  font-size: 12px;
+  border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius-l);
+  background: var(--cl-menu-bg);
+  color: var(--cl-menu-fg);
+  overflow: hidden;
+}
+.changes-card summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--cl-muted);
+}
+.changes-card summary:hover { color: var(--cl-fg); }
+.changes-title { flex: 1; min-width: 0; font-weight: 600; }
+.changes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px 4px;
+  max-height: 140px; /* about six rows; more scroll inside the card */
+  overflow-y: auto;
+  border-top: 1px solid var(--cl-divider);
+}
+.changes-file {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--cl-radius-s);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.changes-file:hover { background: var(--cl-hover-row); }
+.changes-name { flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.changes-dir {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cl-muted);
+  font-size: 11px;
+}
+/* margin-right, not margin-inline-start: the counts are a dir="ltr" bdi, so a logical margin would
+   resolve against ltr and keep them beside the name instead of at the row's end. */
+.changes-counts { flex: none; display: inline-flex; gap: 6px; margin-right: auto; font-family: var(--cl-mono); font-size: 11px; }
+.changes-card summary::before { content: '▾'; flex: none; font-size: 10px; }
+.changes-card details:not([open]) summary::before { content: '◂'; }
+.changes-add { color: var(--cl-ok); }
+.changes-del { color: var(--cl-err); }

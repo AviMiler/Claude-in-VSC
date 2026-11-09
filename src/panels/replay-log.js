@@ -10,7 +10,7 @@
 //   other     not kept (notices, menus, search results, focus...).
 
 const THREAD_TYPES = new Set(['planReady', 'selfTurn', 'errorCard']);
-const SNAPSHOT_TYPES = new Set(['mode', 'model', 'models', 'context', 'commands', 'backgroundTasks', 'claudeTasks', 'loopJobs']);
+const SNAPSHOT_TYPES = new Set(['mode', 'model', 'models', 'context', 'commands', 'backgroundTasks', 'claudeTasks', 'loopJobs', 'changesCard']);
 
 function createReplayLog() {
   return {

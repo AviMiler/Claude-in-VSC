@@ -22,9 +22,14 @@ async function runDiffCommand(log, diffView, cwd, logger) {
   });
   if (!pick) return true;
   info(`open diff (${pick.detail})`);
-  const { left, right } = fileDiff(log, pick.path);
-  await diffView.show({ left, right, filePath: pick.path, title: `${pick.label}: שינויי Claude` });
+  await showFileDiff(log, diffView, pick.path);
   return true;
 }
 
-module.exports = { runDiffCommand };
+// One file's tool-call fragments in the shared diff view (/diff and the changes card's click).
+async function showFileDiff(log, diffView, filePath) {
+  const { left, right } = fileDiff(log, filePath);
+  await diffView.show({ left, right, filePath, title: `${nodePath.basename(filePath)}: שינויי Claude` });
+}
+
+module.exports = { runDiffCommand, showFileDiff };

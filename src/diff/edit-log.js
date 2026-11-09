@@ -5,7 +5,7 @@
 const EDIT_TOOLS = new Set(['Edit', 'MultiEdit', 'Write']);
 
 function createEditLog() {
-  return { byId: new Map() }; // tool_use id -> { path, fragments: [{ before, after }] }
+  return { byId: new Map() }; // tool_use id -> { path, fragments: [{ before, after }], write }
 }
 
 function fragmentsOf(name, input) {
@@ -24,7 +24,8 @@ function addEvent(log, ev) {
   if (typeof input.file_path !== 'string' || !input.file_path) return false;
   const fragments = fragmentsOf(ev.name, input);
   if (!fragments.length) return false;
-  log.byId.set(ev.id || `anon-${log.byId.size}`, { path: input.file_path, fragments });
+  // write: the fragment is the whole file (change-stats.js compares it with the earlier content).
+  log.byId.set(ev.id || `anon-${log.byId.size}`, { path: input.file_path, fragments, write: ev.name === 'Write' });
   return true;
 }
 

@@ -21,6 +21,7 @@ const ROUTES = {
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),
   diffCommand: (c) => c.diffCommand(),
+  openChangeDiff: (c, m) => c.openChangeDiff(String(m.path || '')),
   btwOpen: (c, m) => c.services.btwPanel.open(c.btwRunOptions(), String(m.question || '')),
   rewindMenu: (c) => c.rewindMenu(),
   stopTask: (c, m) => c.stopTask(String(m.id || '')),

@@ -1,12 +1,12 @@
 # Dependencies
 
-Everything the extension depends on: its vendored libraries, the Claude Code CLI, the model gateway (LiteLLM) with Ollama, and VS Code. Sections 2-5 are findings measured on the user's machine (as of 2026-11-01), each with its evidence, plus what is still unknown. The decisions drawn from them are in `PLAN.md` and `DECISIONS.md`; the install steps for this machine are in `SETUP.md`; how to re-run the probes is in `dev/README.md`.
+Everything the extension depends on: vendored libraries, the Claude Code CLI, the model gateway (LiteLLM) with Ollama, and VS Code. Sections 2-5 are findings measured on the user's machine (as of 2026-11-01 unless dated), each with its evidence, plus what is still unknown. Decisions drawn from them: `PLAN.md`, `DECISIONS.md`; install steps: `SETUP.md`; re-running the probes: `dev/README.md`.
 
-**Evidence sources:** `probe-report` (first script), `probe2-report`, `probe3-report` (three runs against the real CLI), `gateway-probe` (a check from inside VS Code), and the output of manual commands the user sent.
+**Evidence sources:** `probe-report`, `probe2-report`, `probe3-report` (three runs against the real CLI), `gateway-probe` (a check from inside VS Code), and output of manual commands the user sent.
 
 ## 1. Vendored libraries
 
-No npm packages, no `package-lock`, no build step. Third-party code is vendored as plain JS files in `webview/vendor/`, downloaded once from cdn.jsdelivr.net and never fetched at runtime.
+No npm packages, no `package-lock`, no build step. Third-party code is vendored as plain JS in `webview/vendor/`, downloaded once from cdn.jsdelivr.net, never fetched at runtime.
 
 | Library | Version | Files | License | Used for |
 |---|---|---|---|---|
@@ -119,10 +119,10 @@ Every model points at `api_base: http://localhost:11435/v1`, with `extra_body.nu
 ### 3.4 What is reliable and what is not
 
 1. **Model capabilities in the gateway are not reliable.** `/model_group/info` says `false` for all; `litellm_params.model_info` says `supports_function_calling: true` for all (even `gemma3:27b`, which fails). Model filtering is therefore done by a list (`claudeLocal.modelDenylist`, default `gemma3:27b`) and by detecting the "does not support tools" error.
-2. **Two models are configured for JSON-title-only output** (`qwen2.5-coder:7b`, `gemma4:31b`; `extra_body.output_config.format` with a `{title}` schema), probably for generating titles. They do not suit conversation and are hidden automatically from the picker by the presence of that field.
-3. **`effort: high` is fixed** in the gateway configuration, so choosing Effort in the extension has no effect (matches the test that showed no difference). The Effort row is out of the plan.
-4. **The model list** (`/v1/models`) is the only source of model names: the CLI's `initialize` returns only four aliases of the same model.
-5. **Token counting** (`/utils/token_counter`, `/v1/messages/count_tokens`) exists but is approximate (`openai_tokenizer`), so `get_context_usage` stays the main source.
+2. **Two models are configured for JSON-title-only output** (`qwen2.5-coder:7b`, `gemma4:31b`; `extra_body.output_config.format` with a `{title}` schema), probably for titles. They do not suit conversation and are hidden from the picker by the presence of that field.
+3. **`effort: high` is fixed** in the gateway, so choosing Effort has no effect (#30); the Effort row is out of the plan.
+4. **The model list** (`/v1/models`) is the only source of model names (`initialize` returns four aliases of one model, #3).
+5. **Token counting** (`/utils/token_counter`, `/v1/messages/count_tokens`) is approximate (`openai_tokenizer`); `get_context_usage` stays the main source.
 
 ### 3.5 Ollama directly on port 11435
 
@@ -151,8 +151,8 @@ Plateau test (`/v1/chat/completions`, a prompt of N words; the method is in `dev
 | 50,000 | 50,012 | 16 seconds |
 
 1. **No plateau:** `prompt_tokens` grows linearly to 50,000, so the effective window is **at least 50,000 tokens** (consistent with `context_length: 64000` from `/api/ps`). Claude Code sends about 25,000 tokens for a simple message (about 24,700 input were measured) and fits comfortably; the instructions are not cut.
-2. **Value:** `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`. The CLI does not know the model and assumes 200,000. If the window were below about 25,000 tokens, Claude Code's instructions would be silently cut, and the server administrator would have to be asked to raise `num_ctx`.
-3. **Cold load of 285 seconds** (almost 5 minutes; afterwards 2 to 16 seconds): the first request after inactivity (keep-alive about 5 minutes) includes loading the model onto the GPU, perhaps unloading another model too. This is why `API_TIMEOUT_MS=1200000` (20 minutes) is essential, and the chat shows "המודל נטען, זה יכול לקחת כמה דקות" when the answer is delayed.
+2. **Value:** `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000` (the CLI assumes 200,000). Below about 25,000 tokens Claude Code's instructions would be silently cut and the administrator would have to raise `num_ctx`.
+3. **Cold load of 285 seconds** (afterwards 2 to 16 seconds): the first request after inactivity (keep-alive about 5 minutes) loads the model onto the GPU, perhaps unloading another. This is why `API_TIMEOUT_MS=1200000` (20 minutes) is essential, and the chat shows "המודל נטען, זה יכול לקחת כמה דקות" when the answer is delayed.
 4. **Prompt processing speed:** about 3,000 tokens per second (50,000 in 16 seconds); a first message of about 25,000 tokens takes about 8 seconds once the model is loaded.
 
 ## 4. VS Code and the existing extension
@@ -160,28 +160,26 @@ Plateau test (`/v1/chat/completions`, a prompt of N words; the method is in `dev
 | Finding | Reason | Meaning |
 |---|---|---|
 | VS Code **1.91.1** | `code --version` | No secondary side bar (falls back to the activity bar); every new feature must fit the 1.91 API |
-| The existing extension **works** there | The user's report | The manual checks were marked as passing on the user's report (not checked one by one; the plan-approval buttons failed and were left for last) |
+| The existing extension **works** there | The user's report | Manual checks marked as passing on the user's report (not one by one; the plan-approval buttons failed and were left for last) |
 | Ctrl+Shift+Esc and Ctrl+Esc are taken by Windows | Resolved 2026-11-05 (`DECISIONS.md`) | Ctrl+Alt+C opens, Ctrl+Alt+E switches editor and chat |
 | VS Code's JS/TS providers (measured 2026-11-06 in VSCodium 1.91.1 = VS Code 1.91.1 code, Linux, `dev/nav-check`, 37 checks) | The built-in TypeScript server starts after the window: the first `executeDocumentSymbolProvider` call returns `[]` and answers within seconds. Without `jsconfig.json` it knows only open files and what they import: `executeReferenceProvider` and incoming calls miss files that are not open, and `executeDefinitionProvider` on an import of a closed `.jsx` file stops at the import line. A use through `require` of an ES module (`math.add`) is missing from references and incoming calls, but `executeDefinitionProvider` on that use resolves to the declaration. `executeHoverProvider` returns `(loading...)` while loading and Markdown code fences. `executeDefinitionProvider` on a module string leads to the module file | The navigation tools wait for the server, open the files that mention the name, and verify missed uses with the definition provider (`spec.md` "Code navigation MCP server"). With these, `jsconfig.json` is not needed for correct answers. Not measured on Windows |
 
 ## 5. Assumptions and what is still unknown
 
+CLI and environment unknowns only; the verification status of the extension's own features (navigation tools, agent cards, Reload Window behaviour, screen reader, real VS Code) is `spec.md` "Verification status".
+
 | Item | State |
 |---|---|
-| IDE server (lock-file format, protocol, whether the CLI connects) | Not verified; a prototype by me; fallback: chips |
-| Navigation tools (package H) | Verified in real VS Code code on Linux (37/37, `dev/nav-check`); **not verified:** on Windows VS Code, inline `--mcp-config` on the real CLI, the token cost of the 2,957-character tool list, whether the local model chooses the tools |
+| IDE server (lock-file format, protocol, whether the CLI connects) | Lock discovery read from the 2.1.246 binary (`PLAN.md` section 7); on the work machine 2026-11-08 the `-p` stream-json CLI did not connect (strong, not conclusive); token header and method names unverified; fallback: chips |
 | Rewinding the conversation to a point (and "both") | The CLI message for it was never captured, so the extension offers only `rewind_files` (code) and fork. Also unverified: the `rewind_files` response shape beyond `filesChanged`, fork together with `--replay-user-messages`, rewinding to a uuid from an earlier process |
 | Exact sequence of a self-started `/loop` turn; whether a next-run time is ever reported | Not captured (`probe4` saw only a `result` with no user message). The extension's self-turn detection (`src/loop/self-turn.js`) is a defensive guess |
-| `/loop` indicator assumptions: cron fires in local time; the model obeys "Run CronDelete with id <id>..." as the stop mechanism (no control request exists); the stop prompt probably becomes a rewind checkpoint | Not verified |
-| Agent cards against a real sub-agent run | Only the single `probe4` run was seen (row 37); real VS Code rendering of cards and the loop bar not verified |
+| `/loop` indicator assumptions: cron fires in local time; the model obeys "Run CronDelete with id <id>..." as the stop mechanism (no control request exists); the stop prompt probably becomes a rewind checkpoint; a single `probe4` run is the only sub-agent evidence (row 37) | Not verified |
 | `--settings` env precedence and `CLAUDE_CODE_DISABLE_1M_CONTEXT` on the user's CLI 2.1.246 (rows #39, #40 were measured on 2.1.317) | Not verified; `dev/check-model-switch.txt` |
-| `qwen3.8:27b` is loaded with 64,000 | Inferred from `gemma4:26b` and the plateau test (at least 50,000); to be confirmed with `/api/ps` while it is loaded |
+| `qwen3.8:27b` is loaded with 64,000 | Inferred from `gemma4:26b` and the plateau test (at least 50,000); `/api/ps` showed 64,000 for it on the work machine 2026-11-08 (`CHANGELOG.md`) |
 | Real capabilities of each model (`/api/show` on port 11435) | Not verified |
 | Vision and tools on the other models | Only `qwen3.8:27b`, `gemma4:26b` (with Bash/OK) and `gemma3:27b` (fails) were tested; vision only on `qwen3.8:27b` |
 | Auto mode on dangerous actions | Not tested |
 | Plan-approval buttons (`ExitPlanMode`) | Do not appear; checked last |
 | The shape of a Bash request that needs permission | Not seen (not blocking) |
-| Chat-tab behaviour after Reload Window in VS Code | Not tested |
-| A real screen reader (accessibility) | Not tested |
 | The values of 20 to 25 checks sent from other CLI versions | Not tested (everything is against 2.1.246) |
 | Why `claude mcp add` failed silently the first time (through `claude.cmd`, with the phrase `=>` in the command) and worked later with a simple command | Unknown. The guess that the `>` sign was read as output redirection was **not confirmed** (no stray file was found); it may be related to the wrapper |

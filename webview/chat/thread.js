@@ -148,7 +148,7 @@
   function renderTool(t) {
     const s = CL.tools.summary(t.name, t.input);
     t.summaryEl.textContent = s.text;
-    t.summaryEl.classList.toggle('link', Boolean(s.path));
+    t.openBtn.hidden = !s.path;
     t.path = s.path;
     t.line = s.line;
     if (t.node.classList.contains('open')) {
@@ -161,6 +161,15 @@
     t.node.classList.add(state);
   }
 
+  // "Go to file" glyph for the open button: a page with an arrow out of it.
+  function openIcon() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<path d="M9 2h5v5M14 2 7.5 8.5M12 9.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>';
+    return svg;
+  }
+
   function onTool(ev) {
     let t = tools.get(ev.id);
     if (!t) {
@@ -170,15 +179,16 @@
         el('span', { class: 'tool-name', text: CL.tools.displayName(ev.name) }),
         summaryEl,
         el('span', { class: 'tool-toggle', text: '▾' }));
-      const node = el('div', { class: 'tl tl-tool running' }, head, bodyEl);
-      t = { node, summaryEl, bodyEl, name: ev.name, input: ev.input || {}, result: null };
-      head.addEventListener('click', (e) => {
-        if (e.target === summaryEl && t.path) {
-          post({ type: 'openFile', path: t.path, line: t.line });
-          return;
-        }
+      // A sibling of the head (never nested in it): the editor moves only on this click.
+      const openBtn = el('button', { class: 'tool-open', type: 'button', title: 'פתיחה בעורך', 'aria-label': 'פתיחה בעורך', hidden: true }, openIcon());
+      const node = el('div', { class: 'tl tl-tool running' }, el('div', { class: 'tool-line' }, head, openBtn), bodyEl);
+      t = { node, summaryEl, bodyEl, openBtn, navCard: null, name: ev.name, input: ev.input || {}, result: null };
+      head.addEventListener('click', () => {
         node.classList.toggle('open');
         renderTool(t);
+      });
+      openBtn.addEventListener('click', () => {
+        if (t.path) post({ type: 'openFile', path: t.path, line: t.line });
       });
       tools.set(ev.id, t);
       currentTurn().append(node);
@@ -193,6 +203,10 @@
     t.result = { text: ev.text || '', isError: ev.isError };
     setToolState(t, ev.isError ? 'err' : 'ok');
     renderTool(t);
+    // Navigation tools: a card of clickable locations under the row (nav-results.js).
+    if (t.navCard) t.navCard.remove();
+    t.navCard = ev.isError ? null : CL.navResults.render(t.name, t.input, t.result.text);
+    if (t.navCard) t.node.append(t.navCard);
   }
 
   // --- results & errors -------------------------------------------------------------------------

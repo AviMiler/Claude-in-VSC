@@ -240,34 +240,30 @@
     dispatch(item.text, item.images);
   }
 
-  // "/" menu: open while the text is a single "/word" at the very start.
+  // "/" menu: opens when "/word" starts a word anywhere in the text, with the caret inside it.
   function updateSlash() {
-    const m = /^\/(\S*)$/.exec(input.value.slice(0, input.selectionStart));
-    if (!m || input.value.slice(input.selectionStart).trim()) return CL.slashMenu.close();
-    CL.slashMenu.update(m[1], (cmd) => {
-      if (cmd.group === 'terminal') return showTerminalCard(`/${cmd.name}`);
-      if (cmd.local) { // the extension's own command: run it now, no second Enter
+    const tok = CL.triggerToken.find(input.value, input.selectionStart);
+    if (!tok || tok.kind !== 'slash') return CL.slashMenu.close();
+    CL.slashMenu.update(tok.query, (cmd) => {
+      // The special behaviors apply only when the whole message is just this token.
+      const alone = tok.start === 0 && !input.value.slice(tok.end).trim();
+      if (alone && cmd.group === 'terminal') return showTerminalCard(`/${cmd.name}`);
+      if (alone && cmd.local) { // the extension's own command: run it now, no second Enter
         input.value = `/${cmd.name}`;
         return send();
       }
-      input.value = `/${cmd.name} `;
       CL.slashMenu.close();
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-      autoresize();
-      refreshSend();
+      // Swallow one following space so the text does not end up double-spaced.
+      const to = /^ /.test(input.value.slice(tok.end)) ? tok.end + 1 : tok.end;
+      insertAt(tok.start, to, `/${cmd.name} `);
     });
   }
 
-  // "@" menu: the word being typed right before the caret starts with "@".
+  // "@" menu: the word being typed right before the caret starts with "@" (text after the caret is kept).
   function updateMention() {
-    const before = input.value.slice(0, input.selectionStart);
-    // `@word`, or an open quote `@"C:/my dir/src/` (a folder with spaces being drilled into).
-    const m = /(^|\s)@(?:"([^"]*)|([^\s@"]*))$/.exec(before);
-    if (!m) return CL.mentions.close();
-    const quoted = m[2] !== undefined;
-    const query = quoted ? m[2] : m[3];
-    const start = before.length - query.length - (quoted ? 2 : 1);
+    const tok = CL.triggerToken.find(input.value, input.selectionStart);
+    if (!tok || tok.kind !== 'mention') return CL.mentions.close();
+    const { start, query } = tok;
     CL.mentions.request(query, (item) => {
       const target = item.abs || item.path; // absolute: the CLI does not expand "@relative" (F-4)
       const spaced = /\s/.test(target);

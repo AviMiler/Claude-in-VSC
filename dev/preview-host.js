@@ -213,6 +213,14 @@
           if (mode === 'folder') chip.manual = chip.recents[1];
           if (mode === 'reverted') { chip.manual = null; chip.reverted = true; } }
         toWebview(chipMsg());
+        // ?changes=1: the cumulative changes card with a few files.
+        if (new URLSearchParams(location.search).get('changes')) {
+          toWebview({ type: 'changesCard', files: [
+            { path: 'C:\\proj\\src\\panels\\conversation.js', rel: 'src\\panels\\conversation.js', added: 12, removed: 3 },
+            { path: 'C:\\proj\\webview\\chat\\changes-card.js', rel: 'webview\\chat\\changes-card.js', added: 54, removed: 0 },
+            { path: 'C:\\proj\\README.md', rel: 'README.md', added: 1, removed: 7 },
+          ] });
+        }
         states();
         // ?conv=c2 shows another conversation; ?open=drawer|mcp|slash opens that part (for screenshots).
         later(60, () => {
@@ -264,6 +272,11 @@
           { kind: 'block', key: 'h2', blockType: 'text', text: 'כי `spawn` זורק `ENOENT` בלי מטפל. **הוספתי** `child.on(\'error\')`.' },
           { kind: 'tool', key: 'h3', id: 'h3', name: 'Grep', input: { pattern: 'spawn\\(', path: 'C:\\proj\\src' }, final: true },
           { kind: 'toolResult', toolUseId: 'h3', text: 'src/cli/spawn.js:22', isError: false },
+          // Navigation tools: an open button on the row and a card of clickable locations.
+          { kind: 'tool', key: 'h4', id: 'h4', name: 'mcp__claude-local-nav__findReferences', input: { file: 'src/cli/spawn.js', symbol: 'spawnCli', line: 22 }, final: true },
+          { kind: 'toolResult', toolUseId: 'h4', text: 'src/cli/process.js:14: const child = spawnCli(args);\nsrc/cli/spawn.js:22: function spawnCli(args) {\ntest/process.test.js:8: spawnCli([\'--version\']);\n3 more not shown', isError: false },
+          { kind: 'tool', key: 'h5', id: 'h5', name: 'mcp__claude-local-nav__workspaceSymbols', input: { query: 'Cli', kind: 'class' }, final: true },
+          { kind: 'toolResult', toolUseId: 'h5', text: 'class CliProcess src/cli/process.js:30\nclass CliError src/cli/errors.js:3', isError: false },
           { kind: 'result', isError: false, durationMs: 15300 },
         ] });
         break;

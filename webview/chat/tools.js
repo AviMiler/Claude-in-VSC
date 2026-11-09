@@ -22,7 +22,20 @@
     return String(s || '').split('\n')[0];
   }
 
-  // -> {text, path?} where path makes the summary a link that opens the file.
+  const NAV_PREFIX = 'mcp__claude-local-nav__';
+
+  // The navigation tools (src/mcp/nav-tools.js): "symbol · file", with the file (relative to the
+  // workspace, or absolute) and the 1-based line to open.
+  function navSummary(tool, i) {
+    const line = Number.isInteger(i.line) && i.line > 0 ? i.line : undefined;
+    const file = typeof i.file === 'string' ? i.file : '';
+    if (tool === 'workspaceSymbols') return { text: [i.query, i.kind].filter(Boolean).join(' · ') };
+    const head = tool === 'documentSymbols' ? i.kind : tool === 'callHierarchy' ? [i.symbol, i.direction].filter(Boolean).join(' ') : i.symbol;
+    const text = [head, relPath(file)].filter(Boolean).join(' · ');
+    return file ? { text, path: file, line } : { text };
+  }
+
+  // -> {text, path?, line?}; a path gives the row an "open in editor" button.
   function summary(name, input) {
     const i = input || {};
     switch (name) {
@@ -59,6 +72,7 @@
       case 'AskUserQuestion':
         return { text: truncate(((i.questions || [])[0] || {}).question || '', 120) };
       default: {
+        if (String(name).startsWith(NAV_PREFIX)) return navSummary(name.slice(NAV_PREFIX.length), i);
         const value = Object.values(i).find((v) => typeof v === 'string' && v.length < 300);
         return { text: value ? truncate(firstLine(value), 160) : '' };
       }

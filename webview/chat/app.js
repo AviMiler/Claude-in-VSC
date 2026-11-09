@@ -72,6 +72,7 @@
     CL.claudeTasks.render([]);
     CL.tasksBar.render([]);
     CL.loopBar.render([]);
+    CL.changesCard.render(null);
     CL.agentCards.reset();
     CL.contextMeter.set(null);
     CL.menu.close();
@@ -144,6 +145,7 @@
     claudeTasks: (m) => CL.claudeTasks.render(m.tasks),
     agentCards: (m) => CL.agentCards.render(m.cards),
     loopJobs: (m) => CL.loopBar.render(m.jobs),
+    changesCard: (m) => CL.changesCard.render(m),
     // A turn the CLI started by itself (a /loop job); unverified sequence, see src/loop/self-turn.js.
     selfTurn() {
       CL.thread.endTurn();

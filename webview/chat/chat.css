@@ -399,8 +399,19 @@ kbd {
   color: var(--cl-muted);
   unicode-bidi: isolate;
 }
-.tool-summary.link { color: var(--vscode-textLink-foreground); }
-.tool-summary.link:hover { text-decoration: underline; }
+/* The head and the "open in editor" button sit side by side (the button is not inside the head). */
+.tool-line { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.tool-line > .tool-head { flex: 1; }
+.tool-open {
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0;
+  border: none; border-radius: var(--cl-radius-s);
+  background: transparent; color: var(--cl-muted); cursor: pointer;
+}
+.tool-open[hidden] { display: none; }
+.tool-open svg { width: 13px; height: 13px; }
+.tool-open:hover { background: var(--cl-hover); color: var(--cl-fg); }
 .tool-toggle { flex: none; margin-inline-start: auto; color: var(--cl-muted); font-size: 10px; opacity: 0; transition: opacity .1s; }
 .tl-tool:hover .tool-toggle, .tl-tool.open .tool-toggle, .tool-head:focus-visible .tool-toggle { opacity: 1; }
 .tl-tool.open .tool-toggle { transform: rotate(180deg); }

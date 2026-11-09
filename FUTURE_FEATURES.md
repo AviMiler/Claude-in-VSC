@@ -1,19 +1,19 @@
 # Future features: ideas not yet in the plan
 
-This is a **parking place for ideas**. Nothing here is decided, scheduled or built. Each idea is reviewed with the user one by one; an approved idea moves into `PLAN.md` (stage table, settings, build order) and is removed from here. Rejected ideas are marked and kept so they are not proposed again.
+A **parking place for ideas**: nothing here is decided, scheduled or built. Each idea is reviewed with the user one by one; an approved idea moves into `PLAN.md` and is removed from here. Rejected ideas stay, marked, so they are not proposed again.
 
 **Status values:** 💡 idea, not discussed · 🗣️ discussed, open questions · ✅ approved, move to `PLAN.md` · ❌ rejected.
 
 ## 1. Code navigation for Claude (requested 2026-11-05)
 
-**Moved to `PLAN.md` on 2026-11-05 (approved):** the approach (VS Code's language features, no language server of our own), the tools (`findReferences`, `goToDefinition`, `documentSymbols`, `workspaceSymbols`, `hover`, `callHierarchy`, `readSymbol`, `findImporters`, the `kind` filter), the design rules, and the delivery (an MCP server of our own; the IDE server stays for editor context and `openDiff`). See `PLAN.md` section 8 and stage 5. The scope there is JavaScript and React only.
+**Moved to `PLAN.md` 2026-11-05 (approved):** the approach, tools, design rules and delivery (an MCP server of our own); `PLAN.md` section 8 and stage 5. Scope there: JavaScript and React only.
 
 **Still here (not yet reviewed):**
 
-### 1.1 Navigation results shown in the chat — ✅ approved 2026-11-08, moved to `PLAN.md` section 9
+### 1.1 Navigation results shown in the chat — ✅ approved 2026-11-08, built 2026-11-09 (`PLAN.md` section 9)
 The chat renders a navigation call as a compact Hebrew card ("מקומות שימוש של X: 12 תוצאות") whose lines open the file at that line in the editor. Gives the user the same view Claude has. Open: whether the chat already makes `path:line` clickable.
 
-### 1.2 Other helpers — repository map stays 💡 (decided 2026-11-08: waits for a stronger model with the servers installed); "open at symbol" ✅ moved to `PLAN.md` section 9 as an extension-side setting, off by default, not a model tool (a tool would grow the context)
+### 1.2 Other helpers — repository map stays 💡 (decided 2026-11-08: waits for a stronger model with the servers installed); "open at symbol" ✅ built 2026-11-09 as an explicit "פתיחה בעורך" button on tool rows (changed from the earlier setting, off by default; not a model tool, a tool would grow the context; `PLAN.md` section 9)
 - **Repository map:** one call that returns folders plus the top-level symbols per file, so Claude can orient itself cheaply. Open: worth a tool, given that `Glob` and `documentSymbols` exist?
 - **Open at symbol:** `openFile` that jumps to a symbol, so the user sees what Claude is looking at.
 
@@ -23,7 +23,7 @@ The chat renders a navigation call as a compact Hebrew card ("מקומות שי�
 
 ## 2. .NET support (requested 2026-11-05)
 
-**Background:** the user works in JS/React and in C# on .NET 6. In VS Code, JS/React navigation works (`PLAN.md` section 8); C# has no navigation because no C# extension is installed, and the .NET work is probably done in Visual Studio 2022. **Depends on the extension (the project's core), after the base packages.** Nothing here is decided. Constraint: no internet (`AGENT_CONTEXT.md`); files can be brought in, no network installs.
+**Background:** the user works in JS/React and in C# on .NET 6. JS/React navigation works in VS Code (`PLAN.md` section 8); C# has none because no C# extension is installed, and the .NET work is probably done in Visual Studio 2022. Depends on the extension (the core), after the base packages. Nothing decided. Constraint: no internet (`AGENT_CONTEXT.md`); files can be brought in, no network installs.
 
 ### 2.1 Option A: C# navigation inside VS Code through a C# extension — 💡
 - Bring a C# extension in as a `.vsix` file and install it by hand ("Install from VSIX"). Candidate: the open-source community build `muhammad-sammy.csharp` from open-vsx.org (from memory, **not verified**). The Microsoft C# extension is another candidate; C# Dev Kit is not suitable (licence and sign-in).
@@ -33,7 +33,7 @@ The chat renders a navigation call as a compact Hebrew card ("מקומות שי�
 - Cost to us: almost none (documentation and a check). Cost to the user: one file brought in and installed by hand.
 
 ### 2.2 Option B: port the extension to Visual Studio 2022 — 💡 (large, far future)
-- **What it means:** a new, separate product, not a conversion. A Visual Studio extension is a different technology (a VSIX for Visual Studio, written in C# with the Visual Studio SDK), so the VS Code extension cannot be "converted"; most of it would be rewritten.
+- **What it means:** a new, separate product, not a conversion: a Visual Studio extension (VSIX, C# with the Visual Studio SDK) is a different technology, so most would be rewritten. A port plan exists: `vs2022/PLAN.md`.
 - **What could be reused:** the knowledge of the CLI protocol (`stream-json`, control messages, `DEPENDENCIES.md`) and, probably, the chat UI in `webview/` (HTML/JS/CSS), hosted in a WebView2 control. The hosting itself is **unverified**.
 - **What would not carry over:** everything under `src/` that uses the VS Code API (panels, commands, settings, diff view, mentions, history).
 - **What Visual Studio would give:** Roslyn-based C# navigation natively (go to definition, references, symbols) through the Visual Studio SDK, without an extra extension.

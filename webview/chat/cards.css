@@ -155,3 +155,22 @@ textarea.card-input { height: auto; padding: 4px 8px; }
 .error-card { display: block; border-color: color-mix(in srgb, var(--cl-err) 55%, transparent); }
 .error-card .card-title { padding: 0; }
 .error-card .card-actions { padding: 8px 0 0; border-top: none; }
+
+/* Navigation tool results (nav-results.js): clickable locations under the tool row */
+.nav-card {
+  margin-top: 4px; padding: 4px 0;
+  border: 1px solid var(--cl-subtle-border); border-radius: var(--cl-radius); background: var(--cl-surface);
+}
+.nav-title { padding: 2px 10px 4px; font-size: 12px; color: var(--cl-muted); }
+.nav-title bdi { font-family: var(--cl-mono); color: var(--cl-fg); }
+.nav-rows { max-height: 260px; overflow: auto; }
+.nav-row {
+  display: flex; align-items: baseline; gap: 8px; width: 100%; min-width: 0;
+  padding: 2px 10px; border: none; background: transparent; color: inherit;
+  font: inherit; text-align: start; cursor: pointer;
+}
+.nav-row:hover { background: var(--cl-hover-row); }
+.nav-loc { flex: none; font-family: var(--cl-mono); font-size: var(--cl-mono-size); color: var(--vscode-textLink-foreground); }
+.nav-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.nav-label.code { font-family: var(--cl-mono); font-size: var(--cl-mono-size); color: var(--cl-muted); }
+.nav-more { padding: 2px 10px; font-size: 12px; color: var(--cl-muted); }

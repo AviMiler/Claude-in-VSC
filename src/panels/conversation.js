@@ -23,7 +23,8 @@ const { isNoVisionError } = require('../models/filter');
 const { ModelSwitcher } = require('./model-switch');
 const { refreshContextMeter } = require('./context-meter');
 const editLog = require('../diff/edit-log');
-const { runDiffCommand } = require('../diff/diff-command');
+const { runDiffCommand, showFileDiff } = require('../diff/diff-command');
+const { changesCardMessage } = require('../diff/changes-card');
 const checkpoints = require('../checkpoints/checkpoints');
 const { runRewindMenu } = require('../checkpoints/rewind-menu');
 const taskMap = require('../background/task-map');
@@ -258,8 +259,10 @@ class Conversation {
       }
       this.trackPlan(events);
       this.autosaveForTools(events);
-      for (const ev of events) editLog.addEvent(this.edits, ev);
+      let edited = false;
+      for (const ev of events) if (editLog.addEvent(this.edits, ev)) edited = true;
       if (events.length) this.post({ type: 'events', events });
+      if (edited) this.postChanges();
       // After the events, so the Agent tool row the card attaches to already exists.
       agentCards.trackAgents(this, this.agents, msg);
     });
@@ -350,6 +353,10 @@ class Conversation {
   // hidden: a prompt the extension sends for the user (the /loop stop text), drawn as no bubble.
   send(text, images, { hidden = false } = {}) {
     if (!text || !text.trim() || this.busy) return;
+    if (text.trim() === '/clear' && this.edits.byId.size) {
+      this.edits = editLog.createEditLog(); // the CLI starts over: so do /diff and the changes card
+      this.postChanges();
+    }
     const valid = Array.isArray(images)
       ? images.filter((i) => i && IMAGE_TYPES.includes(i.mediaType) && typeof i.data === 'string')
       : [];
@@ -568,6 +575,7 @@ class Conversation {
     this.agents = agentCards.createAgentCards();
     if (title) this.setTitle(title.slice(0, TITLE_MAX));
     this.post({ type: 'sessionLoaded', id, title, events });
+    this.postChanges(); // also replaces (or empties) the previous session's card
     this.startProcess({ resume: id });
     if (this.pendingRename) {
       const title = this.pendingRename;
@@ -594,8 +602,11 @@ class Conversation {
     return true;
   }
 
+  // filePath may be relative to the workspace (navigation tool results): see resolve-path.js.
   openFile(filePath, line) {
-    const uri = vscode.Uri.file(filePath);
+    const { resolvePath } = require('./resolve-path');
+    const roots = [...(vscode.workspace.workspaceFolders || []).map((f) => f.uri.fsPath), this.cwd];
+    const uri = vscode.Uri.file(resolvePath(filePath, roots, fs.existsSync));
     const options = {};
     if (Number.isInteger(line) && line > 0) options.selection = new vscode.Range(line - 1, 0, line - 1, 0);
     vscode.window.showTextDocument(uri, options).then(undefined, () => {
@@ -647,6 +658,20 @@ class Conversation {
     this.services.logger.info('diff', 'command');
     const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd, this.services.logger);
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
+  }
+
+  // The cumulative changes card (src/diff/changes-card.js): the whole list, redrawn in place.
+  postChanges() {
+    const msg = changesCardMessage(this.edits, this.cwd);
+    this.services.logger.info('diff', `changes card ${msg.files.length} files`);
+    this.post(msg);
+  }
+
+  // A file row of the changes card: that file's diff, as /diff opens it.
+  async openChangeDiff(filePath) {
+    if (!editLog.listFiles(this.edits).some((f) => f.path === filePath)) return;
+    this.services.logger.info('diff', 'open diff (changes card)');
+    await showFileDiff(this.edits, this.services.diffView, filePath);
   }
 
   // The stop button of a background task: `stop_task {task_id}` (probe4); the CLI then reports
