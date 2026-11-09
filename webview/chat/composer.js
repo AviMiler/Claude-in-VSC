@@ -88,7 +88,6 @@
   // --- attached images (pasted or dropped); kept in memory until sent ---------------------------
   const attachmentsEl = document.getElementById('attachments');
   let attached = [];
-  const IMAGE_ONLY_TEXT = 'ראו את התמונה המצורפת.';
 
   function renderAttachments() {
     attachmentsEl.hidden = !attached.length;
@@ -198,9 +197,11 @@
 
   function send() {
     let text = input.value;
+    // Images alone are allowed (F-11): they go with empty text, the host adds the English text the
+    // CLI needs, and the bubble shows only the image count.
     if (!text.trim()) {
       if (!attached.length) return;
-      text = IMAGE_ONLY_TEXT; // images alone are allowed (F-11); the CLI needs some text with them
+      text = '';
     }
     if (CL.prompt.isTerminalOnly(text, CL.slashMenu.getMeta())) return showTerminalCard(text);
     CL.slashMenu.close();

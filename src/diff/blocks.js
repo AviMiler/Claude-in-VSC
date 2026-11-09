@@ -101,7 +101,7 @@ function reviewTexts(tool, input, fileText) {
 // the input with the kept blocks only (`updatedInput`).
 function decision(tool, input, texts, blocks, accepted) {
   const kept = accepted.filter(Boolean).length;
-  if (kept === 0) return { behavior: 'deny', message: 'המשתמש דחה את כל הבלוקים של השינוי.' };
+  if (kept === 0) return { behavior: 'deny', message: 'The user rejected every block of this change.' };
   if (kept === blocks.length) return { behavior: 'allow', updatedInput: input };
   const merged = applyBlocks(texts.before, blocks, accepted);
   const updatedInput = tool === 'Write' ? { ...input, content: merged } : { ...input, new_string: merged };

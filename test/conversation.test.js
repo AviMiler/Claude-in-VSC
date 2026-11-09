@@ -101,6 +101,42 @@ test('renameSession sends /rename to the CLI, one line, and refuses without a se
   }
 });
 
+// Rule 2026-11-09: what the extension itself sends to the model is English.
+test('images without text: the model gets English text, the bubble only the image count', () => {
+  const { c } = setup();
+  try {
+    const sent = [];
+    c.proc.sendUserText = (...a) => sent.push(a);
+    c.send('   ', [{ mediaType: 'image/png', data: 'AA' }]);
+    assert.strictEqual(sent.length, 1);
+    assert.strictEqual(sent[0][0], 'See the attached image.');
+    assert.strictEqual(sent[0][1].length, 1);
+    assert.deepStrictEqual(sent[0][2], []);
+    assert.strictEqual(c.log.items[c.log.items.length - 1].ev.text, '[תמונות: 1]');
+    c.busy = false;
+    c.send('  ', []); // no text and no image: nothing is sent
+    assert.strictEqual(sent.length, 1);
+  } finally {
+    c.dispose();
+  }
+});
+
+test('a permission denied without a reason answers the CLI in English', () => {
+  const { c } = setup();
+  try {
+    const answers = [];
+    const proc = { respond: (id, r) => answers.push(r) };
+    c.pending.set('r1', { proc, req: { tool_name: 'Bash', input: {} }, msg: {} });
+    c.answerPermission({ requestId: 'r1', behavior: 'deny' });
+    assert.deepStrictEqual(answers, [{ behavior: 'deny', message: 'The user denied this request.' }]);
+    c.pending.set('r2', { proc, req: { tool_name: 'Bash', input: {} }, msg: {} });
+    c.answerPermission({ requestId: 'r2', behavior: 'deny', message: 'לא עכשיו' }); // the user's own words go as typed
+    assert.strictEqual(answers[1].message, 'לא עכשיו');
+  } finally {
+    c.dispose();
+  }
+});
+
 test('onActivity is called after a post', () => {
   let n = 0;
   const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage() {} };

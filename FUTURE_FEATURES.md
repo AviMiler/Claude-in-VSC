@@ -89,7 +89,7 @@ The user's three problems: (1) the context window is small (64,000; local qwen3.
 - **4.2b Stable prefix — 💡 (needs a check first):** Ollama can reuse the cached prefix computation if the system prompt and tools do not change between messages, dynamic context (chips, selection) goes at the end of the message, and the window size stays constant. Check: confirm today's behavior.
 - **4.2c Attach a symbol with its context — 💡:** a button/Alt+K on a function attaches its definition plus its callers, saving 3-4 search calls.
 - **4.2d Repository map — 💡:** already in section 1.2; stronger rationale now: one call returns the project structure instead of chains of Glob/Grep.
-- **4.2e "Problems in file" tool — 💡:** in our navigation MCP server (`vscode.languages.getDiagnostics`), so the model sees the editor's errors without running a build.
+- **4.2e "Problems in file" tool — 💡:** in our navigation MCP server (`vscode.languages.getDiagnostics`), so the model sees the editor's errors without running a build. *Evidence 2026-11-09:* the official extension feeds diagnostics to the model through SDK hooks around Edit (`DEPENDENCIES.md` row 42).
 
 ### 4.3 Focus
 
@@ -97,7 +97,7 @@ The user's three problems: (1) the context window is small (64,000; local qwen3.
 - **4.3b Plan, then one step at a time — 💡:** plan in plan mode, then run each step in a fresh conversation containing only the plan.
 - **4.3c Fewer tools, fewer wrong tool choices — 💡:** same as 4.1a.
 - **4.3d Edit-by-symbol-name tool — 💡 (needs a user decision):** replace a function body by name instead of Edit's exact `old_string` match, which weak models often fail. Decision: an edit through MCP bypasses the per-block approval flow (package F). See also the rename/refactor note in 1.3.
-- **4.3e Automatic feedback after an edit — 💡:** the editor's diagnostics for the edited file go back to the model automatically.
+- **4.3e Automatic feedback after an edit — 💡:** the editor's diagnostics for the edited file go back to the model automatically. *Evidence 2026-11-09:* the official extension does this (baseline diagnostics captured before Edit, new ones after; `DEPENDENCIES.md` row 42); new candidate, via SDK hooks, pending the user's decision.
 - **4.3f Instructions in English — 💡:** Hebrew costs 2-3x the tokens and local models follow English instructions better; the UI stays Hebrew, model-facing instructions are English.
 
 ### 4.4 Recommended order (proposed to the user, not yet approved)

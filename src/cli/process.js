@@ -130,8 +130,11 @@ class CliProcess extends EventEmitter {
     return true;
   }
 
-  sendUserText(text, images = []) {
+  // `context`: extra text blocks (the editor context, English) sent in front of the user's text as
+  // separate content blocks, like the official extension's `<ide_opened_file>`.
+  sendUserText(text, images = [], context = []) {
     const content = images.map((i) => ({ type: 'image', source: { type: 'base64', media_type: i.mediaType, data: i.data } }));
+    for (const c of context) content.push({ type: 'text', text: c });
     content.push({ type: 'text', text });
     return this.send({ type: 'user', message: { role: 'user', content } });
   }

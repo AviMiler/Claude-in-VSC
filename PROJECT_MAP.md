@@ -21,8 +21,8 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `spawn.js` — resolves the executable on PATH x PATHEXT; `.cmd`/`.bat` via `cmd.exe /d /s /c`.
 - `env.js` — merges `process.env`, `claudeLocal.environmentVariables` and the entrypoint variable (shared by chat and terminal).
 - `terminal.js` — Open in Terminal: runs the CLI interactively in a VS Code terminal.
-- `process.js` — `CliProcess`: NDJSON over stdio, control protocol (`send`/`request`/`respond`/`respondError`/`interrupt`/`kill`), kill fallback.
-- `content.js` — helpers for message content blocks (shared by live stream and transcripts).
+- `process.js` — `CliProcess`: NDJSON over stdio, control protocol (`send`/`request`/`respond`/`respondError`/`interrupt`/`kill`), kill fallback; `sendUserText(text, images, context)` writes image blocks, context blocks, then the user text.
+- `content.js` — helpers for message content blocks (shared by live stream and transcripts); `isInjectedText` hides the `ide_*` context blocks, `stripLegacyContext` removes the old Hebrew `[הקשר מהעורך]` prefix from old transcripts (bubbles, history titles, rewind).
 - `btw.js` — the one-shot `/btw` process: `runBtw` (`claude -p --output-format json --tools "" --no-session-persistence`, question on stdin, 20 min timeout), `buildBtwPrompt` (earlier side turns in the stdin text, 24,000 chars), `btwCwd` (neutral temp folder `claude-local-btw`). Test: `test/btw.test.js`.
 
 ## src/panels/ — host side of the chat
@@ -107,9 +107,9 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `index.js` — `register`: follows `claudeLocal.ideServer`, feeds the editor tracker into `selection_changed`, sets `services.ide`.
 
 ## src/tagging/ — file tagging: file chip and lines chip (package K)
-- `chips.js` — pure: `view()`, `withContext()` (the single function that produces the CLI text `[הקשר מהעורך] הקובץ/התיקייה: @path` plus the lines block), `linesMention`, `mentionedKeys`, `pathKey`.
+- `chips.js` — pure: `view()`, `withContext()` (the single function that produces the editor context; returns `{text, context, last}`, the context being English `<ide_opened_file>` / `<ide_selection>` blocks), `linesMention`, `mentionedKeys`, `pathKey`.
 - `recent-files.js` — pure: the shared 5-item in-memory recent list and the `@`-menu recent rows.
-- `file-chip.js` — vscode glue: per-conversation chip state, actions (auto, pick, recent, remove, removeLines, ack), `applyToSend`, `autosaveFilter`, `isOutside`.
+- `file-chip.js` — vscode glue: per-conversation chip state, actions (auto, pick, recent, remove, removeLines, ack), `applyToSend` (returns `{text, context}`), `autosaveFilter`, `isOutside`.
 
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
@@ -149,6 +149,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `nav-check/` — dev-only check of the eight navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
 
 ## test/
+- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only. Whole suite: 302 tests.
 - `tagging.test.js` — package K: the single mention function, dedupe, recent list, once-per-change (7 tests). `work-file.test.js` was deleted.
 - `nav-results.test.js` (navigation card parse/title/render), `change-stats.test.js` (changes card counts), `trigger-token.test.js` (mid-sentence `/` and `@` tokens) — 2026-11-09.
 - `blocks.test.js` — block diff, partial apply, Edit/Write review texts, the permission decision.

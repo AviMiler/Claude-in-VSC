@@ -174,7 +174,7 @@
   // Called by the composer when the user sends; the first message titles the header like the tab.
   function userSent(text, imageCount = 0) {
     if (!titled) setTitle(text.replace(/\s+/g, ' ').trim().slice(0, 60));
-    CL.thread.addUser(imageCount ? `${text}\n[תמונות: ${imageCount}]` : text);
+    CL.thread.addUser(imageCount ? `${text.trim() ? `${text}\n` : ''}[תמונות: ${imageCount}]` : text);
     if (CL.display.scrollOnSend()) CL.thread.scrollToBottom();
     setBusy(true);
   }

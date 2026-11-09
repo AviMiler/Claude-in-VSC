@@ -39,7 +39,7 @@
   function addQueued(item, onCancel) {
     const node = el('div', { class: 'msg-queued', 'data-queue-id': String(item.id) },
       el('span', { class: 'queued-badge', text: 'ממתין' }),
-      el('span', { class: 'queued-text', dir: 'auto', text: item.text }),
+      el('span', { class: 'queued-text', dir: 'auto', text: item.text || `[תמונות: ${(item.images || []).length}]` }),
       el('button', { class: 'queued-cancel', type: 'button', title: 'ביטול', 'aria-label': 'ביטול ההודעה הממתינה', text: '✕', onclick: onCancel }));
     itemsEl.append(node);
     showEmpty(false);

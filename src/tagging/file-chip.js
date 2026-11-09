@@ -108,25 +108,26 @@ async function handle(conv, msg) {
   postState(conv);
 }
 
-// Called by Conversation.send (not for hidden prompts): the text for the CLI. After a send with a
-// manual choice the chip returns to automatic and is marked until the next action. A CLI command
-// (`/compact`) is sent as typed and leaves the chips alone; after `/clear` the model has nothing,
-// so the chips count as not sent.
+// Called by Conversation.send (not for hidden prompts): {text, context} for the CLI, `context` being
+// the English blocks sent in front of the user's text. After a send with a manual choice the chip
+// returns to automatic and is marked until the next action. A CLI command (`/compact`) is sent as
+// typed and leaves the chips alone; after `/clear` the model has nothing, so the chips count as
+// not sent.
 function applyToSend(conv, text) {
   const cmd = chips.commandName(text);
   if (cmd) {
     if (cmd === 'clear') conv.lastContextSent = {};
-    return text;
+    return { text, context: [] };
   }
   const view = shown(conv);
   const out = chips.withContext(text, view, currentCtx(conv), conv.lastContextSent);
-  if (out.text !== text) conv.services.logger.info('session', 'editor context attached');
+  if (out.context.length) conv.services.logger.info('session', `editor context attached (${out.context.length} block(s))`);
   conv.lastContextSent = out.last;
   const wasManual = Boolean(conv.chip.manual);
   conv.chip.manual = null;
   conv.chip.reverted = wasManual;
   postState(conv);
-  return out.text;
+  return { text: out.text, context: out.context };
 }
 
 // Autosave before a send also covers the chip's file or folder when it is outside the project.

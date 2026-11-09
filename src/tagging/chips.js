@@ -1,7 +1,9 @@
 // File tagging (package K, PLAN.md section 10): the pure model of the two chips above the box and the
-// one function that turns them into text for the CLI. No vscode dependency, so it is unit-tested
-// directly. One channel only: a file reaches the CLI as `@/abs/path` (or `@/abs/path#5-10`) in the
-// message, because the CLI does not expand `@` in stream-json mode (DECISIONS.md 2026-11-05).
+// one function that turns them into context for the CLI. No vscode dependency, so it is unit-tested
+// directly. One channel only: the chips reach the CLI as separate English text blocks in front of
+// the user's text, in the official extension's format (`<ide_opened_file>`, `<ide_selection>`), with
+// absolute paths because the CLI does not expand `@` in stream-json mode (DECISIONS.md 2026-11-05).
+// Everything the extension itself sends to the model is English; only the user's own text is not.
 const { mentionText, toSlashes } = require('../panels/mentions');
 
 const SELECTION_MAX_CHARS = 8000;
@@ -75,29 +77,44 @@ function mentionedKeys(text) {
   return keys;
 }
 
-// The single function that puts the chips in front of a message. `shown` from view(), `ctx` the
-// editor context (for the selected text), `last` {file, sel}: the keys last handed to the model.
+const NOT_RELATED = 'This may or may not be related to the current task.';
+
+// The context blocks, in the official extension's wording (observed in its log).
+function openedFileBlock(file) {
+  const what = file.isDir ? 'selected the folder' : 'opened the file';
+  return `<ide_opened_file>The user ${what} ${file.path} in the IDE. ${NOT_RELATED}</ide_opened_file>`;
+}
+
+function selectionBlock(ctx) {
+  let body = ctx.selText || '';
+  if (body.length > SELECTION_MAX_CHARS) body = `${body.slice(0, SELECTION_MAX_CHARS)}\n... (truncated)`;
+  const { start, end } = ctx.lines;
+  return `<ide_selection>The user selected the lines ${start} to ${end} from ${ctx.path}:\n${body}\n\n${NOT_RELATED}</ide_selection>`;
+}
+
+// The single function that turns the chips into context for a message. `shown` from view(), `ctx`
+// the editor context (for the selected text), `last` {file, sel}: the keys last handed to the model.
 // Each part is sent once per change. A file the message text already mentions (the `@` menu,
-// Alt+K) is not repeated: the same file is sent once. Returns {text, last}.
+// Alt+K) is not repeated: the same file is sent once. Returns {text, context, last}: `text` is the
+// user's text unchanged, `context` the English blocks that go in front of it as separate text
+// content blocks (CliProcess.sendUserText), so the user's own message stays exactly as typed.
+// Like the official extension, a new selection is sent ALONE: its block names the file, so no
+// `<ide_opened_file>` goes with it (the file counts as sent).
 function withContext(text, shown, ctx, last = {}) {
-  const parts = [];
+  const context = [];
   const next = { ...last };
+  const newSel = Boolean(shown.lines && ctx && ctx.lines && selKey(ctx) !== last.sel);
   if (shown.file && pathKey(shown.file.path) !== last.file) {
-    if (!mentionedKeys(text).has(pathKey(shown.file.path))) {
-      parts.push(`[הקשר מהעורך] ${shown.file.isDir ? 'התיקייה' : 'הקובץ'}: ${mentionText(shown.file.path)}`);
-    }
+    if (!newSel && !mentionedKeys(text).has(pathKey(shown.file.path))) context.push(openedFileBlock(shown.file));
     next.file = pathKey(shown.file.path);
   }
-  if (shown.lines && ctx && selKey(ctx) !== last.sel) {
-    let body = ctx.selText || '';
-    if (body.length > SELECTION_MAX_CHARS) body = `${body.slice(0, SELECTION_MAX_CHARS)}\n… (קוצר)`;
-    parts.push(`[הקשר מהעורך] השורות שנבחרו: ${linesMention(ctx)}\n\`\`\`\n${body}\n\`\`\``);
+  if (newSel) {
+    context.push(selectionBlock(ctx));
     next.sel = selKey(ctx);
   }
-  if (!parts.length) return { text, last: next };
-  return { text: `${parts.join('\n')}\n\n${text}`, last: next };
+  return { text, context, last: next };
 }
 
 module.exports = {
-  view, withContext, pruneDismissed, commandName, linesMention, mentionedKeys, pathKey, selKey, baseName, SELECTION_MAX_CHARS,
+  view, withContext, pruneDismissed, commandName, linesMention, mentionedKeys, pathKey, selKey, baseName, SELECTION_MAX_CHARS, NOT_RELATED,
 };

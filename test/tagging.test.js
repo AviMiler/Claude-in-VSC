@@ -50,29 +50,52 @@ test('view: removed chips come back when the file or the selection changes; outs
   assert.strictEqual(chips.view(null, on, { reverted: true, manual: { path: '/a' } }).reverted, false);
 });
 
-test('withContext: one uniform line for file and folder, once per change, lines with their text', () => {
+const NR = 'This may or may not be related to the current task.';
+
+test('withContext: English context blocks in the official format, once per change, text unchanged', () => {
   const first = chips.withContext('fix', chips.view(ctx, on, {}), ctx);
-  assert.strictEqual(first.text,
-    '[הקשר מהעורך] הקובץ: @C:/p/app.js\n[הקשר מהעורך] השורות שנבחרו: @C:/p/app.js#5-10\n```\nsel text\n```\n\nfix');
+  assert.strictEqual(first.text, 'fix', 'the user text is never changed');
+  // A new selection goes alone (its block names the file), as in the official extension.
+  assert.deepStrictEqual(first.context, [
+    `<ide_selection>The user selected the lines 5 to 10 from C:/p/app.js:\nsel text\n\n${NR}</ide_selection>`,
+  ]);
+  assert.strictEqual(first.last.file, chips.pathKey('C:/p/app.js'), 'the file counts as sent');
   const again = chips.withContext('more', chips.view(ctx, on, {}), ctx, first.last);
-  assert.strictEqual(again.text, 'more');
+  assert.deepStrictEqual(again, { text: 'more', context: [], last: first.last });
+  // No selection: the opened file alone.
+  const plain = ctxOf('C:/p/app.js');
+  assert.deepStrictEqual(chips.withContext('fix', chips.view(plain, on, {}), plain).context,
+    [`<ide_opened_file>The user opened the file C:/p/app.js in the IDE. ${NR}</ide_opened_file>`]);
+  // File already sent, then a selection in it: only the selection.
+  const fileOnly = chips.withContext('a', chips.view(plain, on, {}), plain);
+  const selLater = chips.withContext('b', chips.view(ctx, on, {}), ctx, fileOnly.last);
+  assert.strictEqual(selLater.context.length, 1);
+  assert.ok(selLater.context[0].startsWith('<ide_selection>'));
   const folderView = chips.view(null, on, { manual: { path: 'C:/my dir/src', isDir: true } });
-  assert.strictEqual(chips.withContext('go', folderView, null).text, '[הקשר מהעורך] התיקייה: @"C:/my dir/src"\n\ngo');
+  assert.deepStrictEqual(chips.withContext('go', folderView, null).context,
+    [`<ide_opened_file>The user selected the folder C:/my dir/src in the IDE. ${NR}</ide_opened_file>`]);
   const long = ctxOf('C:/a.js', { start: 1, end: 1 }, 'z'.repeat(9000));
-  assert.ok(chips.withContext('x', chips.view(long, on, {}), long).text.includes('… (קוצר)'));
+  const cut = chips.withContext('x', chips.view(long, on, {}), long).context[0];
+  assert.ok(cut.includes(`${'z'.repeat(chips.SELECTION_MAX_CHARS)}\n... (truncated)\n\n${NR}`));
+  assert.ok(!cut.includes('z'.repeat(chips.SELECTION_MAX_CHARS + 1)));
+  // Windows path as VS Code gives it: kept as is (absolute).
+  const win = ctxOf('C:\\p\\app.js');
+  assert.ok(chips.withContext('y', chips.view(win, on, {}), win).context[0].includes('the file C:\\p\\app.js in the IDE'));
 });
 
 test('withContext: the same file in the chip and in the text is sent once', () => {
   const v = chips.view(ctxOf('C:/p/app.js'), on, {});
   const viaAt = chips.withContext('look at @C:/p/app.js please', v, ctxOf('C:/p/app.js'));
   assert.strictEqual(viaAt.text, 'look at @C:/p/app.js please');
+  assert.deepStrictEqual(viaAt.context, []);
   assert.strictEqual(viaAt.last.file, chips.pathKey('C:/p/app.js'), 'counted as sent');
   const viaAltK = chips.withContext('@c:/P/app.js#3-4 why?', v, ctxOf('C:/p/app.js'));
-  assert.strictEqual(viaAltK.text, '@c:/P/app.js#3-4 why?');
+  assert.deepStrictEqual(viaAltK.context, []);
   const quoted = chips.view(null, on, { manual: { path: 'C:/my dir/a.js' } });
-  assert.strictEqual(chips.withContext('see @"C:/my dir/a.js", ok', quoted, null).text, 'see @"C:/my dir/a.js", ok');
+  assert.deepStrictEqual(chips.withContext('see @"C:/my dir/a.js", ok', quoted, null).context, []);
   const other = chips.withContext('see @C:/p/b.js', v, ctxOf('C:/p/app.js'));
-  assert.ok(other.text.startsWith('[הקשר מהעורך] הקובץ: @C:/p/app.js\n\n'));
+  assert.strictEqual(other.text, 'see @C:/p/b.js');
+  assert.ok(other.context[0].startsWith('<ide_opened_file>The user opened the file C:/p/app.js '));
 });
 
 test('recent list: 5 items, most recent first, no duplicates, change events', () => {
@@ -135,5 +158,5 @@ test('mentionedKeys: mentions after ( [ { " \' count, e-mails do not', () => {
   for (const p of ['C:/p/a.js', 'C:/p/b.js', 'C:/p/c.js']) assert.ok(keys.has(chips.pathKey(p)), p);
   assert.ok(!keys.has(chips.pathKey('x.com')));
   const v = chips.view(ctxOf('C:/p/a.js'), on, {});
-  assert.strictEqual(chips.withContext('why (@C:/p/a.js)?', v, ctxOf('C:/p/a.js')).text, 'why (@C:/p/a.js)?');
+  assert.deepStrictEqual(chips.withContext('why (@C:/p/a.js)?', v, ctxOf('C:/p/a.js')).context, []);
 });

@@ -2,6 +2,13 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (everything sent to the model is English; official context format; IDE-server findings)
+- **New standing rule (user):** every text the extension itself sends to the CLI/model is English; only the user's own typed text may be in another language; the UI stays Hebrew. Reasons: the local model follows English better, Hebrew costs 2-3x tokens, it matches the official extension. Reverses package K's Hebrew `[הקשר מהעורך]` line (`DECISIONS.md` 2026-11-09; `PLAN.md` section 10 annotated).
+- **Built:** the editor context uses the official extension's format as separate text blocks before the user's text (`<ide_opened_file>`, `<ide_selection>`; `spec.md` "File tagging"). `src/tagging/chips.js` `withContext` returns `{text, context, last}`; `src/tagging/file-chip.js` `applyToSend` returns `{text, context}`; `src/cli/process.js` `sendUserText(text, images, context)` writes images, context, user text; `src/cli/content.js` `isInjectedText` hides the `ide_*` blocks and `stripLegacyContext` cleans the old Hebrew prefix from old transcripts (bubbles, history titles, rewind); `src/checkpoints/checkpoints.js` uses `userTextFromEntry`. English defaults: deny `The user denied this request.`, all blocks rejected `The user rejected every block of this change.`, image-only `See the attached image.` (the webview sends empty text; the bubble shows `[תמונות: N]`). New `test/model-english.test.js`.
+- **Residual (low):** an image-only first message does not set the session title; a send that fails before reaching the model still marks the context as sent (unchanged); the source-level guard covers only the builders, so a new Hebrew literal on a model-bound path would not fail a test.
+- **IDE-server findings from the work machine** (`DEPENDENCIES.md` rows 41-42): CLI 2.1.246 never connected to our server in `-p` mode; the official extension uses an in-process SDK MCP server and plain text context blocks. **Proposed, pending the user:** close `openDiff` as not needed, keep the IDE server off (maybe remove it later), and consider post-edit diagnostics feedback via SDK hooks (`FUTURE_FEATURES.md` 4.2e/4.3e).
+- **Verified:** verify-agent GO, 302/302 unit tests, no fixes needed. Not seen in real VS Code.
+
 ## 2026-11-09 (user check in real VS Code)
 - The user confirmed in real VS Code: the open button works; the changes card appears and a file click opens the diff view; the `/` and `@` menus work mid-sentence. Navigation cards and the `/clear` reset not yet checked (`spec.md` Verification status).
 

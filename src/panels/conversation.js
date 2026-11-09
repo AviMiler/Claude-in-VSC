@@ -34,6 +34,10 @@ const loopHost = require('../loop/loop-host');
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const INTERRUPTED = 'Interrupted by the user';
+// Text the extension itself sends to the model is English (only the user's own text is not).
+const DENIED = 'The user denied this request.';
+// Images sent without text: the CLI needs some text with them (F-11).
+const IMAGE_ONLY_TEXT = 'See the attached image.';
 // After the CLI acknowledges an interrupt it should end the turn with a `result`; if none comes
 // within this time the turn is closed locally so the stop button never hangs.
 const STOP_RESULT_WAIT_MS = 4000;
@@ -351,24 +355,29 @@ class Conversation {
   // --- webview requests ------------------------------------------------------------------
 
   // hidden: a prompt the extension sends for the user (the /loop stop text), drawn as no bubble.
+  // Images without text are allowed: the bubble shows only the image count, the model gets IMAGE_ONLY_TEXT.
   send(text, images, { hidden = false } = {}) {
-    if (!text || !text.trim() || this.busy) return;
+    text = String(text || '');
+    if (this.busy) return;
+    const valid = Array.isArray(images)
+      ? images.filter((i) => i && IMAGE_TYPES.includes(i.mediaType) && typeof i.data === 'string')
+      : [];
+    if (!text.trim() && !valid.length) return;
     if (text.trim() === '/clear' && this.edits.byId.size) {
       this.edits = editLog.createEditLog(); // the CLI starts over: so do /diff and the changes card
       this.postChanges();
     }
-    const valid = Array.isArray(images)
-      ? images.filter((i) => i && IMAGE_TYPES.includes(i.mediaType) && typeof i.data === 'string')
-      : [];
     if (!this.proc) this.startProcess({ resume: this.sessionId || undefined });
     if (!this.hasMessages) this.setTitle(text.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX));
     this.hasMessages = true;
     this.services.logger.info('stream', `send (${text.length} chars, ${valid.length} images, session=${this.sessionId || 'new'})`);
     this.busy = true;
-    if (!hidden) replayLog.addUser(this.log, valid.length ? `${text}\n[תמונות: ${valid.length}]` : text);
+    if (!hidden) replayLog.addUser(this.log, valid.length ? `${text.trim() ? `${text}\n` : ''}[תמונות: ${valid.length}]` : text);
     // Not awaited: the model answers long before any tool reads the saved files.
     this.autosave(fileChip.autosaveFilter(this));
-    this.proc.sendUserText(hidden ? text : fileChip.applyToSend(this, mentions.resolveMentions(text, this.cwd)), valid);
+    // The editor context goes as separate English blocks in front of the user's text (file-chip.js).
+    const out = hidden ? { text, context: [] } : fileChip.applyToSend(this, mentions.resolveMentions(text, this.cwd));
+    this.proc.sendUserText(out.text.trim() ? out.text : IMAGE_ONLY_TEXT, valid, out.context);
   }
 
   // --- file tagging (package K) and autosave (package F) -------------------------------------
@@ -532,7 +541,7 @@ class Conversation {
       if (always && req.permission_suggestions) response.updatedPermissions = req.permission_suggestions;
       proc.respond(requestId, response);
     } else {
-      proc.respond(requestId, { behavior: 'deny', message: message || 'המשתמש דחה את הבקשה.' });
+      proc.respond(requestId, { behavior: 'deny', message: message || DENIED });
     }
   }
 

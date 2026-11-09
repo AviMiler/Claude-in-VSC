@@ -27,6 +27,7 @@ A VS Code extension (plain JS, no build, no npm): a Hebrew RTL front for the rea
 
 ## Constraints (mandatory)
 - **No internet on the user's machine.** A few files can be brought in (delivered as under "Working agreements"). No installs from the network (`npm install`, marketplace/extension downloads, package managers, runtime fetching). Code libraries only as a last resort: vendor plain files under `webview/vendor/` only when truly no other way, after trying VS Code APIs, Node built-ins, the CLI and hand-written code; record each exception in `DEPENDENCIES.md` with the reason. When proposing a feature, say first what it needs from outside the repo.
+- **Model-bound text is English (user, 2026-11-09).** Every text the extension itself sends to the CLI/model (editor-context blocks, deny/reject results, the image-only placeholder, injected prompts) is English; only the user's own typed text may be in another language; the UI stays Hebrew. Why: `DECISIONS.md` 2026-11-09.
 - Docs are English; every user-facing string and every question to the user is Hebrew (exception addressing the user: `SETUP.md`).
 - No persistence, no build step, no writing to the CLI's transcripts.
 - Push only when the user asks. Never stage the untracked `שליחה` zip/folder.
@@ -38,6 +39,7 @@ A VS Code extension (plain JS, no build, no npm): a Hebrew RTL front for the rea
 - **Unverified everywhere:** real VS Code (1.91.1 and the user's 1.124.2) and the real CLI. The list of open user checks is `dev/open-checks.txt`; the full step-by-step file is `dev/must-check.txt`. Per-area status: `spec.md` "Verification status", `PLAN.md` section 6, `DEPENDENCIES.md` section 5.
 - **Open for the user:** run `dev/check-all.txt` "בדיקה 8", `dev/check-7.html` 7.6 (usage gauge), `dev/check-model-switch.txt` (F-8/F-9 on CLI 2.1.246), `dev/check-ide-server.txt` (rename back to `.ps1` to run; IDE token header and method names; `openDiff` waits for it); `/btw` still does not see the main conversation (decision pending); Ctrl+Alt+E and F-6 (Ctrl+Shift+T from the sidebar) in real VS Code.
 - **Also built 2026-11-09:** explicit "פתיחה בעורך" button on tool rows, navigation chat cards, the cumulative "שינויים בשיחה" changes card (reset by `/clear`), `/` and `@` menus mid-sentence. Tests 287/287; unverified in real VS Code. Package I step 2 cancelled; `openDiff` and plan-approval buttons not built (only checks prepared). The detailed user check file is `dev/must-check.txt`. Details: `CHANGELOG.md`, `DECISIONS.md` 2026-11-09.
+- **Built 2026-11-09 (English model text):** editor context now goes as the official extension's `<ide_opened_file>` / `<ide_selection>` text blocks before the user's text; all extension-written model text is English. Tests 302/302, verify-agent GO; unverified in real VS Code. IDE-server findings from the work machine (the CLI never connected; the official extension uses an in-process SDK MCP server): `DEPENDENCIES.md` rows 41-42; `openDiff` proposed as "not needed", pending the user.
 - **Next:** the user runs `dev/must-check.txt`; then decide `openDiff` and the plan-approval buttons from its results.
 
 ## How to work here
