@@ -38,13 +38,56 @@ function pickWindow(ollama, configured) {
 function contextDetail(response) {
   const r = response && typeof response === 'object' ? response : {};
   const categories = (Array.isArray(r.categories) ? r.categories : [])
-    .filter((c) => c && typeof c.name === 'string' && Number.isFinite(c.tokens) && c.tokens >= 0)
+    .filter((c) => c && typeof c.name === 'string' && c.name.trim() && Number.isFinite(c.tokens) && c.tokens >= 0)
     .map((c) => ({ name: c.name, tokens: Math.round(c.tokens), deferred: c.isDeferred === true }));
   const memoryFiles = Array.isArray(r.memoryFiles) ? r.memoryFiles.length : null;
-  const mcpServers = Array.isArray(r.mcpTools)
-    ? new Set(r.mcpTools.map((t) => t && t.serverName).filter((s) => typeof s === 'string' && s)).size
+  const mcpTools = Array.isArray(r.mcpTools) ? r.mcpTools.filter((t) => t && typeof t === 'object') : null;
+  const mcpServers = mcpTools
+    ? new Set(mcpTools.map((t) => t.serverName).filter((s) => typeof s === 'string' && s)).size
     : null;
-  return { categories, memoryFiles, mcpServers };
+  // Per-server token totals from the per-tool list (when the CLI gives tokens per tool); a tool with
+  // isLoaded === false is deferred (not in the window until loaded).
+  const byServer = new Map();
+  for (const t of mcpTools || []) {
+    if (!Number.isFinite(t.tokens) || t.tokens <= 0) continue;
+    const name = typeof t.serverName === 'string' && t.serverName ? t.serverName : '';
+    const s = byServer.get(name) || { name, tokens: 0, deferredTokens: 0, tools: 0 };
+    if (t.isLoaded === false) s.deferredTokens += Math.round(t.tokens);
+    else s.tokens += Math.round(t.tokens);
+    s.tools += 1;
+    byServer.set(name, s);
+  }
+  const mcpDetail = [...byServer.values()];
+  // A category the CLI left out but whose per-tool list carries tokens is added from that list.
+  const has = (name, deferred) => categories.some((c) => c.name.toLowerCase().replace(/\s*\(deferred\)$/, '') === name && c.deferred === deferred);
+  const sum = (list) => list.reduce((a, n) => a + n, 0);
+  const mcpLoaded = sum(mcpDetail.map((s) => s.tokens));
+  const mcpDeferred = sum(mcpDetail.map((s) => s.deferredTokens));
+  if (mcpLoaded > 0 && !has('mcp tools', false)) categories.push({ name: 'MCP tools', tokens: mcpLoaded, deferred: false });
+  if (mcpDeferred > 0 && !has('mcp tools', true)) categories.push({ name: 'MCP tools', tokens: mcpDeferred, deferred: true });
+  const sysTokens = sum((Array.isArray(r.systemTools) ? r.systemTools : [])
+    .map((t) => (t && Number.isFinite(t.tokens) && t.tokens > 0 ? Math.round(t.tokens) : 0)));
+  if (sysTokens > 0 && !has('system tools', false)) categories.push({ name: 'System tools', tokens: sysTokens, deferred: false });
+  return { categories, memoryFiles, mcpServers, mcpDetail };
+}
+
+// Pure: one compact diagnostic line of the raw response (names and sizes only, no content), so the
+// real shape can be read from the log: categories as name=tokens, top-level keys, MCP tools count/tokens.
+function describeUsage(response) {
+  const r = response && typeof response === 'object' ? response : {};
+  const cats = (Array.isArray(r.categories) ? r.categories : [])
+    .map((c) => `${c && c.name}${c && c.isDeferred ? '(deferred)' : ''}=${c && c.tokens}`).join(', ');
+  const parts = [`categories: ${cats || '-'}`, `keys: ${Object.keys(r).join(',') || '-'}`];
+  if (Array.isArray(r.mcpTools)) {
+    const total = r.mcpTools.reduce((a, t) => a + (t && Number.isFinite(t.tokens) ? t.tokens : 0), 0);
+    parts.push(`mcpTools: ${r.mcpTools.length} tools ${total}`);
+  }
+  if (Array.isArray(r.systemTools)) {
+    const total = r.systemTools.reduce((a, t) => a + (t && Number.isFinite(t.tokens) ? t.tokens : 0), 0);
+    parts.push(`systemTools: ${r.systemTools.length} tools ${total}`);
+  }
+  const line = parts.join(' | ');
+  return line.length > 400 ? `${line.slice(0, 397)}...` : line;
 }
 
 // The real window for the model, from Ollama or the last value seen this window; null when unknown.
@@ -72,6 +115,7 @@ function refreshContextMeter(conversation) {
   const logger = conversation.services.logger;
   proc.request('get_context_usage', {}, TIMEOUT_MS).then(
     async (response) => {
+      logger.info('context', describeUsage(response));
       const settings = conversation.services.settings.get();
       const model = (response && typeof response.model === 'string' && response.model) || conversation.model;
       const ollama = await realWindow(settings, model, logger);
@@ -87,4 +131,4 @@ function refreshContextMeter(conversation) {
   ).catch((err) => logger.warn('context', `usage gauge failed: ${err.message}`));
 }
 
-module.exports = { parseContextUsage, pickWindow, contextDetail, refreshContextMeter };
+module.exports = { parseContextUsage, pickWindow, contextDetail, describeUsage, refreshContextMeter };

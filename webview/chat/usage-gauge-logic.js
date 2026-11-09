@@ -55,6 +55,21 @@
     return known ? { key: known.key, label: known.label } : { key: 'other', label: String(name) };
   }
 
+  // A usable category: a non-empty string name and a finite token count (never "null"/"undefined").
+  const named = (c) => Boolean(c) && typeof c.name === 'string' && c.name.trim() !== '' && Number.isFinite(c.tokens);
+
+  // Per-server MCP detail rows [{label, tokens}] from the host's mcpDetail; empty ones are skipped.
+  function mcpRows(detail) {
+    const out = [];
+    for (const s of Array.isArray(detail) ? detail : []) {
+      if (!s) continue;
+      const label = `שרת MCP: ${typeof s.name === 'string' && s.name ? s.name : 'ללא שם'}`;
+      if (Number.isFinite(s.tokens) && s.tokens > 0) out.push({ label, tokens: s.tokens });
+      if (Number.isFinite(s.deferredTokens) && s.deferredTokens > 0) out.push({ label: `${label} (לפי הצורך)`, tokens: s.deferredTokens });
+    }
+    return out;
+  }
+
   // msg: { used, max, categories: [{name, tokens, deferred}] }.
   // Returns { rows, deferred, used, max, pct, level }:
   //   rows: [{ key, label, tokens, pct }] in display order, used categories first, then the
@@ -71,7 +86,7 @@
     let buffer = 0;
     const deferred = [];
     for (const c of cats) {
-      if (!c || !Number.isFinite(c.tokens)) continue;
+      if (!named(c)) continue;
       if (c.deferred) {
         const base = String(c.name).replace(/\s*\(deferred\)$/i, '');
         deferred.push({ label: DEFERRED_LABELS[base] || `${labelOf(base).label} (לפי הצורך)`, tokens: c.tokens });
@@ -93,7 +108,7 @@
     rows.push({ key: 'free', label: 'מקום פנוי', tokens: room - buf });
     for (const r of rows) r.pct = fmtPct(r.tokens, max);
     const pct = percent(used, max);
-    return { rows, deferred, used, max, pct, level: level(pct) };
+    return { rows, deferred, mcp: mcpRows(msg.mcpDetail), used, max, pct, level: level(pct) };
   }
 
   // Bar segments: width in percent of the window for every row but the free space (the track).

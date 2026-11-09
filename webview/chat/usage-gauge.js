@@ -52,6 +52,11 @@
       el('span', { class: 'usage-tokens' }, num(r.tokens)),
       el('bdi', { class: 'usage-share', text: r.pct }))));
     const extra = [];
+    const mcpSub = b.mcp.map((d) => el('div', { class: 'usage-row sub' },
+      el('span', { class: 'dot', 'aria-hidden': 'true' }),
+      el('span', { class: 'usage-name', dir: 'auto', text: d.label }),
+      el('span', { class: 'usage-tokens' }, num(d.tokens)),
+      el('span', { class: 'usage-share' })));
     for (const d of b.deferred) {
       extra.push(el('div', { class: 'usage-row sub' },
         el('span', { class: 'dot', 'aria-hidden': 'true' }),
@@ -60,19 +65,21 @@
         el('span', { class: 'usage-share' })));
     }
     const facts = L.factsLine(last.memoryFiles, last.mcpServers);
-    card.replaceChildren(
+    // replaceChildren(null) would insert the text "null", so empty parts are filtered out first.
+    card.replaceChildren(...[
       el('div', { class: 'usage-head' },
         el('span', { class: 'usage-title', text: 'הקשר' }),
         el('span', { class: `usage-pct lvl-${b.level}` }, el('bdi', { text: `${b.pct}%` }), ' בשימוש')),
       el('div', { class: 'usage-total' }, num(b.used), ' מתוך ', num(b.max), ' אסימונים'),
       bar,
       rows,
+      mcpSub.length ? el('div', { class: 'usage-rows usage-deferred' }, ...mcpSub) : null,
       extra.length ? el('div', { class: 'usage-rows usage-deferred', title: 'לא נספרים בחלון עד שנטענים' }, ...extra) : null,
       el('div', { class: 'usage-foot' },
         facts ? el('div', { text: facts }) : null,
         el('div', { text: L.sourceText(last.source) }),
         el('div', {}, 'לכיווץ השיחה: ', el('bdi', { class: 'num', dir: 'ltr', text: '/compact' }))),
-    );
+    ].filter(Boolean));
   }
 
   // Physical left: the card starts over the gauge and is kept inside the composer at any width.

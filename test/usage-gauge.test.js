@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const { resolveOllamaUrl, normalizeModelName, windowFromPs, fetchOllamaWindow } = require('../src/models/ollama');
-const { pickWindow, contextDetail } = require('../src/panels/context-meter');
+const { pickWindow, contextDetail, describeUsage } = require('../src/panels/context-meter');
 const L = require('../webview/chat/usage-gauge-logic');
 
 test('resolveOllamaUrl: the setting is used as is; empty or off means no read (never derived)', () => {
@@ -76,8 +76,53 @@ test('contextDetail keeps valid categories and counts memory files and MCP serve
   assert.deepStrictEqual(d.categories, [{ name: 'Messages', tokens: 1200, deferred: false }, { name: 'System tools', tokens: 900, deferred: true }]);
   assert.strictEqual(d.memoryFiles, 2);
   assert.strictEqual(d.mcpServers, 2);
-  assert.deepStrictEqual(contextDetail({}), { categories: [], memoryFiles: null, mcpServers: null });
-  assert.deepStrictEqual(contextDetail(null), { categories: [], memoryFiles: null, mcpServers: null });
+  assert.deepStrictEqual(contextDetail({}), { categories: [], memoryFiles: null, mcpServers: null, mcpDetail: [] });
+  assert.deepStrictEqual(contextDetail(null), { categories: [], memoryFiles: null, mcpServers: null, mcpDetail: [] });
+});
+
+test('contextDetail: MCP and system tools tokens come from the per-tool lists when the categories omit them', () => {
+  const d = contextDetail({
+    categories: [{ name: 'Messages', tokens: 100 }, { name: '  ', tokens: 5 }, { name: null, tokens: 5 }],
+    mcpTools: [
+      { name: 'a', serverName: 'claude-local-nav', tokens: 300, isLoaded: true },
+      { name: 'b', serverName: 'claude-local-nav', tokens: 200 },
+      { name: 'c', serverName: 'claude-local-nav', tokens: 50, isLoaded: false },
+      { name: 'd', serverName: 'x' },
+    ],
+    systemTools: [{ name: 'Read', tokens: 400 }, { name: 'Bad' }],
+  });
+  assert.deepStrictEqual(d.mcpDetail, [{ name: 'claude-local-nav', tokens: 500, deferredTokens: 50, tools: 3 }]);
+  assert.deepStrictEqual(d.categories, [
+    { name: 'Messages', tokens: 100, deferred: false },
+    { name: 'MCP tools', tokens: 500, deferred: false },
+    { name: 'MCP tools', tokens: 50, deferred: true },
+    { name: 'System tools', tokens: 400, deferred: false },
+  ]);
+  // Not duplicated when the CLI already reports the categories.
+  const e = contextDetail({ categories: [{ name: 'MCP tools', tokens: 500 }, { name: 'System tools', tokens: 400 }], mcpTools: [{ serverName: 's', tokens: 500 }], systemTools: [{ tokens: 400 }] });
+  assert.deepStrictEqual(e.categories.map((c) => c.name), ['MCP tools', 'System tools']);
+});
+
+test('describeUsage: one compact line with categories, keys and tool totals; short for any input', () => {
+  const line = describeUsage({ totalTokens: 1, categories: [{ name: 'Messages', tokens: 22090 }, { name: 'MCP tools', tokens: 5, isDeferred: true }], mcpTools: [{ tokens: 10 }, { tokens: 20 }] });
+  assert.strictEqual(line, 'categories: Messages=22090, MCP tools(deferred)=5 | keys: totalTokens,categories,mcpTools | mcpTools: 2 tools 30');
+  assert.strictEqual(describeUsage(null), 'categories: - | keys: -');
+  assert.ok(describeUsage({ categories: Array.from({ length: 80 }, (_, i) => ({ name: `C${i}`, tokens: i })) }).length <= 400);
+});
+
+test('breakdown: MCP tools row and per-server detail; nameless categories are dropped', () => {
+  const b = L.breakdown({
+    used: 3000, max: 64000,
+    categories: [{ name: 'Messages', tokens: 2000 }, { name: 'MCP tools', tokens: 1000 }, { name: null, tokens: 7 }, { name: '', tokens: 7 }],
+    mcpDetail: [{ name: 'claude-local-nav', tokens: 1000, deferredTokens: 0, tools: 4 }, { name: '', tokens: 0, deferredTokens: 40 }, null],
+  });
+  assert.deepStrictEqual(b.rows.map((r) => r.label), ['הודעות', 'כלי MCP', 'מקום פנוי']);
+  assert.deepStrictEqual(b.mcp, [
+    { label: 'שרת MCP: claude-local-nav', tokens: 1000 },
+    { label: 'שרת MCP: ללא שם (לפי הצורך)', tokens: 40 },
+  ]);
+  assert.deepStrictEqual(L.breakdown({ used: 1, max: 10 }).mcp, []);
+  for (const r of b.rows) assert.ok(!/null|undefined/.test(r.label));
 });
 
 test('gauge level: orange from 70%, red from 85%', () => {

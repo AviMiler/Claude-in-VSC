@@ -2,6 +2,9 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (usage card: stray "null" and MCP tokens)
+- **Fixed:** the usage card showed a literal "null" under the rows (`replaceChildren(null)` stringifies it; the card now filters empty parts); nameless categories are skipped; MCP/system tools tokens are taken from the per-tool lists (`mcpTools`, `systemTools`) when the CLI omits the category, with per-server detail rows. Not verified against the real CLI response.
+
 ## 2026-11-09 (plan-approval check: ExitPlanMode does not arrive)
 - **Checked (user, work machine, CLI 2.1.246, VS Code, `qwen3.8:27b`):** in plan mode the model wrote the plan as plain assistant text and asked its questions in text. It called neither `ExitPlanMode` nor `AskUserQuestion`; the log has no "ExitPlanMode"; `/plan open` answered "no plan yet".
 - **Decided:** the ExitPlanMode-based plan-approval buttons are dropped (the user's rule of 2026-11-08). New proposal pending the user, not decided: an "approve and implement" button after a plan-mode turn, and `/plan open` falling back to the last plan-mode message (`FUTURE_FEATURES.md` 4.3g).
