@@ -47,3 +47,18 @@ test('tool results and the init line', () => {
   const [r] = t({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'tu', content: 'out', is_error: false }] } });
   assert.deepStrictEqual(r, { kind: 'toolResult', toolUseId: 'tu', text: 'out', isError: false });
 });
+
+test('a replayed user message shows no item for the injected editor-context blocks', () => {
+  const t = createStreamTranslator();
+  const ctxFile = '<ide_opened_file>The user opened the file a.js in the IDE. This may or may not be related to the current task.</ide_opened_file>';
+  const ctxSel = '<ide_selection>The user selected the lines 1 to 2 from a.js:\nx\n\nThis may or may not be related to the current task.</ide_selection>';
+  const replay = { type: 'user', uuid: 'u1', isReplay: true, message: { role: 'user', content: [
+    { type: 'text', text: ctxFile }, { type: 'text', text: ctxSel }, { type: 'text', text: 'fix it' },
+  ] } };
+  assert.deepStrictEqual(t(replay), []);
+  const withResult = { type: 'user', message: { content: [{ type: 'text', text: ctxFile }, { type: 'tool_result', tool_use_id: 't1', content: 'ok' }] } };
+  assert.deepStrictEqual(t(withResult), [{ kind: 'toolResult', toolUseId: 't1', text: 'ok', isError: false }]);
+  // Injected text is never shown as the model's own text either.
+  const asst = { type: 'assistant', message: { id: 'm1', content: [{ type: 'text', text: ctxFile }, { type: 'text', text: 'done' }] } };
+  assert.deepStrictEqual(t(asst).map((e) => e.text), ['done']);
+});

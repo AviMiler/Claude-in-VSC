@@ -9,6 +9,8 @@
 //   snapshot  the last one of each type is enough (bars, pickers, meter).
 //   other     not kept (notices, menus, search results, focus...).
 
+const { isInjectedText } = require('../cli/content');
+
 const THREAD_TYPES = new Set(['planReady', 'selfTurn', 'errorCard']);
 const SNAPSHOT_TYPES = new Set(['mode', 'model', 'models', 'context', 'commands', 'backgroundTasks', 'claudeTasks', 'loopJobs', 'changesCard']);
 
@@ -24,6 +26,8 @@ function createReplayLog() {
 }
 
 function addEvent(log, ev) {
+  // Injected context (editor blocks, CLI reminders) is never a visible item, live or restored.
+  if ((ev.kind === 'block' || ev.kind === 'delta') && ev.blockType === 'text' && isInjectedText(ev.text || '')) return;
   if (ev.kind === 'delta') {
     const at = log.blocks.get(ev.key);
     if (at === undefined) {

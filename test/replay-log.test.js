@@ -45,3 +45,10 @@ test('a loaded transcript is the new base; sent texts come from it and from the 
   assert.deepStrictEqual(r.sentTexts(log), ['a', 'b']);
   assert.strictEqual(r.replay(log).base.id, 's');
 });
+
+test('injected editor-context text is not kept for the restored view', () => {
+  const log = r.createReplayLog();
+  r.record(log, events({ kind: 'block', key: 'm:0', blockType: 'text', text: '<ide_opened_file>The user opened the file a.js in the IDE.</ide_opened_file>' }));
+  r.record(log, events({ kind: 'delta', key: 'm:1', blockType: 'text', text: '<ide_selection>x</ide_selection>' }));
+  assert.strictEqual(r.replay(log).items.length, 0);
+});

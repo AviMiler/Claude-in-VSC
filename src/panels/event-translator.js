@@ -12,7 +12,7 @@
 //   {kind:'result', isError, errorText, durationMs, inputTokens, outputTokens}
 //   {kind:'status', status}
 
-const { toolResultEvents } = require('../cli/content');
+const { toolResultEvents, isInjectedText } = require('../cli/content');
 
 function resultEvent(msg) {
   const usage = msg.usage || {};
@@ -80,6 +80,7 @@ function createStreamTranslator() {
     const out = [];
     for (const block of message.content || []) {
       if (block.type === 'text') {
+        if (isInjectedText(block.text || '')) continue; // editor context / CLI-injected text, never the model's words
         out.push({ kind: 'block', key: claimKey(message.id, 'text'), blockType: 'text', text: block.text || '' });
       } else if (block.type === 'thinking' || block.type === 'redacted_thinking') {
         out.push({ kind: 'block', key: claimKey(message.id, 'thinking'), blockType: 'thinking', text: block.thinking || '' });
@@ -109,6 +110,8 @@ function createStreamTranslator() {
       case 'assistant':
         return onAssistant(msg.message || {});
       case 'user': {
+        // A replayed or echoed user message: only its tool results are shown. Its text blocks (the
+        // typed text, drawn by the webview itself, and the injected editor context) never are.
         const content = msg.message && msg.message.content;
         return Array.isArray(content) ? toolResultEvents(content) : [];
       }

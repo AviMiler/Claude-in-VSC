@@ -2,6 +2,9 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (editor-context blocks never shown in the thread)
+- **Fixed:** `<ide_opened_file>` / `<ide_selection>` text could appear as the first item of Claude's turn. `src/panels/event-translator.js` drops injected text from assistant text blocks (replayed user text blocks were already dropped; only tool results show), and `src/panels/replay-log.js` never keeps such text, so a restored view is clean. Tests added in `event-translator.test.js` and `replay-log.test.js`.
+
 ## 2026-11-09 (IDE server removed, user decision)
 - **Removed:** `src/ide/` (ws-frames, ws-server, ide-rpc, ide-lock, ide-service, ide-vscode, index), its wiring (`src/panels/index.js` registration, `startProcess` env and 30 s notice, `services.ide`), the settings `claudeLocal.ideServer` / `ideServerVerboseLog` (`package.json`, `src/util/settings.js`), the log tag `ide`, `editorTracker.editor()` (used only by it), `test/ws-frames.test.js`, `test/ide-server.test.js`, `dev/check-ide-server.txt`. The editor-context helpers were not used elsewhere, so nothing moved. No lock-file migration (the server deleted its own lock on dispose).
 - **Why:** CLI 2.1.246 never connected to it; editor context goes as text blocks; `openDiff` was redundant. `DECISIONS.md` 2026-11-09, `PLAN.md` section 7.
