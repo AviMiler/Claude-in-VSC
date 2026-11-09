@@ -52,6 +52,7 @@
     modeBtn.setAttribute('aria-label', `מצב הרשאות: ${m.label}`);
     modeBtn.classList.toggle('active-mode', m.value !== 'default');
     modeBtn.classList.toggle('danger', Boolean(m.danger));
+    sendBtn.dataset.mode = m.value; // the send button's colour follows the mode, like the official one
   }
 
   function modelLabel(value) {

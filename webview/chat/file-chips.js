@@ -6,7 +6,8 @@
   const { el, post } = CL;
   const box = document.getElementById('editor-chips');
 
-  // Static icons drawn like VS Code's file / folder codicons (no icon font is bundled).
+  // Static icons drawn like VS Code's file / folder codicons (no icon font is bundled). The look follows
+  // the official extension's attachment pills (composer.css).
   const ICONS = {
     file: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>',
     folder: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5h4.5l1.5 1.5h7v8.5h-13z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>',
@@ -23,7 +24,7 @@
 
   function removeBtn(label, action) {
     return el('button', {
-      type: 'button', text: '✕', title: 'הסרה', 'aria-label': `הסרת ${label}`,
+      type: 'button', class: 'chip-remove', text: '✕', title: 'הסרה', 'aria-label': `הסרת ${label}`,
       onclick: (e) => { e.stopPropagation(); post({ type: 'fileChip', action }); },
     });
   }
@@ -41,7 +42,6 @@
       role: 'button',
       tabindex: '0',
       class: `editor-chip file-chip${f ? '' : ' chip-empty'}${f && f.manual ? ' manual' : ''}${state.reverted ? ' reverted' : ''}`,
-      dir: 'auto',
       title: fileTitle(f),
       'aria-haspopup': 'menu',
       onclick: () => openMenu(chip),
@@ -50,8 +50,7 @@
       },
     },
     icon(f && f.isDir ? 'folder' : 'file'),
-    el('span', { class: 'editor-chip-label', text: f ? f.name : 'אין קובץ' }),
-    state.reverted ? el('span', { class: 'chip-reverted', text: 'הוחזר למצב אוטומטי' }) : null,
+    el('span', { class: 'editor-chip-label', dir: 'auto', text: f ? f.name : 'אין קובץ' }),
     f ? removeBtn(f.name, 'remove') : null);
     return chip;
   }
@@ -59,9 +58,14 @@
   function linesChip() {
     const l = state.lines;
     if (!l) return el('span', { class: 'editor-chip chip-empty', title: 'אין בחירה בקובץ שבתגית הקובץ' }, icon('lines'), el('span', { class: 'editor-chip-label', text: 'אין בחירה' }));
-    const range = l.start === l.end ? `שורה ${l.start}` : `שורות ${l.start}–${l.end}`;
-    return el('span', { class: 'editor-chip', dir: 'auto', title: `${range} ב-${l.name}\nהשורות שנבחרו יישלחו עם ההודעה הבאה` },
-      icon('lines'), el('span', { class: 'editor-chip-label', text: range }), removeBtn(range, 'removeLines'));
+    const word = l.start === l.end ? 'שורה' : 'שורות';
+    const nums = l.start === l.end ? `${l.start}` : `${l.start}–${l.end}`;
+    const range = `${word} ${nums}`;
+    // The numbers in their own LTR island, so "12–30" does not turn into "30–12" in RTL.
+    return el('span', { class: 'editor-chip', title: `${range} ב-${l.name}\nהשורות שנבחרו יישלחו עם ההודעה הבאה` },
+      icon('lines'),
+      el('span', { class: 'editor-chip-label' }, `${word} `, el('bdi', { dir: 'ltr', text: nums })),
+      removeBtn(range, 'removeLines'));
   }
 
   function openMenu(anchor) {
@@ -89,7 +93,9 @@
     // m: {file, lines, reverted, recents} from the host.
     render(m) {
       state = { file: m.file || null, lines: m.lines || null, reverted: Boolean(m.reverted), recents: m.recents || [] };
-      box.replaceChildren(fileChip(), linesChip());
+      // The "back to automatic" note sits next to the chip, so the pill keeps its fixed width.
+      const note = state.reverted ? el('span', { class: 'chip-reverted', text: 'הוחזר למצב אוטומטי' }) : null;
+      box.replaceChildren(...[fileChip(), note, linesChip()].filter(Boolean));
       box.hidden = false;
     },
     // Typing ends the "back to automatic" mark.

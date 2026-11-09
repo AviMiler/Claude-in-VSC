@@ -1,13 +1,16 @@
 /* Cards in the thread: permission (numbered options), plan, question, info and error cards.
    Tokens from chat.css. */
 
+/* Like the official permission request: menu-coloured box, input border, 8px corners; the border
+   takes the active-option colour while a control inside has focus. */
 .card {
   border: 1px solid var(--cl-border);
   border-radius: var(--cl-radius-l);
-  background: var(--cl-raised);
+  background: var(--cl-menu-bg);
   overflow: hidden;
 }
-.card-title { padding: 9px 12px 0; font-weight: 600; margin-bottom: 6px; }
+.card:focus-within { border-color: color-mix(in srgb, var(--cl-active-border) 65%, transparent); }
+.card-title { padding: 9px 12px 0; font-weight: 700; margin-bottom: 4px; }
 .card > :not(.card-title):not(.card-actions) { margin-inline: 12px; }
 .card-reason { font-size: 12px; color: var(--cl-muted); margin: -2px 0 6px; }
 .card-pre {
@@ -48,17 +51,19 @@
 .opt-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
   min-width: 0;
-  padding: 5px 8px;
+  padding: 4px 6px;
   border: 1px solid transparent;
   border-radius: var(--cl-radius-s);
   background: transparent;
   text-align: start;
 }
 .opt-deny .opt-btn { flex: none; }
-.opt-btn:hover, .opt-btn:focus-visible { background: var(--cl-sel-bg); color: var(--cl-sel-fg); outline: none; }
+/* The official options: a ghost hover, and a 2px bar in the button colour on the focused one. */
+.opt-btn:hover { background: var(--cl-hover); }
+.opt-btn:focus-visible { background: var(--cl-hover); box-shadow: inset -2px 0 0 0 var(--vscode-button-background); outline: none; }
 .opt-num {
   flex: none;
   width: 18px;
@@ -70,7 +75,7 @@
   font-size: 11px;
   color: var(--cl-muted);
 }
-.opt-btn:hover .opt-num, .opt-btn:focus-visible .opt-num { color: inherit; border-color: currentColor; }
+.opt-btn:hover .opt-num, .opt-btn:focus-visible .opt-num { color: var(--cl-fg); border-color: var(--cl-border); }
 .opt .card-input { flex: 1; }
 
 .btn {
@@ -80,7 +85,7 @@
   border: 1px solid transparent;
   line-height: 1.4;
 }
-.btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+.btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); font-weight: 700; }
 .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
 .btn-secondary {
   background: var(--vscode-button-secondaryBackground, transparent);
@@ -103,7 +108,7 @@
   outline: none;
 }
 textarea.card-input { height: auto; padding: 4px 8px; }
-.card-input:focus { border-color: var(--cl-focus); }
+.card-input:focus { border-color: var(--cl-active-border); }
 .card-done { color: var(--cl-muted); font-size: 12px; padding: 0 4px; }
 .card-done.ok { color: var(--cl-ok); }
 .card-done.no { color: var(--cl-warn); }
@@ -132,7 +137,7 @@ textarea.card-input { height: auto; padding: 4px 8px; }
   text-align: start;
 }
 .q-option:hover { background: var(--cl-hover); }
-.q-option.sel { border-color: var(--cl-orange); background: color-mix(in srgb, var(--cl-orange) 12%, transparent); }
+.q-option.sel { border-color: var(--cl-border); background: var(--cl-hover); box-shadow: inset -2px 0 0 0 var(--vscode-button-background); }
 .q-option-desc { display: block; font-size: 11.5px; color: var(--cl-muted); }
 
 /* Terminal-only card, plan button, CLI error card */

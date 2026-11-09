@@ -13,7 +13,16 @@
   --cl-raised: var(--vscode-editorWidget-background, var(--cl-surface));
   --cl-input-bg: var(--vscode-input-background);
   --cl-input-fg: var(--vscode-input-foreground);
-  --cl-border: var(--vscode-input-border, var(--vscode-widget-border, #7f7f7f4d));
+  /* Values below follow the official extension's tokens (2.1.319): borders, pills, menus, send button. */
+  --cl-border: var(--vscode-inlineChatInput-border, var(--vscode-input-border, var(--vscode-widget-border, #7f7f7f66)));
+  --cl-active-border: var(--vscode-inputOption-activeBorder, var(--vscode-focusBorder));
+  --cl-pill-bg: color-mix(in srgb, var(--cl-fg) 10%, transparent);
+  --cl-pill-hover: color-mix(in srgb, var(--cl-fg) 18%, transparent);
+  --cl-chip-bg: color-mix(in srgb, var(--cl-input-bg) 85%, var(--cl-muted));
+  --cl-clay: #c6613f;
+  --cl-ivory: #faf9f5;
+  --cl-chat-size: var(--vscode-chat-font-size, 13px);
+  --cl-timeline-line: var(--vscode-sideBarActivityBarTop-border, color-mix(in srgb, var(--cl-muted) 35%, transparent));
   --cl-subtle-border: var(--vscode-widget-border, #7f7f7f33);
   --cl-strong-border: color-mix(in srgb, var(--cl-fg) 45%, transparent);
   --cl-code-bg: var(--vscode-textCodeBlock-background, #7f7f7f1f);
@@ -32,7 +41,6 @@
   --cl-warn: var(--vscode-editorWarning-foreground, #e5a54b);
   --cl-gauge-warn: var(--vscode-charts-orange, #d18616);
   --cl-blue: var(--vscode-charts-blue, #3794ff);
-  --cl-info: var(--vscode-editorInfo-foreground, #3794ff);
   --cl-shadow: var(--vscode-widget-shadow, #0000004d);
   --cl-mono: var(--vscode-editor-font-family, Consolas, monospace);
   --cl-mono-size: var(--vscode-editor-font-size, 12px);
@@ -162,7 +170,7 @@ kbd {
 .thread {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 14px 8px;
+  padding: 20px 20px 24px;
   scroll-behavior: auto;
 }
 
@@ -218,9 +226,11 @@ kbd {
 
 .items { display: flex; flex-direction: column; gap: 12px; }
 
+/* The user's message: a framed block sized to its text, like the official one. */
 .msg-user {
-  align-self: stretch;
-  padding: 7px 11px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 4px 6px;
   border: 1px solid var(--cl-border);
   border-radius: var(--cl-radius);
   background: var(--cl-input-bg);
@@ -246,7 +256,7 @@ kbd {
   height: 7px;
   border-radius: 50%;
   background: var(--cl-muted);
-  opacity: .55;
+  z-index: 1;
 }
 .tl:not(:last-child)::after {
   content: "";
@@ -255,7 +265,7 @@ kbd {
   top: calc(.62em + 11px);
   bottom: -2px;
   width: 1px;
-  background: color-mix(in srgb, var(--cl-muted) 35%, transparent);
+  background: var(--cl-timeline-line);
 }
 .tl-tool.running::before { background: var(--cl-orange); opacity: 1; animation: pulse 1.1s ease-in-out infinite; }
 .tl-tool.ok::before { background: var(--cl-ok); opacity: 1; }

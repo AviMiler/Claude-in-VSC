@@ -92,6 +92,8 @@ Updated: 2026-11-05. This is the **single source of truth for what to build next
 | Feature | Decision | Reason | Source |
 |---|---|---|---|
 | Display | **Focus view, timestamps, `spinnerVerbs`, `scrollToBottomOnSend`** | All chosen; light and independent | 👤 |
+| Official look | **Follow the newest official extension (anthropic.claude-code 2.1.319): tokens and component rules from its `webview/index.css`, re-expressed in our own CSS (no file copied)**: composer shadow and orange focus ring, clay-orange send button coloured by permission mode, official menu/picker, attachment-pill chips, compact user message. The file and lines chips stay above the text. Restyles the blue look | User: "the blue design is not pretty; imitate exactly the newest official extension" (2026-11-09) | ✅ built 2026-11-09 (browser preview only; real VS Code unverified) |
+| Dark mode default | **No: follow the VS Code theme like the official extension** (no forced dark, no new setting, no code change) | Asked; the user decided 2026-11-09 | 👤 |
 | Collapsing user messages | **A function that collapses long user messages in the thread** (display only): a message above a set length shows its first lines with a "הצג עוד" / "כווץ" toggle; the text sent to the CLI and the saved transcript are not changed. The length limit is a proposed setting (`claudeLocal.collapseUserMessageLines`, proposed default 8 lines, not yet decided). Short messages are never collapsed | Requested 2026-11-02 on branch `develop`; read as display-only; to confirm with the user | ✅ built 2026-11-05 (8 lines, setting) |
 | `useTerminal` | **A setting** that makes the main button open a terminal | Chosen | 👤 |
 | Accessibility | **Colour settings only** (`prefersReducedMotion`, daltonized). **Screen-reader support (announcements, speaker labels, navigation by headings) removed from the plan on 2026-11-06: not needed** | The user decided it is unnecessary | 👤 |
@@ -291,7 +293,7 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 | 1 | VS Code's own `showOpenDialog` (as package I step 3), opens at the project root, one file or one folder |
 | 2 | **One uniform context line** for automatic and manual, at the top of the message: `[הקשר מהעורך] הקובץ: @path` / `[הקשר מהעורך] התיקייה: @path`. The old "מקור השיחה" sentences are dropped |
 | 3 | A folder is sent as the path only (the model decides what to read); the chip shows a folder codicon instead of the file icon |
-| 4 | The "back to automatic" mark: chip border and the short text in the theme's info colour (`editorInfo.foreground`) |
+| 4 | The "back to automatic" mark: chip border and the short text in the theme's info colour (`editorInfo.foreground`). **Changed 2026-11-09:** the text is "הוחזר למצב אוטומטי", placed next to the chip, and the colour is the Claude orange (the blue was dropped with the official-look restyle) |
 | 5 | Recent list: 5 items, shared by all conversations, in memory only (lost on window reload) |
 | 6 | Empty chips: grey hint ("אין קובץ" / "אין בחירה"); the empty file chip is clickable and opens the same menu; the empty lines chip is not clickable |
 | 7 | A manual file or folder outside the workspace folders is allowed; the chip's tooltip notes "מחוץ לפרויקט". The CLI asks its own permission to read it |

@@ -4,18 +4,23 @@
 .composer-wrap {
   position: relative;
   flex: none;
-  padding: 4px 12px 12px;
+  padding: 4px 8px 8px;
 }
 
 /* ---------- the box: [text] / divider / [+] [/] [model] ...... [meter] [mode] [send] ---------- */
 
+/* Like the official input: a framed box with a soft shadow; focus draws the Claude-orange ring. */
 .composer {
   border: 1px solid var(--cl-border);
   border-radius: var(--cl-radius-l);
   background: var(--cl-input-bg);
-  transition: border-color .12s;
+  box-shadow: 0 1px 2px #0000001a;
+  transition: border-color .12s, box-shadow .12s;
 }
-.composer:focus-within { border-color: var(--cl-strong-border); }
+.composer:focus-within {
+  border-color: var(--cl-orange);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cl-orange) 12%, transparent), 0 1px 2px color-mix(in srgb, var(--cl-orange), transparent 80%);
+}
 #input {
   display: block;
   width: 100%;
@@ -36,10 +41,11 @@
 .composer-footer {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: 2px;
+  padding: 5px;
   min-width: 0;
-  border-top: 1px solid var(--cl-divider);
+  border-top: .5px solid var(--cl-border);
+  color: var(--cl-muted);
 }
 
 .tool-btn {
@@ -50,9 +56,9 @@
   place-items: center;
   padding: 0;
   border: none;
-  border-radius: var(--cl-radius-s);
+  border-radius: 5px;
   background: transparent;
-  color: var(--cl-muted);
+  color: var(--cl-fg);
 }
 .tool-btn:hover { background: var(--cl-hover); color: var(--cl-fg); }
 .tool-btn svg { width: 16px; height: 16px; }
@@ -63,16 +69,18 @@
   align-items: center;
   min-width: 0;
   max-width: 45%;
-  height: 22px;
-  padding: 0 9px;
+  min-height: 18px;
+  line-height: 18px;
+  margin-inline-start: 6px;
+  padding: 0 8px;
   border: none;
-  border-radius: 999px;
-  background: var(--cl-tint);
+  border-radius: 9999px;
+  background: var(--cl-pill-bg);
   color: var(--cl-fg);
-  font-size: 12px;
+  font-size: .85em;
   white-space: nowrap;
 }
-.pill:hover:not(:disabled) { background: var(--cl-hover); }
+.pill:hover:not(:disabled) { background: var(--cl-pill-hover); }
 .pill:disabled, .mode-btn:disabled { opacity: .5; }
 .chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -85,10 +93,10 @@
   height: 26px;
   padding: 0 6px;
   border: none;
-  border-radius: var(--cl-radius-s);
+  border-radius: 5px;
   background: transparent;
-  color: var(--cl-fg);
-  font-size: 12px;
+  color: var(--cl-muted);
+  font-size: .85em;
   white-space: nowrap;
 }
 .mode-btn:hover:not(:disabled) { background: var(--cl-hover); }
@@ -172,22 +180,29 @@
 
 .cwd-note { font-size: 11px; color: var(--cl-warn); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
-/* send / stop: a small square, light on dark like the official one */
+/* send / stop: the official clay-orange square; its colour follows the permission mode
+   (data-mode, set by composer.js): accept edits = foreground, plan = button colour, auto and
+   no-permissions = error colour. */
 .send-btn {
   flex: none;
   width: 26px;
   height: 26px;
   display: grid;
   place-items: center;
+  margin-inline-start: 2px;
   padding: 0;
   border: none;
-  border-radius: var(--cl-radius-s);
-  background: var(--cl-fg);
-  color: var(--cl-input-bg);
+  border-radius: 5px;
+  background: var(--cl-clay);
+  color: var(--cl-ivory);
 }
-.send-btn:hover:not(:disabled) { background: var(--cl-orange); color: #fff; }
-.send-btn:disabled { opacity: .35; }
-.send-btn svg { width: 15px; height: 15px; }
+.send-btn[data-mode="acceptEdits"] { background: var(--cl-fg); color: var(--cl-bg); }
+.send-btn[data-mode="plan"] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+.send-btn[data-mode="auto"], .send-btn[data-mode="bypassPermissions"] { background: var(--cl-err); color: var(--vscode-button-foreground, #fff); }
+.send-btn:hover:not(:disabled) { filter: brightness(1.1); }
+.send-btn:active:not(:disabled) { filter: brightness(.9); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+.send-btn svg { width: 16px; height: 16px; }
 .send-btn .i-stop { display: none; }
 .send-btn.stop .i-send { display: none; }
 .send-btn.stop .i-stop { display: block; }
@@ -195,35 +210,45 @@
 
 /* ---------- menus above the composer ---------- */
 
+/* The official pickers: menu background, input border, 8px corners, 8x12 rows, the selected row in
+   the list selection colours, a plain check at the end. */
 .menu {
-  bottom: calc(100% - 6px);
-  min-width: min(220px, calc(100% - 16px));
+  bottom: calc(100% + 2px);
+  min-width: min(260px, calc(100% - 16px));
   max-width: calc(100% - 16px);
   padding: 4px;
+  border-color: var(--cl-border);
+  box-shadow: 0 2px 8px #00000026;
 }
 .menu-item {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 8px 12px;
   border: none;
   border-radius: var(--cl-radius-s);
   background: transparent;
+  color: var(--cl-fg);
+  font-size: .9em;
   text-align: start;
 }
 .menu-item:hover, .menu-item.sel { background: var(--cl-sel-bg); color: var(--cl-sel-fg); }
-.menu-item-icon { width: 18px; flex: none; text-align: center; }
-.menu-item-body { display: flex; flex-direction: column; min-width: 0; }
-.menu-item-desc { font-size: 11px; opacity: .75; }
-.menu-item-check { margin-inline-start: auto; flex: none; color: var(--cl-orange); }
+.menu-item-icon { display: flex; justify-content: center; width: 20px; flex: none; color: var(--cl-muted); }
+.menu-item:hover .menu-item-icon, .menu-item.sel .menu-item-icon { color: inherit; }
+.menu-item-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.menu-item-desc { font-size: .85em; color: var(--cl-muted); }
+.menu-item:hover .menu-item-desc, .menu-item.sel .menu-item-desc { color: inherit; }
+.menu-item-check { align-self: center; margin-inline-start: auto; flex: none; color: inherit; }
 
 /* "/" and "@" lists: full composer width, section headers in dim text, a divider between sections */
 .slash-menu {
-  bottom: calc(100% - 6px);
-  inset-inline: 12px;
-  max-height: min(320px, 55vh);
+  bottom: calc(100% + 2px);
+  inset-inline: 8px;
+  max-height: min(320px, 50vh);
   overflow-y: auto;
   padding: 4px 0;
+  border-color: var(--cl-border);
 }
 .slash-group { padding: 8px 14px 3px; font-size: 12px; color: var(--cl-muted); }
 .slash-group:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--cl-subtle-border); }
@@ -305,27 +330,49 @@
   color: var(--cl-muted);
 }
 
-/* Attached images */
-/* File chip and lines chip (package K): always shown, empty with a grey hint; the file chip opens a menu. */
-.editor-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 0; }
+/* File chip and lines chip (package K) in the official attachment-pill style: a grey pill with a
+   12px icon, an 11px label, and a remove button that fades in over the end on hover. Always shown;
+   empty ones are dashed and dim. The file chip opens a menu. */
+.editor-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 8px 0; }
 .editor-chips[hidden] { display: none; }
 .editor-chip {
-  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 1px 4px 1px 6px;
-  border: 1px solid var(--cl-border); border-radius: var(--cl-radius-s); font-size: 0.9em; color: var(--cl-fg);
+  --pill-bg: var(--cl-chip-bg);
+  position: relative;
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0;
+  max-width: calc(14 * var(--cl-chat-size) - 2px);
+  height: calc(var(--cl-chat-size) + 11px);
+  padding-block: 4px; padding-inline: 4px 6px;
+  overflow: hidden;
+  border: 1px solid var(--cl-border); border-radius: 4px;
+  background: var(--pill-bg); color: var(--cl-fg);
+  transition: border-color .15s;
 }
-.editor-chip-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.editor-chip-icon { display: inline-flex; flex: none; width: 14px; height: 14px; opacity: .8; }
-.editor-chip-icon svg { width: 14px; height: 14px; }
-.editor-chip.chip-empty { color: var(--cl-muted); border-style: dashed; padding-inline-end: 8px; }
+.editor-chip-icon { display: inline-flex; flex: none; width: 12px; height: 12px; color: var(--cl-muted); }
+.editor-chip-icon svg { width: 12px; height: 12px; }
+.editor-chip-label {
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: calc(var(--cl-chat-size) - 2px); font-weight: 500;
+}
+/* The remove button: hidden until hover, over a fade into the pill colour (RTL: the end is the left). */
+.editor-chip .chip-remove {
+  position: absolute; inset-block: 0; inset-inline-end: 0;
+  display: flex; align-items: center; justify-content: flex-end;
+  width: 32px; padding: 0; padding-inline-end: 6px;
+  border: none; border-radius: 0; cursor: pointer; opacity: 0;
+  background: linear-gradient(to left, transparent 0%, var(--pill-bg) 50%, var(--pill-bg) 100%);
+  color: var(--cl-fg); font-size: 11px; transition: opacity .15s;
+}
+.editor-chip:hover .chip-remove, .editor-chip .chip-remove:focus-visible { opacity: 1; }
+.editor-chip.chip-empty { border-style: dashed; background: transparent; }
+.editor-chip.chip-empty .editor-chip-label { color: var(--cl-muted); font-weight: 400; }
 .file-chip { cursor: pointer; }
-.file-chip:hover { background: var(--cl-hover); }
-.file-chip:focus-visible { outline: 1px solid var(--cl-focus); outline-offset: 1px; }
-.file-chip.manual { border-color: var(--cl-focus, var(--cl-border)); }
-/* After a send the manual choice returns to automatic: border and text in the theme's info colour. */
-.file-chip.reverted { border-color: var(--cl-info); }
-.chip-reverted { color: var(--cl-info); font-size: .9em; white-space: nowrap; }
-.editor-chip button { padding: 0 4px; border: 0; background: none; color: inherit; cursor: pointer; font-size: 10px; opacity: 0.7; }
-.editor-chip button:hover { opacity: 1; background: var(--cl-hover); }
+.file-chip:hover, .file-chip.manual { border-color: color-mix(in srgb, var(--cl-border) 60%, var(--cl-fg)); }
+.file-chip:focus-visible { outline: 1px solid var(--cl-active-border); outline-offset: 1px; }
+/* After a send the manual choice returns to automatic: the chip's border and a short note next to it
+   in the Claude orange (the official accent; amber in the colour-blind palette). */
+.file-chip.reverted { border-color: var(--cl-orange); }
+.chip-reverted { color: var(--cl-orange); font-size: calc(var(--cl-chat-size) - 2px); white-space: nowrap; }
+/* Attached images */
 .attachments { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 0; }
 .attach-chip { position: relative; display: inline-flex; }
 .attach-chip img { height: 44px; max-width: 80px; object-fit: cover; border-radius: var(--cl-radius-s); border: 1px solid var(--cl-border); }
