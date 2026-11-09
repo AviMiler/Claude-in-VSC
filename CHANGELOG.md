@@ -8,6 +8,9 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 - **Not fixed (listed):** a hand-typed relative `(@src/a.js)` is not made absolute (`resolveMentions` still needs whitespace before `@`; the `@` menu inserts absolute paths); a `stat` failure right after the open dialog throws (the router logs it, the chip is unchanged); the recent row in an open chip menu is picked by index, so a list change while the menu is open could pick a neighbour.
 - **Verified:** unit tests 297/297 (new tests in `test/tagging.test.js` and `test/editor-context.test.js`). Not run in real VS Code.
 
+## 2026-11-09 (user check in real VS Code)
+- The user confirmed in real VS Code: the open button works; the changes card appears and a file click opens the diff view; the `/` and `@` menus work mid-sentence. Navigation cards and the `/clear` reset not yet checked (`spec.md` Verification status).
+
 ## 2026-11-09 (follow-ups from the batch review)
 - **Changes card cache:** `src/diff/change-stats.js` caches each fragment's counts in a `WeakMap` keyed by fragment, re-diffing only when the text it was compared against changed (a repeated tool id can replace an earlier Write in place). Same results, no full re-diff per edit batch.
 - **Diff open failures:** `src/panels/message-router.js` logs any throwing or rejecting route handler instead of leaving an unhandled rejection; `conversation.diffCommand`/`openChangeDiff` show a Hebrew error ("לא ניתן לפתוח את ההשוואה של …") via `showErrorMessage`. New `test/message-router.test.js`.
