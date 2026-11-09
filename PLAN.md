@@ -274,7 +274,7 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 | File chip, automatic | Follows the open file in the editor |
 | File chip, click | Opens a menu: **automatic**; **"בחר קובץ..."** (a file explorer that opens at the project root; one file or one folder); the **recent choices** |
 | Lines chip | **Automatic only.** Shown only when the selection is in the file that the file chip holds; otherwise the chip is **empty** |
-| After sending | The file chip returns to automatic, **marked in a colour** with a short text ("אופס, חזר לאוטומטי") that stays until the next action (a click, typing or another send). The previous manual choice stays in the menu |
+| After sending | The file chip returns to automatic, **marked in a colour** with a short text ("הוחזר למצב אוטומטי"; the user replaced the original "אופס, חזר לאוטומטי" with technical wording on 2026-11-09) that stays until the next action (a click, typing or another send). The previous manual choice stays in the menu |
 | Recent choices | Kept (in memory) and shown in the chip menu and **first in the `@` menu** |
 | `@` and Alt+K | Insert `@path` as **text in the box**, separate from the chips. They add to the shared recent list. The same file in the chip and in the text is **sent once** |
 | Alt+K when the chip already shows the open file | Still inserts the text (the dedupe above prevents a double send) |

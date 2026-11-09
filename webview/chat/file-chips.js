@@ -51,7 +51,7 @@
     },
     icon(f && f.isDir ? 'folder' : 'file'),
     el('span', { class: 'editor-chip-label', text: f ? f.name : 'אין קובץ' }),
-    state.reverted ? el('span', { class: 'chip-reverted', text: 'אופס, חזר לאוטומטי' }) : null,
+    state.reverted ? el('span', { class: 'chip-reverted', text: 'הוחזר למצב אוטומטי' }) : null,
     f ? removeBtn(f.name, 'remove') : null);
     return chip;
   }

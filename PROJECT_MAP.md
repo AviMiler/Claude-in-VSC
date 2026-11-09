@@ -226,7 +226,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - Added by B2: `agent-cards.js` + `agent-cards.css` (agent cards after the tool row; `thread.js` has `CL.thread.toolNode(id)`), `loop-bar.js` (`/loop` bar), `cron-next.js` (pure, UMD), `tasks-bar.js`, `tasks.js`; `app.js` also handles `agentCards`, `loopJobs`, `selfTurn`.
 - Added by the /btw side panel: `webview/btw/` (`index.html`, `btw.css`, `btw.js`) is the page of the side panel (`btwHtml()` in `src/panels/webview-html.js` fills `{{btw}}`); it reuses `chat/util.js`, `math-logic.js`, `markdown.js` and the vendor scripts. `webview/chat/btw.js` (the in-thread card) was removed.
 
-- `webview/chat/file-chips.js` — draws the file chip and the lines chip above the box, the click menu (via `CL.menu`), the "אופס, חזר לאוטומטי" mark (`--cl-info`) and the empty-chip hints (package K).
+- `webview/chat/file-chips.js` — draws the file chip and the lines chip above the box, the click menu (via `CL.menu`), the "הוחזר למצב אוטומטי" mark (`--cl-info`) and the empty-chip hints (package K).
 
 ## webview/vendor/
 - `marked.umd.js`, `marked.LICENSE.md`, `highlight.min.js`, `powershell.min.js`, `highlight.LICENSE`, `katex/` (`katex.min.js`, `katex.min.css`, `fonts/*.woff2`, `LICENSE`) — see DEPENDENCIES.md. Test: `test/math-logic.test.js`.

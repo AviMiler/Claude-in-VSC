@@ -11,6 +11,16 @@
     cleanup = null;
   }
 
+  // Physical left, measured after the menu is shown: its right edge lines up with the opener's
+  // (the RTL start), then it is pushed back inside the composer so it never runs past the tab.
+  function place(anchor) {
+    const wrap = menuEl.parentElement.getBoundingClientRect();
+    const a = anchor.getBoundingClientRect();
+    const width = Math.min(menuEl.offsetWidth, wrap.width - 16);
+    const room = wrap.width - width - 8;
+    menuEl.style.left = `${Math.max(8, Math.min(a.right - wrap.left - width, room))}px`;
+  }
+
   // items: [{value, label, desc?, icon?, checked?}]
   function open(anchor, items, onPick) {
     close();
@@ -33,10 +43,8 @@
     }
 
     menuEl.append(...buttons);
-    const wrap = menuEl.parentElement.getBoundingClientRect();
-    const a = anchor.getBoundingClientRect();
-    menuEl.style.insetInlineStart = `${Math.max(8, wrap.right - a.right)}px`;
     menuEl.hidden = false;
+    place(anchor);
     mark(sel);
     buttons[sel].focus();
     menuEl.onkeydown = (e) => {
