@@ -2,14 +2,14 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (user check in real VS Code)
+- The user confirmed in real VS Code: the open button works; the changes card appears and a file click opens the diff view; the `/` and `@` menus work mid-sentence. Navigation cards and the `/clear` reset not yet checked (`spec.md` Verification status).
+
 ## 2026-11-09 (package I closed: review of the source-button flow, now the file chip)
 - **Scope:** package I's button was replaced by package K's file chip, so the review covered `src/tagging/*`, `webview/chat/file-chips.js` and their helpers against `spec.md` "File tagging". No leftover source-button code was found (one stale comment in `conversation.js` fixed).
 - **Fixed:** (1) a CLI command (`/compact`, `/review x`) got the `[הקשר מהעורך]` line in front of it when the chip had changed, so the CLI saw a plain prompt; commands now go as typed and leave the chips alone (`chips.commandName`, a path like `/src/a.js` is not a command). (2) After `/clear` the chips count as not sent, so the next message tags the file again. (3) A removed chip stayed hidden whenever that file was opened again; it now returns once the file or selection changes, as `PLAN.md` section 10 agreed (`chips.pruneDismissed`). (4) A mention after `( [ { " '` (allowed by the mid-sentence `@` menu) was not seen by the dedupe, so the chip named the file twice. (5) `insideDir` treated a child folder named `..x` as outside.
 - **Not fixed (listed):** a hand-typed relative `(@src/a.js)` is not made absolute (`resolveMentions` still needs whitespace before `@`; the `@` menu inserts absolute paths); a `stat` failure right after the open dialog throws (the router logs it, the chip is unchanged); the recent row in an open chip menu is picked by index, so a list change while the menu is open could pick a neighbour.
 - **Verified:** unit tests 297/297 (new tests in `test/tagging.test.js` and `test/editor-context.test.js`). Not run in real VS Code.
-
-## 2026-11-09 (user check in real VS Code)
-- The user confirmed in real VS Code: the open button works; the changes card appears and a file click opens the diff view; the `/` and `@` menus work mid-sentence. Navigation cards and the `/clear` reset not yet checked (`spec.md` Verification status).
 
 ## 2026-11-09 (follow-ups from the batch review)
 - **Changes card cache:** `src/diff/change-stats.js` caches each fragment's counts in a `WeakMap` keyed by fragment, re-diffing only when the text it was compared against changed (a repeated tool id can replace an earlier Write in place). Same results, no full re-diff per edit batch.
