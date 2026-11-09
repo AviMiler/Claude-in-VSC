@@ -1,14 +1,11 @@
-// Editor context (package F, the chips fallback of PLAN.md stage 3): the open file and the selected
-// lines are shown as removable chips above the box and handed to the model in front of the next
-// message, each only when it changed (to spare tokens). Also the autosave helpers (settings
-// `attachOpenFile`, `attachSelection`, `autosave`). Nothing is persisted.
-// The IDE-server route (src/ide/) reuses the tracker below to send selection_changed to the CLI;
-// the chips stay as the fallback when the CLI does not connect.
+// Editor context (package F): follows the open file editor and its selection, and the autosave
+// helpers (setting `autosave`). The chips built on it and the text sent to the CLI are package K's
+// (src/tagging/). Nothing is persisted.
+// The IDE-server route (src/ide/, off by default since package K) reuses the tracker below.
 const vscode = require('vscode');
 const nodePath = require('path');
-const { toSlashes, mentionText } = require('./mentions');
-
-const SELECTION_MAX_CHARS = 8000;
+const { toSlashes } = require('./mentions');
+const { linesMention } = require('../tagging/chips');
 
 // Pure: the context of one editor state. `doc` {path, text?}; `sel` {start, end} 1-based lines or null.
 function describe(filePath, sel, selText) {
@@ -20,47 +17,6 @@ function describe(filePath, sel, selText) {
     lines: sel ? { start: sel.start, end: sel.end } : null,
     selText: sel ? String(selText || '') : '',
   };
-}
-
-const fileKey = (ctx) => (ctx ? ctx.path : null);
-const selKey = (ctx) => (ctx && ctx.lines ? `${ctx.path}#${ctx.lines.start}-${ctx.lines.end}` : null);
-
-// `@path#5-10` (or `#5` for one line): Alt+K's text and the chip's mention.
-function linesMention(ctx) {
-  if (!ctx.lines) return mentionText(ctx.path);
-  const { start, end } = ctx.lines;
-  return mentionText(`${ctx.path}#${start === end ? start : `${start}-${end}`}`);
-}
-
-// What the chips show: `flags` {attachOpenFile, attachSelection}, `dismissed` {file, sel} keys the
-// user removed (a removed chip comes back when the file or the selection changes).
-function chips(ctx, flags, dismissed = {}) {
-  const out = { file: null, lines: null };
-  if (!ctx) return out;
-  if (flags.attachOpenFile && dismissed.file !== fileKey(ctx)) out.file = { name: ctx.name, path: ctx.path };
-  if (flags.attachSelection && ctx.lines && dismissed.sel !== selKey(ctx)) out.lines = { ...ctx.lines, name: ctx.name };
-  return out;
-}
-
-// Pure: the message with the context in front. `last` {file, sel}: the keys last handed to the model.
-// Returns {text, last}. The selected text itself is included (capped), because the CLI does not
-// expand `@path` in stream-json mode (mentions.js).
-function withContext(text, ctx, flags, dismissed = {}, last = {}) {
-  const shown = chips(ctx, flags, dismissed);
-  const parts = [];
-  const next = { ...last };
-  if (shown.file && fileKey(ctx) !== last.file) {
-    parts.push(`[הקשר מהעורך] הקובץ הפתוח בעורך: ${mentionText(ctx.path)}`);
-    next.file = fileKey(ctx);
-  }
-  if (shown.lines && selKey(ctx) !== last.sel) {
-    let body = ctx.selText;
-    if (body.length > SELECTION_MAX_CHARS) body = `${body.slice(0, SELECTION_MAX_CHARS)}\n… (קוצר)`;
-    parts.push(`[הקשר מהעורך] השורות שנבחרו: ${linesMention(ctx)}\n\`\`\`\n${body}\n\`\`\``);
-    next.sel = selKey(ctx);
-  }
-  if (!parts.length) return { text, last: next };
-  return { text: `${parts.join('\n')}\n\n${text}`, last: next };
 }
 
 // The context of a VS Code text editor (file scheme only), or null.
@@ -138,5 +94,5 @@ const insideDir = (dir, p) => {
 };
 
 module.exports = {
-  describe, chips, withContext, linesMention, fromEditor, createEditorTracker, toolFilePath, saveDirty, samePath, insideDir,
+  describe, linesMention, fromEditor, createEditorTracker, toolFilePath, saveDirty, samePath, insideDir,
 };

@@ -37,7 +37,7 @@
 אחר כך (לא חוסם)
 ------------------------------------------------------------
 - הרצה חוזרת של node --test מ-checkout מלא במחשב העבודה (בעותק הארוז 25 בדיקות נופלות כי dev/ חסר; כאן 257/257).
-- dev/check-all.txt בדיקה 4 (כפתור קובץ המקור) ו-F-6 (Ctrl+Shift+T).
+- dev/check-all.txt בדיקה 8 (צ'יפ הקובץ וצ'יפ השורות; כפתור קובץ המקור בוטל) ו-F-6 (Ctrl+Shift+T).
 - ניווט בקוד: dev\run-h-checks.ps1 -ClaudePath $claude -Model "qwen3.8:27b" -CopyReport (עלות טוקנים, בחירת כלים).
 - MCP: אחרי הפעלה/כיבוי שרת, Get-FileHash על .claude.json ו-settings.json; "לפני" כבר נלקח
   (.claude.json 22C20B7F..., settings.json 49D872F8...). זהה = עבר.

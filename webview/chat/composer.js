@@ -273,6 +273,7 @@
       // A folder with spaces stays open (no closing quote) so the list keeps working; a file closes it.
       const text = spaced ? (item.isDir ? `@"${target}` : `@"${target}"`) : `@${target}`;
       insertAt(start, input.selectionStart, item.isDir ? text : `${text} `);
+      post({ type: 'mentionPicked', path: target, isDir: Boolean(item.isDir) }); // the shared recent list
       CL.mentions.close();
     });
   }
@@ -286,6 +287,7 @@
   }
 
   input.addEventListener('input', () => {
+    CL.fileChips.ack(); // typing ends the "back to automatic" mark
     autoresize();
     refreshSend();
     updateSlash();
@@ -358,38 +360,8 @@
     CL.menu.open(modelBtn, items, (value) => post({ type: busy ? 'stopAndSwitchModel' : 'setModel', value }));
   });
 
-  // The working-file button: the file the work is on (the open file unless the user picked one).
-  const workFileBtn = document.getElementById('workfile-btn');
-  workFileBtn.textContent = 'מקור השיחה: ללא';
-  workFileBtn.addEventListener('click', () => post({ type: 'pickWorkFile' }));
-
-  // Editor context chips (package F): the open file and the selected lines, each removable.
-  const editorChips = document.getElementById('editor-chips');
-  function editorChip(label, title, which) {
-    return el('span', { class: 'editor-chip', dir: 'auto', title },
-      el('span', { class: 'editor-chip-label', text: label }),
-      el('button', { type: 'button', text: '✕', title: 'הסרה', 'aria-label': `הסרת ${label}`, onclick: () => post({ type: 'dismissEditorContext', which }) }));
-  }
-
   CL.composer = {
-    setEditorContext(file, lines) {
-      const nodes = [];
-      if (file) nodes.push(editorChip(`קובץ: ${file.name}`, `${file.path}\nClaude יקבל את הנתיב עם ההודעה הבאה (פעם אחת לכל קובץ)`, 'file'));
-      if (lines) {
-        const range = lines.start === lines.end ? `שורה ${lines.start}` : `שורות ${lines.start}–${lines.end}`;
-        nodes.push(editorChip(range, `${range} ב-${lines.name}\nהשורות שנבחרו יישלחו עם ההודעה הבאה`, 'lines'));
-      }
-      editorChips.replaceChildren(...nodes);
-      editorChips.hidden = nodes.length === 0;
-    },
-    setWorkFile(path, isDir) {
-      const name = path ? String(path).split('/').filter(Boolean).pop() : '';
-      workFileBtn.textContent = name ? `${isDir ? '📁' : '📄'} ${name}` : 'מקור השיחה: ללא';
-      workFileBtn.classList.toggle('picked', Boolean(path));
-      workFileBtn.title = path
-        ? `מקור השיחה: ${path}. Claude יתחיל את העבודה ${isDir ? 'מהתיקייה הזו' : 'מהקובץ הזה'}. לחיצה לשינוי או להסרה`
-        : 'ללא מקור לשיחה. לחיצה לבחירת קובץ או תיקייה שמהם Claude יתחיל';
-    },
+    setEditorContext: (m) => CL.fileChips.render(m),
     // One click re-sends the same message (and images); never automatic.
     canRetry: () => Boolean(lastSent), // busy is checked at click time (the result arrives before the busy flag clears)
     retry() {

@@ -1,4 +1,4 @@
-// The IDE server feature (PLAN.md section 7): started when `claudeLocal.ideServer` is on (default),
+// The IDE server feature (PLAN.md section 7): started when `claudeLocal.ideServer` is on (off by default since package K),
 // stopped and its lock file removed when the setting is turned off or the extension deactivates.
 // Exposes `services.ide` = { envFor(cwd), watchConnection(onMissing) } for src/panels/conversation.js.
 const vscode = require('vscode');

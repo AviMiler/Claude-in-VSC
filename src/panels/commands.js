@@ -5,6 +5,7 @@ const { terminalLaunch } = require('../cli/terminal');
 const { workspaceCwd } = require('../util/workspace');
 const transcripts = require('../history/transcripts');
 const editorContext = require('./editor-context');
+const recentFiles = require('../tagging/recent-files');
 
 function registerCommands(context, services) {
   const { registry, logger, settings, places } = services;
@@ -77,6 +78,7 @@ function registerCommands(context, services) {
       if (!ctx) return;
       const host = places.active() && places.active().current ? places.active() : await places.main();
       host.revealPlace();
+      recentFiles.shared.add(ctx.path, false); // the shared recent list of package K
       if (host.current) host.current.insertText(`${editorContext.linesMention(ctx)} `);
     },
     'claude-local.reopenClosed': () => {

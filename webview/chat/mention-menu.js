@@ -44,7 +44,8 @@
       onmousedown: (e) => { e.preventDefault(); onPick(it); },
       onmouseenter: () => mark(idx),
     },
-    el('span', { class: 'slash-name', dir: 'ltr', text: `${it.isDir ? '📁' : '📄'} ${it.path}` }))));
+    el('span', { class: 'slash-name', dir: 'ltr', text: `${it.isDir ? '📁' : '📄'} ${it.path}` }),
+    it.recent ? el('span', { class: 'slash-desc', text: 'אחרון' }) : null))); // package K: recent rows come first
     menuEl.hidden = false;
     mark(0);
   }

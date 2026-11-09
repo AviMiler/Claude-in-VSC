@@ -11,7 +11,8 @@ const { createStreamTranslator } = require('./event-translator');
 const replayLog = require('./replay-log');
 const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
-const workFile = require('./work-file');
+const fileChip = require('../tagging/file-chip');
+const recentFiles = require('../tagging/recent-files');
 const fs = require('fs');
 const editorContext = require('./editor-context');
 const blocks = require('../diff/blocks');
@@ -89,11 +90,8 @@ class Conversation {
     this.claudeTasks = claudeTasks.createClaudeTasks(); // Claude's TaskCreate/TaskUpdate list (live only)
     this.agents = agentCards.createAgentCards(); // one card per sub-agent call (live only)
     this.entries = null;
-    this.workFile = null; // the file or folder picked with the source button (null = none, the default)
-    this.workFileIsDir = false;
-    this.lastWorkFileSent = null; // the file last handed to the model as an @mention
-    this.editorDismissed = {}; // editor-context chips the user removed: {file, sel} keys (package F)
-    this.lastContextSent = {}; // editor context last handed to the model: {file, sel} keys
+    this.chip = fileChip.createState(); // the file chip: automatic or a manual choice (package K)
+    this.lastContextSent = {}; // the chips last handed to the model: {file, sel} keys
     this.models = new ModelSwitcher(this);
     this.subs = [
       services.settings.onDidChange((s) => {
@@ -103,6 +101,7 @@ class Conversation {
       }),
     ];
     if (services.editorTracker) this.subs.push(services.editorTracker.onDidChange(() => this.postEditorContext()));
+    this.subs.push(recentFiles.shared.onDidChange(() => this.postEditorContext())); // shared by all conversations
     ({ cwd: this.cwd, noFolder: this.noFolder } = workspaceCwd());
   }
 
@@ -134,7 +133,6 @@ class Conversation {
     this.unread = false;
     if (!this.started) return this.onReady();
     this.webview.postMessage(this.restoreMessage());
-    workFile.postState(this);
     this.postEditorContext();
     this.ui = null; // the webview owns the draft and the queue again (no second send)
     this.webviewReady = true;
@@ -189,7 +187,6 @@ class Conversation {
   onReady() {
     this.started = true;
     this.post(this.initMessage());
-    workFile.postState(this);
     this.postEditorContext();
     if (this.pendingResume) {
       const id = this.pendingResume;
@@ -203,7 +200,6 @@ class Conversation {
   }
 
   startProcess({ resume, fork = false } = {}) {
-    this.lastWorkFileSent = null; // a new process (also after a failed start, a fork or a model switch) gets the source instruction again
     const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
     const settings = launchSettings({ model: this.model, environmentVariables });
     const args = buildArgs({
@@ -364,38 +360,25 @@ class Conversation {
     this.busy = true;
     if (!hidden) replayLog.addUser(this.log, valid.length ? `${text}\n[תמונות: ${valid.length}]` : text);
     // Not awaited: the model answers long before any tool reads the saved files.
-    this.autosave((p) => editorContext.insideDir(this.cwd, p));
-    this.proc.sendUserText(hidden ? text : this.applyEditorContext(workFile.applyToSend(this, mentions.resolveMentions(text, this.cwd))), valid);
+    this.autosave(fileChip.autosaveFilter(this));
+    this.proc.sendUserText(hidden ? text : fileChip.applyToSend(this, mentions.resolveMentions(text, this.cwd)), valid);
   }
 
-  // --- editor context and autosave (package F) -----------------------------------------------
-
-  editorFlags(s = this.services.settings.get()) {
-    return { attachOpenFile: s.attachOpenFile !== false, attachSelection: s.attachSelection !== false };
-  }
+  // --- file tagging (package K) and autosave (package F) -------------------------------------
 
   // The chips above the box. Not part of the replay log: it is always current.
   postEditorContext() {
-    if (this.disposed || !this.webview || !this.services.editorTracker) return;
-    const shown = editorContext.chips(this.services.editorTracker.current(), this.editorFlags(), this.editorDismissed);
-    this.webview.postMessage({ type: 'editorContext', ...shown });
+    fileChip.postState(this);
   }
 
-  dismissEditorContext(which) {
-    const ctx = this.services.editorTracker && this.services.editorTracker.current();
-    if (!ctx) return;
-    if (which === 'file') this.editorDismissed.file = ctx.path;
-    else if (which === 'lines' && ctx.lines) this.editorDismissed.sel = `${ctx.path}#${ctx.lines.start}-${ctx.lines.end}`;
-    this.services.logger.info('session', `editor context: ${which} chip removed`);
-    this.postEditorContext();
+  // A chip action from the webview (src/tagging/file-chip.js handle()).
+  chipAction(msg) {
+    return fileChip.handle(this, msg);
   }
 
-  applyEditorContext(text) {
-    if (!this.services.editorTracker) return text;
-    const out = editorContext.withContext(text, this.services.editorTracker.current(), this.editorFlags(), this.editorDismissed, this.lastContextSent);
-    if (out.text !== text) this.services.logger.info('session', 'editor context attached');
-    this.lastContextSent = out.last;
-    return out.text;
+  // A file picked in the `@` menu joins the shared recent list (folders being drilled into do not).
+  mentionPicked(path, isDir) {
+    if (path && !isDir) recentFiles.shared.add(path, false);
   }
 
   // Saves unsaved open files (setting `autosave`) so Claude sees what the editor shows.
@@ -715,11 +698,8 @@ class Conversation {
   async mentionSearch(query, seq) {
     const entries = await this.loadEntries();
     const rel = mentions.relativeQuery(this.cwd, query);
-    this.post({ type: 'mentionResults', seq, items: mentions.rankPaths(entries, rel, 30, this.cwd) });
-  }
-
-  pickWorkFile() {
-    return workFile.pick(this);
+    const recent = recentFiles.mentionRows(recentFiles.shared.list(), rel, this.cwd);
+    this.post({ type: 'mentionResults', seq, items: recentFiles.mergeMentionRows(recent, mentions.rankPaths(entries, rel, 30, this.cwd)) });
   }
 
   // Files dragged in with Shift arrive as URIs and become @path mentions (a PDF is read by the CLI itself).

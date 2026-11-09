@@ -306,14 +306,24 @@
 }
 
 /* Attached images */
-/* Editor context chips (package F): open file and selected lines, removable. */
+/* File chip and lines chip (package K): always shown, empty with a grey hint; the file chip opens a menu. */
 .editor-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 0; }
 .editor-chips[hidden] { display: none; }
 .editor-chip {
-  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 1px 4px 1px 8px;
+  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 1px 4px 1px 6px;
   border: 1px solid var(--cl-border); border-radius: var(--cl-radius-s); font-size: 0.9em; color: var(--cl-fg);
 }
 .editor-chip-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.editor-chip-icon { display: inline-flex; flex: none; width: 14px; height: 14px; opacity: .8; }
+.editor-chip-icon svg { width: 14px; height: 14px; }
+.editor-chip.chip-empty { color: var(--cl-muted); border-style: dashed; padding-inline-end: 8px; }
+.file-chip { cursor: pointer; }
+.file-chip:hover { background: var(--cl-hover); }
+.file-chip:focus-visible { outline: 1px solid var(--cl-focus); outline-offset: 1px; }
+.file-chip.manual { border-color: var(--cl-focus, var(--cl-border)); }
+/* After a send the manual choice returns to automatic: border and text in the theme's info colour. */
+.file-chip.reverted { border-color: var(--cl-info); }
+.chip-reverted { color: var(--cl-info); font-size: .9em; white-space: nowrap; }
 .editor-chip button { padding: 0 4px; border: 0; background: none; color: inherit; cursor: pointer; font-size: 10px; opacity: 0.7; }
 .editor-chip button:hover { opacity: 1; background: var(--cl-hover); }
 .attachments { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 0; }
@@ -334,21 +344,3 @@
   #slash-btn { display: none; }
 }
 
-/* The working-file button: shows the file the work is on; a click picks another one. */
-.workfile-btn {
-  max-width: 45%;
-  min-width: 0;
-  padding: 2px 8px;
-  border: 1px solid var(--cl-border);
-  border-radius: 999px;
-  background: none;
-  color: var(--cl-muted, var(--cl-fg));
-  font: inherit;
-  font-size: 0.9em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-.workfile-btn:hover { background: var(--cl-hover); color: var(--cl-fg); }
-.workfile-btn.picked { color: var(--cl-fg); border-color: var(--cl-focus, var(--cl-border)); }

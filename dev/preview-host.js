@@ -138,6 +138,18 @@
     states();
   }
 
+
+  // Package K chips: ?chips=empty|manual|reverted|folder picks the state shown on load.
+  const chip = { manual: null, reverted: false, recents: [{ path: 'C:/proj/src/cli/process.js', isDir: false }, { path: 'C:/proj/docs', isDir: true }, { path: 'D:/notes/spec.md', isDir: false }] };
+  function chipMsg() {
+    const mode = new URLSearchParams(location.search).get('chips');
+    const open = mode === 'empty' ? null : { path: 'C:/proj/src/panels/conversation.js', name: 'conversation.js', isDir: false, manual: false, outside: false };
+    const m = chip.manual;
+    const file = m ? { path: m.path, name: m.path.split('/').pop(), isDir: m.isDir, manual: true, outside: m.path.startsWith('D:') } : open;
+    const lines = !m && open ? { start: 12, end: 30, name: open.name } : null;
+    return { type: 'editorContext', file, lines, reverted: chip.reverted, recents: chip.recents };
+  }
+
   function handle(msg) {
     switch (msg.type) {
       case 'newConversation': {
@@ -196,6 +208,11 @@
           { value: 'haiku', displayName: 'Haiku', description: 'Fastest' },
         ] });
         toWebview(contextMsg(23400));
+        { const mode = new URLSearchParams(location.search).get('chips');
+          if (mode === 'manual' || mode === 'reverted') chip.manual = chip.recents[2];
+          if (mode === 'folder') chip.manual = chip.recents[1];
+          if (mode === 'reverted') { chip.manual = null; chip.reverted = true; } }
+        toWebview(chipMsg());
         states();
         // ?conv=c2 shows another conversation; ?open=drawer|mcp|slash opens that part (for screenshots).
         later(60, () => {
@@ -205,7 +222,17 @@
           if (open) later(80, () => document.getElementById(open).click());
         });
         break;
+      case 'fileChip':
+        chip.reverted = false;
+        if (msg.action === 'auto' || msg.action === 'remove') chip.manual = null;
+        if (msg.action === 'pick') chip.manual = { path: 'C:/proj/README.md', isDir: false };
+        if (msg.action === 'recent') chip.manual = chip.recents.find((r) => r.path === msg.path) || null;
+        toWebview(chipMsg());
+        break;
       case 'send':
+        chip.reverted = Boolean(chip.manual);
+        chip.manual = null;
+        toWebview(chipMsg());
         if (/שאלה/.test(msg.text)) {
           toWebview({ type: 'permission', requestId: `q${++n}`, tool: 'AskUserQuestion', input: { questions: [{ header: 'גישה', question: 'איך לטפל בשגיאה?', multiSelect: false, options: [{ label: 'לזרוק הלאה', description: 'הקורא יחליט' }, { label: 'לרשום ביומן ולהמשיך', description: 'בטוח יותר' }] }] } });
         } else if (/תוכנית|plan/.test(msg.text)) {

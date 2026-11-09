@@ -33,8 +33,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `conversation.js` — one CLI process: permissions, mode/model, stop; `attach`/`detach`/`restoreMessage`; records into the replay log and paints only while attached; unread when a turn ends unseen.
 - `message-router.js` — webview message `type` to `Conversation` method.
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
-- `work-file.js` — the working-file button: tracks the open file (or the user's pick), a QuickPick to choose another, and `withWorkFile` which puts `@path` in front of the next message when the file changed (package H).
-- `editor-context.js` — editor context chips (open file, selected lines), `withContext` for the next message, the editor tracker, Alt+K's `linesMention`, autosave helpers (package F).
+- `editor-context.js` — the editor tracker and autosave helpers (package F); the chips and `withContext` moved to `src/tagging/` (package K); re-exports `linesMention` for Alt+K. (`work-file.js`, the source button, was deleted by package K.)
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
@@ -94,6 +93,11 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `block-review.js` — `createBlockReview(diffView).review(...)`: CodeLens toggles on the diff view, or a multi-select QuickPick when `diffEditor.codeLens` is off; `cancel(requestId)` (package F).
 - `diff-command.js` — `/diff` QuickPick to diff.
 
+## src/tagging/ — file tagging: file chip and lines chip (package K)
+- `chips.js` — pure: `view()`, `withContext()` (the single function that produces the CLI text `[הקשר מהעורך] הקובץ/התיקייה: @path` plus the lines block), `linesMention`, `mentionedKeys`, `pathKey`.
+- `recent-files.js` — pure: the shared 5-item in-memory recent list and the `@`-menu recent rows.
+- `file-chip.js` — vscode glue: per-conversation chip state, actions (auto, pick, recent, remove, removeLines, ack), `applyToSend`, `autosaveFilter`, `isOutside`.
+
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
 - `transcript-events.js` — transcript entries to the same UI events as live.
@@ -137,8 +141,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `conversation.js` — one CLI process: permissions, mode/model, stop; `attach`/`detach`/`restoreMessage`; records into the replay log and paints only while attached; unread when a turn ends unseen.
 - `message-router.js` — webview message `type` to `Conversation` method.
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
-- `work-file.js` — the working-file button: tracks the open file (or the user's pick), a QuickPick to choose another, and `withWorkFile` which puts `@path` in front of the next message when the file changed (package H).
-- `editor-context.js` — editor context chips (open file, selected lines), `withContext` for the next message, the editor tracker, Alt+K's `linesMention`, autosave helpers (package F).
+- `editor-context.js` — the editor tracker and autosave helpers (package F); the chips and `withContext` moved to `src/tagging/` (package K); re-exports `linesMention` for Alt+K. (`work-file.js`, the source button, was deleted by package K.)
 - `plan-doc.js` — read-only virtual Markdown document for the plan (`claude-local-plan:` scheme).
 - `event-translator.js` — CLI stream lines to UI events (pure).
 - `webview-html.js` — builds the webview HTML with CSP, nonce and resource URIs.
@@ -205,6 +208,11 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `ide-vscode.js` — the vscode side: tool functions, `editorSelection`, `workspaceFolderPaths`.
 - `index.js` — `register`: follows `claudeLocal.ideServer`, feeds the editor tracker into `selection_changed`, sets `services.ide`.
 
+## src/tagging/ — file tagging: file chip and lines chip (package K)
+- `chips.js` — pure: `view()`, `withContext()` (the single function that produces the CLI text `[הקשר מהעורך] הקובץ/התיקייה: @path` plus the lines block), `linesMention`, `mentionedKeys`, `pathKey`.
+- `recent-files.js` — pure: the shared 5-item in-memory recent list and the `@`-menu recent rows.
+- `file-chip.js` — vscode glue: per-conversation chip state, actions (auto, pick, recent, remove, removeLines, ack), `applyToSend`, `autosaveFilter`, `isOutside`.
+
 ## src/history/ — read-only transcripts
 - `transcripts.js` — `listSessions`, `readSession`, `sessionTitle` for `~/.claude/projects/...`.
 - `transcript-events.js` — transcript entries to the same UI events as live.
@@ -217,6 +225,8 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - Scripts: `util.js`; /`$..$`/`(..)`/`[..]` outside code); `tools.js` (tool rows); `thread.js` (messages, streaming); `cards.js` (permission/plan/question cards; permission = numbered options); `menu.js` (shared list menu); `slash-menu.js` (grouped `/` commands); `prompt-logic.js` (pure: command grouping, queue, history, image check); `mention-menu.js` (`@` files/folders); `keys.js` (parses and matches the `keybindings.*` specs); `composer.js` ("+" menu, "/" button, model pill incl. "stop and switch", mode, `uiState`/`restore`); `usage-gauge.js` + `usage-gauge-logic.js` (pure, UMD, tested: the ring gauge and its context-breakdown card; display only); `drawer.js` + `drawer-logic.js` (pure, UMD, tested: the conversation drawer); `restore.js` (redraw after a switch in one pass); `mcp-dialog.js`; `error-card.js` (CLI-failure card); `display-logic.js` (pure: spinner verb, time format, speaker label, heading text); `display.js` (display settings as body attributes, speaker headings); `a11y.js` (screen-reader announcer); `app.js` (wiring, messages from host: `restore`, `conversations`, `conversationStates`, `title`, ...).
 - Added by B2: `agent-cards.js` + `agent-cards.css` (agent cards after the tool row; `thread.js` has `CL.thread.toolNode(id)`), `loop-bar.js` (`/loop` bar), `cron-next.js` (pure, UMD), `tasks-bar.js`, `tasks.js`; `app.js` also handles `agentCards`, `loopJobs`, `selfTurn`.
 - Added by the /btw side panel: `webview/btw/` (`index.html`, `btw.css`, `btw.js`) is the page of the side panel (`btwHtml()` in `src/panels/webview-html.js` fills `{{btw}}`); it reuses `chat/util.js`, `math-logic.js`, `markdown.js` and the vendor scripts. `webview/chat/btw.js` (the in-thread card) was removed.
+
+- `webview/chat/file-chips.js` — draws the file chip and the lines chip above the box, the click menu (via `CL.menu`), the "אופס, חזר לאוטומטי" mark (`--cl-info`) and the empty-chip hints (package K).
 
 ## webview/vendor/
 - `marked.umd.js`, `marked.LICENSE.md`, `highlight.min.js`, `powershell.min.js`, `highlight.LICENSE`, `katex/` (`katex.min.js`, `katex.min.css`, `fonts/*.woff2`, `LICENSE`) — see DEPENDENCIES.md. Test: `test/math-logic.test.js`.
@@ -244,7 +254,7 @@ One line per file. (No `graphify-out/graph.json` here, so this map is hand-maint
 - `nav-check/` — dev-only check of the eight navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
 
 ## test/
-- `work-file.test.js` — withWorkFile (once per change) and current.
+- `tagging.test.js` — package K: the single mention function, dedupe, recent list, once-per-change (7 tests). `work-file.test.js` was deleted.
 - `blocks.test.js` — block diff, partial apply, Edit/Write review texts, the permission decision.
 - `editor-context.test.js` — Alt+K `@path#lines`, chips and removal, context once per change, tool file paths.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all eight tools, incl. the 2026-11-06 reliability fixes), `nav-vscode.test.js`, `ws-frames.test.js` (codec), `ide-server.test.js` (lock lifecycle in a temp dir, token/Origin refusal, MCP over a real socket). `usage-gauge.test.js` (Ollama window, breakdown, levels). 268 tests in all on 2026-11-08 (usage gauge); earlier: 243 tests in all (all pass on Windows, run after the 2026-11-08 merge; on Linux `chmod +x dev/fake-claude.js` first).

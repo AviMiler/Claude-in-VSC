@@ -181,11 +181,11 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 | **I** 🟡 step 3 built 2026-11-05 (explorer, file or folder, the agreed instructions); step 2 depends on the user's `dev/check-at-mention.txt`; steps 4-5 (docs, Opus review) partly done | **File/folder source button.** Steps: (1) the user runs `dev/check-at-mention.txt` on their CLI (its PowerShell bug `-replace '\\','/'` was fixed 2026-11-05); (2) only if the CLI does not expand `@path` in stream-json: the extension expands it itself, **Opus 5.5** (stream-json handling); (3) replace the QuickPick in `src/panels/work-file.js` with the project's file explorer, accept folders, new prompts above, **Sonnet 5.5**; (4) docs (`CHANGELOG`, `AGENT_CONTEXT`), **Haiku 5.5**; (5) review before merge, **Opus 5.5** | H (working-file button), C (`@`) |
 | **Fix list** | `FIXES.md`. Done: F-1 to F-5, F-7 to F-16 (F-6 and the new drop and rewind button unverified in real VS Code). Open: nothing but the user checks (F-17 left test 2.4 and a repeat of 7.1) | – |
 | **J** (renamed from H on 2026-11-08 to end the name clash with the retry / working-file / collapse package, which stays H) (all eight tools built 2026-11-05/06; awaiting manual checks (c), (d), (e) in VS Code) | Code-navigation MCP server for JS/React (section 8): a small prototype first (three tools, with a token measurement), then the rest of the tools | A, E (MCP handling); independent of F |
-| **K** ⏳ agreed 2026-11-08, not built (section 10). **Opus 5.5 builds it, after a clarification round of questions with the user** | **File tagging unified:** the file chip (automatic or a manual choice through an explorer, with recents) and the lines chip (automatic, only in the chip's file); `@` and Alt+K as separate text sharing the recents and the dedupe; autosave before send; IDE server disabled ("currently not working"). Replaces the working-file / source button | C (`@`, Alt+K), F (chips, autosave), H and I (the source button it replaces) |
+| **K** ✅ built 2026-11-09 (section 10; unverified in real VS Code and with the real CLI: `dev/check-all.txt` "בדיקה 8"). Agreed 2026-11-08, built by Opus 5.5 after the clarification round | **File tagging unified:** the file chip (automatic or a manual choice through an explorer, with recents) and the lines chip (automatic, only in the chip's file); `@` and Alt+K as separate text sharing the recents and the dedupe; autosave before send; IDE server disabled ("currently not working"). Replaces the working-file / source button | C (`@`, Alt+K), F (chips, autosave), H and I (the source button it replaces) |
 
 ## 6. What is open
 
-1. **IDE server built 2026-11-08** (`src/ide/`, section 7); still unverified against the real CLI: run `dev/check-ide-server.ps1` with `claudeLocal.ideServerVerboseLog` on. History: the IDE server prototype (me). Until then the editor context falls back to chips (**chips built 2026-11-08**; first step for the server: the user runs the read-only `dev/check-ide.txt`, which shows whether the CLI needs a lock file and its fields). Tip: if you ever have a machine with the official Claude Code extension, copy one `.lock` file from `%USERPROFILE%\.claude\ide\`; it shows the exact format of the lock file (on this machine the folder does not exist).
+1. **IDE server built 2026-11-08** (`src/ide/`, section 7); **off by default since 2026-11-09 (package K): `claudeLocal.ideServer` false, "currently not working"**; still unverified against the real CLI: run `dev/check-ide-server.ps1` with `claudeLocal.ideServerVerboseLog` on. History: the IDE server prototype (me). Until then the editor context falls back to chips (**chips built 2026-11-08**; first step for the server: the user runs the read-only `dev/check-ide.txt`, which shows whether the CLI needs a lock file and its fields). Tip: if you ever have a machine with the official Claude Code extension, copy one `.lock` file from `%USERPROFILE%\.claude\ide\`; it shows the exact format of the lock file (on this machine the folder does not exist).
 2. Direct confirmation of 64,000 for `qwen3.8:27b` with `/api/ps` while it is loaded (a window of at least 50,000 was measured, so it is not blocking). **Scheduled at the start of package D** (decided 2026-11-01). Package D built the user-run check file `dev/check-context-window.txt`; still open until the user runs it. If windows differ between models, add a `modelContextWindows` setting. `POST :11435/api/show` is no longer needed for vision (images are not gated by model) and stays a non-blocking check for tools capability.
 3. The plan-approval buttons: **decided 2026-11-08: first check against the real CLI whether `ExitPlanMode` arrives, then decide** (build the buttons if it does, drop them if not).
 4. Check the following versions inside VS Code 1.91.1 after every package, and update `spec.md`, `PROJECT_MAP.md`, `CHANGELOG.md`, `AGENT_CONTEXT.md` at the end of every package.
@@ -200,6 +200,8 @@ Source of values: 👤 a value that was decided · ⚠️ my proposed default, n
 13. **`@path` expansion in stream-json mode** (package I, step 1): unverified until the user runs `dev/check-at-mention.txt` on their CLI (the file's PowerShell bug was fixed 2026-11-05; if `claude` is not on PATH, set `$claude` to its full path). The result decides whether package I step 2 (the extension expands `@path` itself) is needed.
 
 ## 7. IDE server: design notes
+
+**Status 2026-11-09 (package K): off by default (`claudeLocal.ideServer` false, "currently not working").** The code in `src/ide/` is kept; the chips (section 10) are the editor-context route.
 
 Kept from the old plan (M2/M4) before it was deleted. This is an **initial design only**; the real protocol was not checked (see section 6, item 1), so **first capture the real format and messages from the CLI** (lock file, `initialize`, `mcp_message`) and only then write code. If the messages differ from what is written here, update this document to match reality.
 - **Server:** WebSocket on `127.0.0.1` on a random port, with an authentication header. An RFC 6455 frame codec written by hand (no npm packages, no build).
@@ -262,7 +264,7 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 
 ## 10. File tagging unified: the file chip and the lines chip (user, 2026-11-08, package K)
 
-**Status: agreed, not built.** Agreed with the user in a one-by-one question session. **Model: Opus 5.5 builds it (package K) and, before writing any code, runs a clarification round with the user (AskUserQuestion, one question at a time) on every point in "Left for Opus to ask" below.** Sonnet is not used for this package.
+**Status: built 2026-11-09 (Opus 5.5, after the clarification round below); unit tests and browser preview checked, NOT verified in real VS Code or with the real CLI (user check: `dev/check-all.txt` "בדיקה 8").** Agreed with the user in a one-by-one question session. Deviations: inline SVG icons (no icon font bundled), folders picked while drilling through the `@` menu are not added to the recents. Sonnet is not used for this package.
 
 **Principle:** one channel only. The file reaches the CLI as text in the message, `@/abs/path` (or `@/abs/path#5-10`), because the CLI does not expand `@` in stream-json mode (`DECISIONS.md` 2026-11-05). Every way of tagging produces the same text through one function; no parallel routes that can contradict each other.
 
@@ -283,7 +285,20 @@ Kept from the old plan (M2/M4) before it was deleted. This is an **initial desig
 | IDE server | **Disabled; shown in this plan as "currently not working".** `selection_changed` is not sent, so the selection cannot reach the CLI twice. The code in `src/ide/` stays; `claudeLocal.ideServer` default becomes false. Re-enabling waits for `dev/check-ide-server.ps1` |
 | Supersedes | The working-file / "מקור השיחה" button (package H, package I step 3 and the "Attaching files" row, items 2-3): the **file chip is that button**; there is one control, not two |
 
-**Left for Opus to ask the user before building (one question at a time):**
+**Clarification round answered by the user 2026-11-09 (Opus 5.5, one question at a time):**
+| # | Answer |
+|---|---|
+| 1 | VS Code's own `showOpenDialog` (as package I step 3), opens at the project root, one file or one folder |
+| 2 | **One uniform context line** for automatic and manual, at the top of the message: `[הקשר מהעורך] הקובץ: @path` / `[הקשר מהעורך] התיקייה: @path`. The old "מקור השיחה" sentences are dropped |
+| 3 | A folder is sent as the path only (the model decides what to read); the chip shows a folder codicon instead of the file icon |
+| 4 | The "back to automatic" mark: chip border and the short text in the theme's info colour (`editorInfo.foreground`) |
+| 5 | Recent list: 5 items, shared by all conversations, in memory only (lost on window reload) |
+| 6 | Empty chips: grey hint ("אין קובץ" / "אין בחירה"); the empty file chip is clickable and opens the same menu; the empty lines chip is not clickable |
+| 7 | A manual file or folder outside the workspace folders is allowed; the chip's tooltip notes "מחוץ לפרויקט". The CLI asks its own permission to read it |
+| 8 | `claudeLocal.ideServer` default false, description starts with "לא עובד כרגע (נבדק)"; the 30-second "no client" notice stays (it only fires for whoever turns the server on); `src/ide/` unchanged |
+| 9 | Tests: unit tests for the single mention function, the dedupe and the recent list; a browser-preview check (chips, menu, colour mark, dark/light); a new section in `dev/check-all.txt` for the user's real VS Code check |
+
+**The original questions (kept for reference):**
 1. The explorer: VS Code's own `showOpenDialog` (the system dialog, as package I step 3 already built) or a tree inside the extension? The user said "מובנה" (built-in).
 2. The text sent for a chip-chosen file and folder: the old "מקור השיחה" instruction sentences, or just `@path`, and in which language and position.
 3. How a chosen folder is sent (path only; the model decides what to read) and whether the chip shows a folder icon.

@@ -32,6 +32,7 @@
   --cl-warn: var(--vscode-editorWarning-foreground, #e5a54b);
   --cl-gauge-warn: var(--vscode-charts-orange, #d18616);
   --cl-blue: var(--vscode-charts-blue, #3794ff);
+  --cl-info: var(--vscode-editorInfo-foreground, #3794ff);
   --cl-shadow: var(--vscode-widget-shadow, #0000004d);
   --cl-mono: var(--vscode-editor-font-family, Consolas, monospace);
   --cl-mono-size: var(--vscode-editor-font-size, 12px);
