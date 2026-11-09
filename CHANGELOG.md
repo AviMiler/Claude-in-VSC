@@ -2,6 +2,15 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (user check on the work machine: editor context, context window, model switch)
+- **Checked (user, work machine, CLI 2.1.246, VS Code, `qwen3.8:27b`):**
+  - English editor context in real use: the model understood the opened file. The user's bubble shows only the typed text. The context is sent once per change: about 1,300 characters for the first message, 80 for the next unchanged one (the `>> user (N chars)` log line). The `<ide_opened_file>` block showed up once inside a model reply (most likely the model echoing it) and never again. The display filter of commit df3c0ae is not installed there yet.
+  - Context window: `/api/ps` shows `qwen3.8:27b` with `context_length` 64000, which matches `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000` (`dev/must-check.txt` section 6.2).
+  - Model switch to `qwen2.5-coder:7b` works (restart with `--resume`, reply received).
+- **Bug found:** after the switch the process still has `CLAUDE_CODE_MAX_CONTEXT_TOKENS=64000`, but `qwen2.5-coder:7b` has a real window of 32,768 (`/api/ps`; the usage card showed 32,768). The CLI compacts at about 31,000 (64,000 minus the 33,000 autocompact buffer), so it works by a margin of about 1,700 tokens, by luck. Recorded as `DEPENDENCIES.md` row 44 and `PLAN.md` section 6 item 2 (triggered; the per-model window proposal is pending the user, not decided).
+- **Usage card:** the autocompact buffer is 33,000 of 64,000 tokens (51.6%), so about 31,000 are left for the conversation. Idea recorded: `FUTURE_FEATURES.md` 4.1g (unverified). The stray "null" row and the missing MCP row are fixed in 5213221 (entry below), not installed there yet.
+- **Not changed:** code. Docs updated: `spec.md` "Verification status", `PLAN.md` section 6, `DEPENDENCIES.md` (row 44, section 5), `AGENT_CONTEXT.md`, `FUTURE_FEATURES.md` (4.1g), `dev/must-check.txt` (section 6 marked, section 7 marked done, summary table).
+
 ## 2026-11-09 (usage card: stray "null" and MCP tokens)
 - **Fixed:** the usage card showed a literal "null" under the rows (`replaceChildren(null)` stringifies it; the card now filters empty parts); nameless categories are skipped; MCP/system tools tokens are taken from the per-tool lists (`mcpTools`, `systemTools`) when the CLI omits the category, with per-server detail rows. Not verified against the real CLI response.
 

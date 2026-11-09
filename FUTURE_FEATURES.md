@@ -82,6 +82,7 @@ The user's three problems: (1) the context window is small (64,000; local qwen3.
 - **4.1d Context "X-ray" in the usage gauge — 💡:** show which messages and tool results take the most tokens. No prior check needed.
 - **4.1e "New task, new conversation" — 💡:** a button that summarizes the conversation in a few lines and opens a clean conversation with the summary. No prior check needed.
 - **4.1f Short project-instructions template (CLAUDE.md) — 💡:** every line is sent with each message, so keep it short. Docs only.
+- **4.1g Reduce the autocompact buffer, if the CLI allows it — 💡 (unverified):** the usage card on the work machine shows an autocompact buffer of 33,000 of 64,000 tokens (51.6%), so only about 31,000 are left for the conversation. Check: whether the CLI accepts a smaller buffer (a setting or environment variable; no name found yet). *Evidence 2026-11-09:* the user's usage card (`dev/must-check.txt` section 6; `DEPENDENCIES.md` row 44).
 
 ### 4.2 Speed
 
