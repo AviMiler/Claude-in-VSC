@@ -44,6 +44,16 @@ A VS Code extension (plain JS, no build, no npm): a Hebrew RTL front for the rea
 - **Work-machine check 2026-11-09 (open):** the English editor context works in real use; the model switch to `qwen2.5-coder:7b` works, but the context window stays 64000 while the model's real window is 32,768: bug, per-model window proposal pending (`PLAN.md` section 6 item 2, `DEPENDENCIES.md` row 44). The usage card fix 5213221 is not installed there.
 - **Next:** the user runs the other sections of `dev/must-check.txt` (sections 3, 6 and 7 are done; 6.3 has the window bug). Open for the user, not decided: the approve-and-implement proposal and the `/plan open` fallback (`FUTURE_FEATURES.md` 4.3g).
 
+## Open questions for the user (recorded 2026-11-09, to close next session)
+1. Record as an idea "external components that work in both extensions" (MCP servers, skills, hooks usable from the official Claude Code extension too)? Not yet answered.
+2. Disable telemetry in our CLI spawn (the official extension's CLI logged repeated telemetry export failures to an unreachable host)? Not recorded anywhere yet; needs a decision and the exact env var checked on CLI 2.1.246.
+3. The ExitPlanMode plan-approval buttons still in the code (shown only if ExitPlanMode arrives, which it does not with qwen3.8:27b): keep for a stronger model (recommended) or remove?
+4. dev/must-check.txt sections 4 and 5: the user said formal confirmations are not needed - mark them "skipped" in the file.
+5. A `[mcp] action toggle server=claude-local-nav` appeared in the user's log at 22:47:26: was it intentional? If not, the nav server may be off in that conversation.
+6. How is the untracked `שליחה.zip` / `שליחה/` built? It must be rebuilt for the user to install today's fixes (it still holds the removed IDE-server code).
+7. dev/must-check.txt: confirm the agent's marks (6.1 and 6.3 "partial", 7 "passed" with 7ב step 9 unreported; model name qwen2.5-coder:7b noted).
+8. After installing the new build: confirm the usage card shows no "null" and send the `[context] categories` log line (decides the MCP row).
+
 ## How to work here
 - Tests: PowerShell, `node --test "test/*.test.js"` (Node 22 needs the glob). Node is not on the Bash PATH.
 - Run: `code --extensionDevelopmentPath=<repo>`; `claudeLocal.claudePath` can point to `dev/fake-claude.cmd`. Browser UI preview: `.claude/launch.json` "chat-preview".
