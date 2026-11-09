@@ -2,6 +2,12 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (plan-approval check: ExitPlanMode does not arrive)
+- **Checked (user, work machine, CLI 2.1.246, VS Code, `qwen3.8:27b`):** in plan mode the model wrote the plan as plain assistant text and asked its questions in text. It called neither `ExitPlanMode` nor `AskUserQuestion`; the log has no "ExitPlanMode"; `/plan open` answered "no plan yet".
+- **Decided:** the ExitPlanMode-based plan-approval buttons are dropped (the user's rule of 2026-11-08). New proposal pending the user, not decided: an "approve and implement" button after a plan-mode turn, and `/plan open` falling back to the last plan-mode message (`FUTURE_FEATURES.md` 4.3g).
+- **Docs:** `PLAN.md` sections 2, 6 and 9, `DEPENDENCIES.md` row 43, `spec.md` "Verification status", `DECISIONS.md` (2026-11-09 entry), `AGENT_CONTEXT.md`, `FUTURE_FEATURES.md`, `dev/must-check.txt` section 3 (marked done).
+- **Code:** not changed. The buttons still exist in the code until their removal is decided.
+- **Verified:** no tests run (docs only).
 ## 2026-11-09 (editor-context blocks never shown in the thread)
 - **Fixed:** `<ide_opened_file>` / `<ide_selection>` text could appear as the first item of Claude's turn. `src/panels/event-translator.js` drops injected text from assistant text blocks (replayed user text blocks were already dropped; only tool results show), and `src/panels/replay-log.js` never keeps such text, so a restored view is clean. Tests added in `event-translator.test.js` and `replay-log.test.js`.
 
