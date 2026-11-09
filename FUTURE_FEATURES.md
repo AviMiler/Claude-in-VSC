@@ -69,3 +69,41 @@ Claude keeps using `Grep`, `Glob` and `Read` on `.cs` files, as today.
 - **Resources through `@`:** attach an MCP resource from a server with `@`. Unverified: the `@path` text is not expanded by the CLI in stream-json mode (`FIXES.md` F-4), so a resource mention probably needs the extension to fetch it some other way, which may not be possible as a pure bridge.
 - **Per-session on/off:** exists (`mcp_toggle`); "per session" means it applies to the running conversation and is not saved. To check: that a toggle is not written to the CLI's configuration.
 - **Our own server for package H** (`PLAN.md` section 8) is passed per launch with `--mcp-config`. It is not editing: nothing is stored.
+
+## 4. Small context, speed and focus for the weak local model (requested 2026-11-09)
+
+The user's three problems: (1) the context window is small (64,000; local qwen3.8:27b through LiteLLM over Ollama), so context must stay minimal and precise; (2) execution is very slow, so the model must reach what it needs in few steps; (3) the model is weak, so it must be kept focused. Guiding idea: give the model less, and exactly what it needs. All items are 💡 (not yet decided).
+
+### 4.1 Context
+
+- **4.1a Lean mode — 💡 (needs a check first):** launch the CLI with only the needed tools (`--tools`, already used by `/btw`); drop WebFetch, WebSearch, NotebookEdit, Task, Todo etc. Every tool's schema is sent each turn. Check: measure with the usage gauge before/after.
+- **4.1b Short system prompt for a weak model — 💡 (needs a check first):** `--system-prompt` replacing Claude Code's long one. Check: the flag works on CLI 2.1.246.
+- **4.1c Cap tool output size — 💡 (needs a check first):** Bash and MCP output limits through the CLI's environment variables, so one huge output cannot flood the context. Check: exact variable names on 2.1.246.
+- **4.1d Context "X-ray" in the usage gauge — 💡:** show which messages and tool results take the most tokens. No prior check needed.
+- **4.1e "New task, new conversation" — 💡:** a button that summarizes the conversation in a few lines and opens a clean conversation with the summary. No prior check needed.
+- **4.1f Short project-instructions template (CLAUDE.md) — 💡:** every line is sent with each message, so keep it short. Docs only.
+
+### 4.2 Speed
+
+- **4.2a Keep the model loaded — 💡:** cold load takes 285 s and the model is unloaded after ~5 min. Set `keep_alive` without limit in the gateway/Ollama config, or send a small periodic ping from the extension. Probably the biggest time saving.
+- **4.2b Stable prefix — 💡 (needs a check first):** Ollama can reuse the cached prefix computation if the system prompt and tools do not change between messages, dynamic context (chips, selection) goes at the end of the message, and the window size stays constant. Check: confirm today's behavior.
+- **4.2c Attach a symbol with its context — 💡:** a button/Alt+K on a function attaches its definition plus its callers, saving 3-4 search calls.
+- **4.2d Repository map — 💡:** already in section 1.2; stronger rationale now: one call returns the project structure instead of chains of Glob/Grep.
+- **4.2e "Problems in file" tool — 💡:** in our navigation MCP server (`vscode.languages.getDiagnostics`), so the model sees the editor's errors without running a build.
+
+### 4.3 Focus
+
+- **4.3a Recipes as commands — 💡:** e.g. `/fix-bug`, `/add-test`, each giving the model a short step-by-step procedure.
+- **4.3b Plan, then one step at a time — 💡:** plan in plan mode, then run each step in a fresh conversation containing only the plan.
+- **4.3c Fewer tools, fewer wrong tool choices — 💡:** same as 4.1a.
+- **4.3d Edit-by-symbol-name tool — 💡 (needs a user decision):** replace a function body by name instead of Edit's exact `old_string` match, which weak models often fail. Decision: an edit through MCP bypasses the per-block approval flow (package F). See also the rename/refactor note in 1.3.
+- **4.3e Automatic feedback after an edit — 💡:** the editor's diagnostics for the edited file go back to the model automatically.
+- **4.3f Instructions in English — 💡:** Hebrew costs 2-3x the tokens and local models follow English instructions better; the UI stays Hebrew, model-facing instructions are English.
+
+### 4.4 Recommended order (proposed to the user, not yet approved)
+
+1. Measure: 4.1a and 4.1d.
+2. Big and simple: 4.2a, 4.1c, 4.1b.
+3. Focus: 4.2e with 4.3e, then 4.3a, 4.2c.
+
+Open question for the user: which of these to move to `PLAN.md`.
