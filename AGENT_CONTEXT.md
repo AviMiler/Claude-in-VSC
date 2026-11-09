@@ -10,16 +10,8 @@ Short session brief. Facts live in one place each: behavior `spec.md`, decisions
 - `FIXES.md` — open user-reported problems; read before changing conversation placement or the UI.
 - `git-instructions.md` — git workflow. `SETUP.md` — install and settings for the user's machine (Hebrew). `dev/README.md` — probes, fake CLI, browser preview. `FUTURE_FEATURES.md` — undecided ideas. `CHANGELOG.md` — what changed and why.
 
-## Models: mandatory
-**Only the models below, by task type. Fable is NOT used; Opus is the strongest model allowed.**
-
-| Task | Model |
-|---|---|
-| Packages A, C, E, G (settings, shortcuts, `/` menu, error cards, accessibility); package B's sessions/history/rename | **Sonnet 5.5** (`claude-sonnet-5-5`) |
-| Package B's checkpoints, background tasks, `/diff`, `/loop`; package D's model-switch restart with `--resume`; package F (IDE server and its hand-written WebSocket codec, per-block diff approval); package K (file tagging; Sonnet not used); any change to stream-json/control protocol or permission handling; code review between packages | **Opus 5.5** (`claude-opus-5-5`) |
-| Trivial edits only (doc wording, renames, small fixes) | **Haiku 5.5** (`claude-haiku-5-5`) |
-
-If the session is not on the required model, **stop and ask the user to switch** before writing code.
+## Models: by task difficulty (user, 2026-11-09)
+Pick the model and effort for each task (and each subagent) by how hard that task actually is, not by package or area. Rough guide: trivial edits (doc wording, renames, comments) → Haiku or Sonnet low; ordinary code and checks → Sonnet medium; genuinely hard or risky work (protocol changes that are hard to verify, tricky concurrency, broad cross-cutting changes) → Opus. Fable is not used. (Replaces the earlier per-package mandatory table.)
 
 ## Subagent and session limits: mandatory
 Added 2026-11-05 after one Opus subagent used about 4.1M effective tokens on a small change (F-8/F-9; 25% was two cache rewrites after idle gaps, 15% hunting for Node and building ad-hoc test harnesses).

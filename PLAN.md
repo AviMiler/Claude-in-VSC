@@ -161,7 +161,7 @@ Meaning, type and defaults: `spec.md` "Settings". Here only provenance and the p
 
 ## 5. Build order
 
-**Models are mandatory (`AGENT_CONTEXT.md`): Sonnet 5.5 for packages A, C, E, G and the simple parts of B; Opus 5.5 for the protocol-sensitive parts of B, D's restart/`--resume`, F, K and review. Fable is not used; Opus is the maximum.**
+**Models: chosen per task by difficulty (`AGENT_CONTEXT.md`, user 2026-11-09); the per-package mandatory table was dropped. Fable is not used.**
 
 | Package | Content | Depends on |
 |---|---|---|
