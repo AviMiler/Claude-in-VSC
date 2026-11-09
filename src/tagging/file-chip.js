@@ -37,7 +37,9 @@ function currentCtx(conv) {
 }
 
 function shown(conv) {
-  return chips.view(currentCtx(conv), flags(conv), conv.chip, (p) => isOutside(conv, p));
+  const ctx = currentCtx(conv);
+  chips.pruneDismissed(conv.chip, ctx); // a removed chip returns once the file or selection changed
+  return chips.view(ctx, flags(conv), conv.chip, (p) => isOutside(conv, p));
 }
 
 // Tells the webview what the chips show, with the recent list for the click menu. Not part of the
@@ -107,8 +109,15 @@ async function handle(conv, msg) {
 }
 
 // Called by Conversation.send (not for hidden prompts): the text for the CLI. After a send with a
-// manual choice the chip returns to automatic and is marked until the next action.
+// manual choice the chip returns to automatic and is marked until the next action. A CLI command
+// (`/compact`) is sent as typed and leaves the chips alone; after `/clear` the model has nothing,
+// so the chips count as not sent.
 function applyToSend(conv, text) {
+  const cmd = chips.commandName(text);
+  if (cmd) {
+    if (cmd === 'clear') conv.lastContextSent = {};
+    return text;
+  }
   const view = shown(conv);
   const out = chips.withContext(text, view, currentCtx(conv), conv.lastContextSent);
   if (out.text !== text) conv.services.logger.info('session', 'editor context attached');

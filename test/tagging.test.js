@@ -103,3 +103,37 @@ test('@ menu: recent rows first (relative inside the project), filtered, merged 
   assert.deepStrictEqual(merged.map((r) => r.abs), ['C:/p/src/app.js', 'C:/p/src/b.js']);
   assert.strictEqual(merged[0].recent, true);
 });
+
+test('pruneDismissed: a removed chip returns after the file or the selection changed', () => {
+  const st = { dismissed: { file: chips.pathKey('C:/p/app.js'), sel: chips.selKey(ctx) } };
+  chips.pruneDismissed(st, ctx);
+  assert.deepStrictEqual(Object.keys(st.dismissed).sort(), ['file', 'sel'], 'same file and selection: still removed');
+  chips.pruneDismissed(st, ctxOf('C:/p/app.js', { start: 6, end: 10 }));
+  assert.deepStrictEqual(Object.keys(st.dismissed), ['file'], 'selection changed: the lines chip returns');
+  chips.pruneDismissed(st, ctxOf('C:/p/b.js'));
+  assert.deepStrictEqual(st.dismissed, {}, 'file changed: the file chip returns');
+  assert.ok(chips.view(ctx, on, st).file, 'back in app.js: shown again');
+  const none = { dismissed: { file: chips.pathKey('C:/p/app.js') } };
+  chips.pruneDismissed(none, null);
+  assert.deepStrictEqual(none.dismissed, {});
+  chips.pruneDismissed({}, ctx); // no state: no throw
+});
+
+test('commandName: a CLI command is recognised (no context in front of it); a path is not', () => {
+  assert.strictEqual(chips.commandName('/compact'), 'compact');
+  assert.strictEqual(chips.commandName('  /Clear'), 'clear');
+  assert.strictEqual(chips.commandName('/review the auth module'), 'review');
+  assert.strictEqual(chips.commandName('/my-plugin:do-it x'), 'my-plugin:do-it');
+  assert.strictEqual(chips.commandName('/src/app.js explain'), null);
+  assert.strictEqual(chips.commandName('/a.js'), null);
+  assert.strictEqual(chips.commandName('fix /compact'), null);
+  assert.strictEqual(chips.commandName(''), null);
+});
+
+test('mentionedKeys: mentions after ( [ { " \' count, e-mails do not', () => {
+  const keys = chips.mentionedKeys('see (@C:/p/a.js) and [@C:/p/b.js], \'@C:/p/c.js\' mail me@x.com');
+  for (const p of ['C:/p/a.js', 'C:/p/b.js', 'C:/p/c.js']) assert.ok(keys.has(chips.pathKey(p)), p);
+  assert.ok(!keys.has(chips.pathKey('x.com')));
+  const v = chips.view(ctxOf('C:/p/a.js'), on, {});
+  assert.strictEqual(chips.withContext('why (@C:/p/a.js)?', v, ctxOf('C:/p/a.js')).text, 'why (@C:/p/a.js)?');
+});

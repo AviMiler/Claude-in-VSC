@@ -25,6 +25,7 @@
   padding: 0 4px 4px;
   max-height: 140px; /* about six rows; more scroll inside the card */
   overflow-y: auto;
+  scrollbar-width: thin;
   border-top: 1px solid var(--cl-divider);
 }
 .changes-file {

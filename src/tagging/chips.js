@@ -45,13 +45,31 @@ function view(ctx, flags, st = {}, isOutside = () => false) {
   return { file, lines, reverted: Boolean(st.reverted) && !st.manual };
 }
 
-// The paths a prompt already mentions (`@path`, `@"path"`, `@path#5-10`), as keys.
+// A removed chip returns when the file or the selection changes (PLAN.md section 10): drops the
+// removal marks that no longer match the editor context `ctx`. Mutates `st.dismissed`.
+function pruneDismissed(st, ctx) {
+  const d = st && st.dismissed;
+  if (!d) return;
+  if (d.file && d.file !== (ctx ? pathKey(ctx.path) : null)) delete d.file;
+  if (d.sel && d.sel !== selKey(ctx)) delete d.sel;
+}
+
+// The CLI command a message is (`/compact`, `/plugin:cmd args`), lower case, or null. A command
+// goes to the CLI as typed: text in front of it would turn it into a plain prompt. A path such as
+// `/src/a.js` is not a command.
+function commandName(text) {
+  const m = /^\/([A-Za-z][\w:-]*)(?:\s|$)/.exec(String(text || '').trimStart());
+  return m ? m[1].toLowerCase() : null;
+}
+
+// The paths a prompt already mentions (`@path`, `@"path"`, `@path#5-10`), as keys. Like the `@`
+// menu (trigger-token.js), a mention may follow whitespace or `( [ { " '`.
 function mentionedKeys(text) {
   const keys = new Set();
-  const re = /(^|\s)@(?:"([^"\n]+)"|([^\s"@]+))/g;
+  const re = /(^|[\s([{"'])@(?:"([^"\n]+)"|([^\s"@]+))/g;
   let m;
   while ((m = re.exec(String(text || '')))) {
-    const raw = (m[2] || m[3]).replace(/[.,;:!?)\]}]+$/, '').replace(/#\d+(-\d+)?$/, '');
+    const raw = (m[2] || m[3]).replace(/[.,;:!?)\]}']+$/, '').replace(/#\d+(-\d+)?$/, '');
     keys.add(pathKey(raw));
   }
   return keys;
@@ -80,4 +98,6 @@ function withContext(text, shown, ctx, last = {}) {
   return { text: `${parts.join('\n')}\n\n${text}`, last: next };
 }
 
-module.exports = { view, withContext, linesMention, mentionedKeys, pathKey, selKey, baseName, SELECTION_MAX_CHARS };
+module.exports = {
+  view, withContext, pruneDismissed, commandName, linesMention, mentionedKeys, pathKey, selKey, baseName, SELECTION_MAX_CHARS,
+};

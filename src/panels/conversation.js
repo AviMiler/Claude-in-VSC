@@ -720,7 +720,7 @@ class Conversation {
     return this.post({ type: 'notice', text: 'השיחה פוצלה: ההמשך נשמר כשיחה חדשה, והמקורית נשארת כמו שהיא.' });
   }
 
-  // The project's files and folders (cached for 10 s), for the `@` list and the working-file picker.
+  // The project's files and folders (cached for 10 s), for the `@` list.
   async loadEntries() {
     const now = Date.now();
     if (!this.entries || now - this.entriesAt > 10000) {

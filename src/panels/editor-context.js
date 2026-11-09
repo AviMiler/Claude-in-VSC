@@ -88,9 +88,10 @@ async function saveDirty(filter) {
 }
 
 const samePath = (a, b) => nodePath.resolve(a).toLowerCase() === nodePath.resolve(b).toLowerCase();
+// A child named `..x` is inside; only `..` itself or a `../` step leaves the folder.
 const insideDir = (dir, p) => {
   const rel = nodePath.relative(dir, p);
-  return rel && !rel.startsWith('..') && !nodePath.isAbsolute(rel);
+  return Boolean(rel) && rel !== '..' && !rel.startsWith(`..${nodePath.sep}`) && !nodePath.isAbsolute(rel);
 };
 
 module.exports = {

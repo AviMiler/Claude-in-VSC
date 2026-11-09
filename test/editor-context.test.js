@@ -26,4 +26,7 @@ test('toolFilePath and path helpers', () => {
   assert.strictEqual(ec.toolFilePath(null), null);
   assert.ok(ec.insideDir('/w', '/w/src/a.js'));
   assert.ok(!ec.insideDir('/w', '/other/a.js'));
+  assert.strictEqual(ec.insideDir('/w', '/w/..cache/a.js'), true, 'a child named ..x is inside');
+  assert.strictEqual(ec.insideDir('/w', '/w'), false);
+  assert.strictEqual(ec.insideDir('/w/src', '/w'), false);
 });
