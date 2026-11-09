@@ -1,6 +1,6 @@
 // Shared diff view: shows two texts side by side in VS Code's diff editor, both as read-only
 // virtual documents (nothing is written to disk). Built once for `/diff`; package F (per-block
-// approval) and the IDE server's `openDiff` reuse `show`.
+// approval) reuses `show`.
 const vscode = require('vscode');
 const nodePath = require('path');
 

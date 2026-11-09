@@ -11,7 +11,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `DECISIONS.md` — decisions with alternatives and reasons.
 - `ARCHITECTURE.md` — structure and boundaries.
 - `DEPENDENCIES.md` — vendored libraries and measured findings about the CLI, gateway/Ollama, VS Code.
-- `PLAN.md` — the roadmap: feature decisions with reasons, settings provenance, build order (packages A-K), open points, IDE-server and code-navigation designs.
+- `PLAN.md` — the roadmap: feature decisions with reasons, settings provenance, build order (packages A-K), open points, code-navigation design.
 - `FUTURE_FEATURES.md` — undecided ideas; once approved they move into `PLAN.md`.
 - `FIXES.md` — open items of the user-reported fix list.
 - `git-instructions.md` — git workflow. `CHANGELOG.md` — what changed and why, newest first. `SETUP.md` — install and settings for the user's machine (Hebrew).
@@ -90,21 +90,12 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 
 ## src/diff/ — shared diff view and `/diff`
 - `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
-- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F (`openDiff` closed 2026-11-09, not built).
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F.
 - `blocks.js` — pure line diff for per-block approval: `diffBlocks`, `applyBlocks`, `reviewTexts` (Edit/Write), `decision` (allow / partial `updatedInput` / deny) (package F).
 - `block-review.js` — `createBlockReview(diffView).review(...)`: CodeLens toggles on the diff view, or a multi-select QuickPick when `diffEditor.codeLens` is off; `cancel(requestId)` (package F).
 - `diff-command.js` — `/diff` QuickPick to diff; exports the shared `showFileDiff` (also used by the changes card).
 - `change-stats.js` — pure: added/removed line counts per file from the edit log (LCS line diff per fragment, prefix/suffix trim, fallback above 2000x2000 cells; `Write` vs the last known content, else all added).
 - `changes-card.js` — pure: builds `{type:'changesCard', files:[{path, rel, added, removed}]}` from the edit log.
-
-## src/ide/ — IDE server for the CLI (package F, PLAN.md section 7)
-- `ws-frames.js` — pure RFC 6455 codec: `acceptKey`, `encodeFrame`, `createDecoder` (masking, 7/16/64-bit lengths, fragmentation, control frames, `WsError` close codes).
-- `ws-server.js` — `startWsServer`: 127.0.0.1, random port, token check (`TOKEN_HEADERS`), local-Origin check, subprotocol `mcp` echo, handshake logging with the token masked.
-- `ide-rpc.js` — pure MCP JSON-RPC: `TOOLS` (`getDiagnostics`, `getOpenEditors`, `openFile`), `createIdeRpc({deps})`, `selectionChanged`.
-- `ide-lock.js` — the lock file `<config dir>/ide/<port>.lock`: `lockDir`, `lockContent`, `writeLock`, `removeLock`, `cleanStaleLocks` (pid dead AND port refusing).
-- `ide-service.js` — `createIdeService`: server + RPC + lock, `envFor(cwd)` (`CLAUDE_CODE_SSE_PORT`), `watchConnection`, `notifySelection`, verbose message log (no vscode).
-- `ide-vscode.js` — the vscode side: tool functions, `editorSelection`, `workspaceFolderPaths`.
-- `index.js` — `register`: follows `claudeLocal.ideServer`, feeds the editor tracker into `selection_changed`, sets `services.ide`.
 
 ## src/tagging/ — file tagging: file chip and lines chip (package K)
 - `chips.js` — pure: `view()`, `withContext()` (the single function that produces the editor context; returns `{text, context, last}`, the context being English `<ide_opened_file>` / `<ide_selection>` blocks), `linesMention`, `mentionedKeys`, `pathKey`.
@@ -138,7 +129,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 ## dev/ — development only (not packaged)
 - `README.md` — how to run the probes, the gateway probe, the fake CLI and the browser preview.
 - `claude-code-vscode-guide-he.html` — Hebrew guide to the official extension's features (reference for `PLAN.md`).
-- `open-checks.txt` — Hebrew: the single list of open user checks. `check-7.html` — interactive checklist for check 7 and the usage gauge (7.6). `check-all.txt` — the full Hebrew check pack (setup, unit tests, `/btw`, file tagging "בדיקה 8", model switch, everything built so far) with step-by-step instructions. `check-model-switch.txt` — Hebrew check of F-8/F-9 on the user's CLI (log lines, `/api/ps`). `check-ide-server.txt` — Hebrew user-run check of our IDE server (UTF-8 BOM, CRLF; rename to `.ps1` to run): lists the locks with pid/port state; `-Probe` runs `claude-bin.exe` once with `CLAUDE_CODE_SSE_PORT` and prints the CLI's MCP servers. `must-check.txt` — the one detailed Hebrew step-by-step check file for the work machine (UTF-8 BOM, CRLF): prep, IDE-server/`openDiff` decisive check, `ExitPlanMode`, check-all 7 and 8, navigation, usage gauge/model switch, and the 2026-11-09 features (section 7). Removed 2026-11-08 as superseded (`CHANGELOG.md`): `check-at-mention`, `check-btw*`, `check-cli`, `check-context-window`, `check-ide.txt/.ps1`, `check-mcp-tools`, `run-cli-checks`.
+- `open-checks.txt` — Hebrew: the single list of open user checks. `check-7.html` — interactive checklist for check 7 and the usage gauge (7.6). `check-all.txt` — the full Hebrew check pack (setup, unit tests, `/btw`, file tagging "בדיקה 8", model switch, everything built so far) with step-by-step instructions. `check-model-switch.txt` — Hebrew check of F-8/F-9 on the user's CLI (log lines, `/api/ps`). `must-check.txt` — the one detailed Hebrew step-by-step check file for the work machine (UTF-8 BOM, CRLF): prep, section 2 cancelled (IDE server removed), `ExitPlanMode`, check-all 7 and 8, navigation, usage gauge/model switch, and the 2026-11-09 features (section 7). Removed 2026-11-08 as superseded (`CHANGELOG.md`): `check-at-mention`, `check-btw*`, `check-cli`, `check-context-window`, `check-ide.txt/.ps1`, `check-mcp-tools`, `run-cli-checks`.
 - `fake-claude.js` / `.cmd` — fake stream-json CLI (scenarios `tool`, `שאלה`, `slow`, `edit`, `background`, `tasks`, `agent`, `loop` with `FAKE_CLAUDE_LOOP_MS`; `FAKE_CLAUDE_NO_TOOLS_MODEL`; `--settings` env over `FAKE_CLAUDE_USER_SETTINGS_ENV`; default model `fake-model[1m]` unless 1M is off; answers `get_context_usage`).
 - `manual-tests.html` — Hebrew manual test checklist.
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host (several conversations, drawer, restore, MCP, bars; URL params `?conv=c2`, `?open=drawer|mcp|slash|attach|mode`, `?theme=light`).
@@ -149,12 +140,12 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `nav-check/` — dev-only check of the eight navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
 
 ## test/
-- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only. Whole suite: 302 tests.
+- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only. Whole suite: 286 tests.
 - `tagging.test.js` — package K: the single mention function, dedupe, recent list, once-per-change (7 tests). `work-file.test.js` was deleted.
 - `nav-results.test.js` (navigation card parse/title/render), `change-stats.test.js` (changes card counts), `trigger-token.test.js` (mid-sentence `/` and `@` tokens) — 2026-11-09.
 - `blocks.test.js` — block diff, partial apply, Edit/Write review texts, the permission decision.
 - `editor-context.test.js` — Alt+K `@path#lines`, chips and removal, context once per change, tool file paths.
-- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all eight tools, incl. the 2026-11-06 reliability fixes), `nav-vscode.test.js`, `ws-frames.test.js` (codec), `ide-server.test.js` (lock lifecycle in a temp dir, token/Origin refusal, MCP over a real socket). `usage-gauge.test.js` (Ollama window, breakdown, levels), `btw.test.js`, `btw-session.test.js`, `math-logic.test.js`. 287 tests in all (2026-11-09); all pass on Windows; on Linux `chmod +x dev/fake-claude.js` first.
+- `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all eight tools, incl. the 2026-11-06 reliability fixes), `nav-vscode.test.js`, `usage-gauge.test.js` (Ollama window, breakdown, levels), `btw.test.js`, `btw-session.test.js`, `math-logic.test.js`. 286 tests in all (2026-11-09); all pass on Windows; on Linux `chmod +x dev/fake-claude.js` first.
 
 ## .claude/
 - `launch.json` — "chat-preview" server config.

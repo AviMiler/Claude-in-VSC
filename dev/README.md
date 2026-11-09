@@ -42,7 +42,6 @@ node probe3-standalone.js --claude "C:\Users\206861775\AppData\Local\Programs\Cl
 - The CLI refuses an `Edit` of a file it has not read, so a probe that denies `Read` never reaches the permission request for the edit (this made `q1`-`q3` inconclusive and is why `probe3` approves `Read` of `a.txt`).
 - Manual checks that go with the probes (PowerShell; see the pitfalls above):
   - model capabilities: `POST http://172.27.5.5:11435/api/show` with `{"model":"<id>"}` → `capabilities` (not verified yet);
-  - IDE server: `claude --help | Select-String ide`, `Get-ChildItem "$env:USERPROFILE\.claude\ide"`, then `/ide` inside a VS Code terminal (result so far: "No available IDEs detected");
   - MCP add/remove: `claude mcp add probe-test -- node --version`, `claude mcp list`, `claude mcp remove probe-test`;
   - fork/resume flags: `claude --help | Select-String "fork|resume|rewind|continue"`;
   - start with a chosen model: `& "<path>\claude-bin.exe" -p "Reply with the single word OK" --model gemma4:26b --output-format json` (loads that model on the shared server; a cold load can take minutes);

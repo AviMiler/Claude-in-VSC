@@ -20,8 +20,6 @@ function read() {
     attachSelection: c.get('attachSelection') !== false,
     attachOpenFile: c.get('attachOpenFile') !== false,
     autosave: c.get('autosave') !== false,
-    ideServer: c.get('ideServer') === true, // off by default since package K ("currently not working")
-    ideServerVerboseLog: c.get('ideServerVerboseLog') === true,
     display: readDisplay((name) => c.get(name)),
     gatewayUrl: String(c.get('gatewayUrl') || ''),
     ollamaUrl: String(c.get('ollamaUrl') || ''),

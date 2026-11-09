@@ -42,7 +42,6 @@ const IMAGE_ONLY_TEXT = 'See the attached image.';
 // within this time the turn is closed locally so the stop button never hangs.
 const STOP_RESULT_WAIT_MS = 4000;
 const TITLE_MAX = 40;
-const IDE_NOT_CONNECTED = 'Claude לא התחבר לשרת ה-IDE של התוסף, ולכן ההקשר מהעורך ממשיך להגיע כצ\'יפים מעל תיבת הכתיבה. הפרטים ביומן (תג ide).';
 const RENAME_MAX = 100;
 
 function spawnErrorText(err, claudePath) {
@@ -217,21 +216,13 @@ class Conversation {
     this.services.logger.info('spawn', `start ${claudePath} ${args.join(' ')} (cwd ${this.cwd}, resume=${Boolean(resume)}, fork=${fork})`);
     // Its own line: the start line can pass the log's 500-character cut.
     if (settings) this.services.logger.info('spawn', `--settings env ${JSON.stringify(settings.env)}`);
-    // CLAUDE_CODE_SSE_PORT makes the CLI connect to our IDE server (src/ide/); {} when it is off.
-    const ideEnv = this.services.ide ? this.services.ide.envFor(this.cwd) : {};
     const proc = new CliProcess({
       claudePath,
       args,
       cwd: this.cwd,
-      env: { ...mergeEnv(process.env, environmentVariables), ...checkpoints.CHECKPOINT_ENV, ...ideEnv },
+      env: { ...mergeEnv(process.env, environmentVariables), ...checkpoints.CHECKPOINT_ENV },
       log: (t, tag, level) => this.logLine(t, tag, level),
     });
-    if (ideEnv.CLAUDE_CODE_SSE_PORT) {
-      const cancel = this.services.ide.watchConnection(() => {
-        if (proc === this.proc && !proc.exited) this.post({ type: 'notice', text: IDE_NOT_CONNECTED });
-      });
-      proc.once('exit', cancel);
-    }
     const translate = createStreamTranslator();
     this.proc = proc;
     // Background tasks live in the CLI process; a new process starts with none.

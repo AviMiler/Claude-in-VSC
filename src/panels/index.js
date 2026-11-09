@@ -13,7 +13,7 @@ const { createBtwPanel } = require('./btw-panel');
 function register(context, services) {
   services.planDocs = createPlanDocs();
   context.subscriptions.push(services.planDocs);
-  services.diffView = createDiffView(); // shared: /diff, per-block review (package F), openDiff later
+  services.diffView = createDiffView(); // shared: /diff, per-block review (package F)
   context.subscriptions.push(services.diffView);
   services.blockReview = createBlockReview(services.diffView);
   context.subscriptions.push(services.blockReview);
@@ -21,7 +21,6 @@ function register(context, services) {
   context.subscriptions.push(services.btwPanel);
   services.editorTracker = createEditorTracker(); // editor context chips (package F)
   context.subscriptions.push(services.editorTracker);
-  require('../ide').register(context, services); // IDE server + lock file (needs the tracker)
   const sidebarHost = registerSidebar(context, services);
   services.places = createPlaces(services, sidebarHost);
   registerCommands(context, services);

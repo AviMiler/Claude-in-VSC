@@ -23,7 +23,6 @@ const TAGS = Object.freeze({
   CONTROL: 'control',
   DROP: 'drop',
   BTW: 'btw',
-  IDE: 'ide',
 });
 
 // Tags the webview may log under (via the `log` message).

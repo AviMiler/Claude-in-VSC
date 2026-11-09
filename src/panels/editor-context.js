@@ -1,7 +1,6 @@
 // Editor context (package F): follows the open file editor and its selection, and the autosave
 // helpers (setting `autosave`). The chips built on it and the text sent to the CLI are package K's
 // (src/tagging/). Nothing is persisted.
-// The IDE-server route (src/ide/, off by default since package K) reuses the tracker below.
 const vscode = require('vscode');
 const nodePath = require('path');
 const { toSlashes } = require('./mentions');
@@ -56,7 +55,6 @@ function createEditorTracker() {
   ];
   return {
     current: () => fromEditor(last),
-    editor: () => last, // the raw editor, for the IDE server's selection_changed (src/ide/)
     onDidChange(fn) {
       listeners.add(fn);
       return { dispose: () => listeners.delete(fn) };
