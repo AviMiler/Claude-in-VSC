@@ -2,6 +2,12 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-09 (follow-ups from the batch review)
+- **Changes card cache:** `src/diff/change-stats.js` caches each fragment's counts in a `WeakMap` keyed by fragment, re-diffing only when the text it was compared against changed (a repeated tool id can replace an earlier Write in place). Same results, no full re-diff per edit batch.
+- **Diff open failures:** `src/panels/message-router.js` logs any throwing or rejecting route handler instead of leaving an unhandled rejection; `conversation.diffCommand`/`openChangeDiff` show a Hebrew error ("לא ניתן לפתוח את ההשוואה של …") via `showErrorMessage`. New `test/message-router.test.js`.
+- **Stale doc references in code comments** updated after the docs condensation (F-4/F-8/F-9 → CHANGELOG, settings table → `spec.md` "Settings", usage gauge → PLAN section 9).
+- Verified: 291/291 unit tests. The Hebrew error path itself is not unit-tested; not run in real VS Code.
+
 ## 2026-11-09 (batch: open button, navigation cards, changes card, mid-sentence menus; docs condensed)
 - **Open button** (replaces the approved "setting, off by default"): tool rows with a path get a sibling "פתיחה בעורך" button (`webview/chat/thread.js`, `tools.js` `navSummary` for `mcp__claude-local-nav__*`, `chat.css`); clicking the summary text now only expands the row; the editor never moves by itself; relative paths resolve through `src/panels/resolve-path.js` (`conversation.openFile`).
 - **Navigation cards** (`webview/chat/nav-results.js`, `cards.css`): a Hebrew card per navigation tool result, up to 50 clickable rows plus "ועוד N שלא מוצגים"; `readSymbol` and `hover` get none. Condition "after the open checks" waived by the user.

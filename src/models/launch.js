@@ -2,7 +2,7 @@
 // `env` of a `--settings <json>` flag. Environment variables of the CLI process are not enough:
 // the CLI applies the `env` of every settings source over its own process environment, in the
 // order user < project < local < flag (--settings) < managed, so ~/.claude/settings.json beat
-// them (FIXES F-8; DEPENDENCIES.md section 2 #28, #39, #40). Pure.
+// them (CHANGELOG F-8; DEPENDENCIES.md section 2 #28, #39, #40). Pure.
 
 const DEFAULT_MODEL = 'default';
 const WINDOW_VAR = 'CLAUDE_CODE_MAX_CONTEXT_TOKENS';
@@ -25,7 +25,7 @@ function contextWindow(environmentVariables) {
 
 // The settings object for `--settings`, or null when there is nothing to override.
 // With a configured window the CLI must not assume 1M: its default model resolves to
-// "<model>[1m]" (FIXES F-9), which wins over CLAUDE_CODE_MAX_CONTEXT_TOKENS unless
+// "<model>[1m]" (CHANGELOG F-9), which wins over CLAUDE_CODE_MAX_CONTEXT_TOKENS unless
 // CLAUDE_CODE_DISABLE_1M_CONTEXT is set.
 function launchSettings({ model, environmentVariables } = {}) {
   const env = {};

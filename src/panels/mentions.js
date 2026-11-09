@@ -121,7 +121,7 @@ function mentionText(relPath) {
 
 // Rewrites the `@rel/path` mentions of a prompt that name an existing file or folder under `cwd`
 // into absolute paths: the CLI does not expand `@path` in stream-json mode, and a model given a
-// bare relative path guessed a wrong location (FIXES F-4). Unknown names are left untouched.
+// bare relative path guessed a wrong location (CHANGELOG F-4). Unknown names are left untouched.
 function resolveMentions(text, cwd) {
   if (!text || !cwd || !text.includes('@')) return text;
   const inCwd = (rel) => {

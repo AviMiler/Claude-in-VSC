@@ -7,7 +7,7 @@ const { claudeConfigDir } = require('../util/paths');
 
 const TIMEOUT_MS = 5000;
 
-// The CLI's own settings.json keeps the connection variables (PLAN.md settings table).
+// The CLI's own settings.json keeps the connection variables (spec.md "Settings").
 function readCliSettingsEnv() {
   try {
     const json = JSON.parse(fs.readFileSync(path.join(claudeConfigDir(), 'settings.json'), 'utf8'));

@@ -656,7 +656,12 @@ class Conversation {
   // `/diff`: the files this session's Edit/Write tool calls changed (no git).
   async diffCommand() {
     this.services.logger.info('diff', 'command');
-    const shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd, this.services.logger);
+    let shown;
+    try {
+      shown = await runDiffCommand(this.edits, this.services.diffView, this.cwd, this.services.logger);
+    } catch (err) {
+      return this.diffFailed('/diff', err);
+    }
     if (!shown) this.post({ type: 'notice', text: 'Claude עוד לא שינה קבצים בשיחה הזו.' });
   }
 
@@ -671,7 +676,17 @@ class Conversation {
   async openChangeDiff(filePath) {
     if (!editLog.listFiles(this.edits).some((f) => f.path === filePath)) return;
     this.services.logger.info('diff', 'open diff (changes card)');
-    await showFileDiff(this.edits, this.services.diffView, filePath);
+    try {
+      await showFileDiff(this.edits, this.services.diffView, filePath);
+    } catch (err) {
+      this.diffFailed(require('path').basename(filePath), err);
+    }
+  }
+
+  // A diff that could not open: log it and tell the user (the webview never sees the rejection).
+  diffFailed(name, err) {
+    this.services.logger.warn('diff', `open failed: ${err.message}`);
+    vscode.window.showErrorMessage(`לא ניתן לפתוח את ההשוואה של ${name}: ${err.message}`);
   }
 
   // The stop button of a background task: `stop_task {task_id}` (probe4); the CLI then reports

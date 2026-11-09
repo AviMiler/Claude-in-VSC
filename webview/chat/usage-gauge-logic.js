@@ -1,4 +1,4 @@
-// Pure logic of the usage gauge and its card (PLAN.md section 2, "Usage gauge in the prompt line"):
+// Pure logic of the usage gauge and its card (PLAN.md section 9, "Usage gauge in the prompt line"):
 // the fill level, and the per-category rows of the current session against the window.
 // Loaded as a plain script in the webview (CL.usageLogic) and required by the node tests.
 (function (root) {

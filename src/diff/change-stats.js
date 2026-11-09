@@ -44,17 +44,34 @@ function lineDiffCounts(before, after) {
   return { added: midB.length - common, removed: midA.length - common };
 }
 
+// Fragment object -> { from, added, removed }. The edit log keeps its fragment objects for its
+// whole life, so each one is diffed once however often the card is rebuilt; a replaced log's
+// fragments drop out with it. `from` is the text the counts were taken against: a Write's
+// depends on the earlier entries, so a cached count is reused only while that text is the same.
+const sharedCache = new WeakMap();
+
+function cachedCounts(cache, diff, fragment, from) {
+  const hit = cache.get(fragment);
+  if (hit && hit.from === from) return hit;
+  const { added, removed } = diff(from, fragment.after);
+  const counts = { from, added, removed };
+  cache.set(fragment, counts);
+  return counts;
+}
+
 // Changed files in first-change order: [{ path, added, removed }].
-function fileStats(log) {
+// `cache` and `diff` are injectable for tests; the defaults are the shared cache and lineDiffCounts.
+function fileStats(log, { cache = sharedCache, diff = lineDiffCounts } = {}) {
   const files = new Map(); // path -> { path, added, removed }
   const known = new Map(); // path -> content known from a Write (and the Edits after it)
   for (const entry of log.byId.values()) {
     const { path } = entry;
     if (!files.has(path)) files.set(path, { path, added: 0, removed: 0 });
     const sum = files.get(path);
-    for (const { before, after } of entry.fragments) {
+    for (const fragment of entry.fragments) {
+      const { before, after } = fragment;
       const from = entry.write ? (known.get(path) || '') : before;
-      const { added, removed } = lineDiffCounts(from, after);
+      const { added, removed } = cachedCounts(cache, diff, fragment, from);
       sum.added += added;
       sum.removed += removed;
       if (entry.write) known.set(path, after);

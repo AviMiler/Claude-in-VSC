@@ -30,7 +30,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `conversation-host.js` — `ConversationHost`: hosts several conversations in one place, one attached to the webview; routes the drawer messages (ready, newConversation, switch/close/renameConversation, openSession, listConversations, viewFocus); sends a hidden conversation's queue; `[session]` logs.
 - `replay-log.js` — pure: records what a hidden conversation would show (deltas folded per block, snapshots, agent cards) and builds the `restore` message.
 - `conversation.js` — one CLI process: permissions, mode/model, stop; `attach`/`detach`/`restoreMessage`; records into the replay log and paints only while attached; unread when a turn ends unseen.
-- `message-router.js` — webview message `type` to `Conversation` method.
+- `message-router.js` — webview message `type` to `Conversation` method; logs throwing or rejecting handlers. Test: `test/message-router.test.js`.
 - `resolve-path.js` — resolves a relative navigation/tool path against the workspace folders, then the cwd (for the open button and nav card rows).
 - `mentions.js` — file/folder listing (`git ls-files` or walk) and ranking for `@` completion (pure apart from `git`).
 - `editor-context.js` — the editor tracker and autosave helpers (package F); the chips and `withContext` moved to `src/tagging/` (package K); re-exports `linesMention` for Alt+K. (`work-file.js`, the source button, was deleted by package K.)

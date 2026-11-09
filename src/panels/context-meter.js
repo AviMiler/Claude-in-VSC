@@ -1,12 +1,12 @@
 // Usage gauge (the context meter): how full the model's window is now, with a breakdown per
-// category for the card (PLAN.md section 2, "Usage gauge in the prompt line").
+// category for the card (PLAN.md section 9, "Usage gauge in the prompt line").
 // Usage comes from the control request `get_context_usage` (DEPENDENCIES.md section 2 #16):
 // `totalTokens`, `maxTokens`, `model`, `categories`, `memoryFiles`, `mcpTools`.
 // The window, in order: the real one from Ollama's /api/ps for the loaded model
 // (src/models/ollama.js), else CLAUDE_CODE_MAX_CONTEXT_TOKENS from claudeLocal.environmentVariables
 // (src/models/launch.js passes it with CLAUDE_CODE_DISABLE_1M_CONTEXT), else the CLI's maxTokens.
 // The window is a ceiling on the CLI's maxTokens, so a CLI that still assumes 1M for a
-// "<model>[1m]" name (FIXES F-9) cannot make the gauge show 1,000,000.
+// "<model>[1m]" name (CHANGELOG F-9) cannot make the gauge show 1,000,000.
 const { contextWindow } = require('../models/launch');
 const { resolveOllamaUrl, normalizeModelName, fetchOllamaWindow } = require('../models/ollama');
 

@@ -52,6 +52,42 @@ test('fileStats: a Write is all added at first, then compared with the known con
   assert.deepStrictEqual(fileStats(log), [{ path: '/p/n.txt', added: 5, removed: 1 }]);
 });
 
+test('fileStats: cached counts equal uncached ones, and a rebuild diffs only new fragments', () => {
+  const log = createEditLog();
+  addEvent(log, tool('1', 'Write', { file_path: '/p/n.txt', content: 'a\nb\nc\n' }));
+  addEvent(log, tool('2', 'Edit', { file_path: '/p/n.txt', old_string: 'b', new_string: 'B' }));
+  addEvent(log, tool('3', 'MultiEdit', { file_path: '/p/m.js', edits: [{ old_string: '1', new_string: '2' }, { old_string: '3\n4', new_string: '' }] }));
+  let calls = 0;
+  const diff = (a, b) => { calls += 1; return lineDiffCounts(a, b); };
+  const cache = new WeakMap();
+  const uncached = () => fileStats(log, { cache: new WeakMap() });
+
+  assert.deepStrictEqual(fileStats(log, { cache, diff }), uncached());
+  assert.strictEqual(calls, 4); // one per fragment
+  assert.deepStrictEqual(fileStats(log, { cache, diff }), uncached());
+  assert.strictEqual(calls, 4); // nothing recomputed
+
+  addEvent(log, tool('4', 'Write', { file_path: '/p/n.txt', content: 'a\nB\nc\nd\n' }));
+  assert.deepStrictEqual(fileStats(log, { cache, diff }), uncached());
+  assert.strictEqual(calls, 5); // only the new Write
+  assert.deepStrictEqual(fileStats(log, { cache, diff }), [
+    { path: '/p/n.txt', added: 5, removed: 1 },
+    { path: '/p/m.js', added: 1, removed: 3 },
+  ]);
+});
+
+test('fileStats: a cached Write count is redone when its earlier content changed', () => {
+  // A repeated tool id replaces an entry in place, so a later Write's earlier content differs.
+  const log = createEditLog();
+  addEvent(log, tool('1', 'Write', { file_path: '/p/n.txt', content: 'a\n' }));
+  addEvent(log, tool('2', 'Write', { file_path: '/p/n.txt', content: 'a\nb\n' }));
+  const cache = new WeakMap();
+  assert.deepStrictEqual(fileStats(log, { cache }), [{ path: '/p/n.txt', added: 2, removed: 0 }]);
+  addEvent(log, tool('1', 'Write', { file_path: '/p/n.txt', content: 'x\ny\n' }));
+  assert.deepStrictEqual(fileStats(log, { cache }), fileStats(log, { cache: new WeakMap() }));
+  assert.deepStrictEqual(fileStats(log, { cache }), [{ path: '/p/n.txt', added: 4, removed: 2 }]);
+});
+
 test('changesCardMessage: relative paths inside the folder, full paths outside', () => {
   const cwd = path.resolve('/work/proj');
   const inside = path.join(cwd, 'src', 'a.js');

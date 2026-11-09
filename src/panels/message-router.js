@@ -34,10 +34,21 @@ const ROUTES = {
   log: (c, m) => WEBVIEW_TAGS.includes(m.tag) && c.services.logger.info(m.tag, `ui: ${String(m.text).slice(0, 200)}`),
 };
 
+function logRouteFailure(conversation, msg, err) {
+  conversation.services.logger.warn('control', `webview message ${msg.type} failed: ${err && err.message ? err.message : err}`);
+}
+
 function routeMessage(conversation, msg) {
   const route = msg && ROUTES[msg.type];
-  if (route) route(conversation, msg);
-  else conversation.services.logger.warn('control', `unknown webview message: ${msg && msg.type}`);
+  if (route) {
+    // Async handlers return promises the webview never awaits: log a rejection instead of leaving it unhandled.
+    try {
+      const result = route(conversation, msg);
+      if (result && typeof result.catch === 'function') result.catch((err) => logRouteFailure(conversation, msg, err));
+    } catch (err) {
+      logRouteFailure(conversation, msg, err);
+    }
+  } else conversation.services.logger.warn('control', `unknown webview message: ${msg && msg.type}`);
 }
 
 module.exports = { routeMessage };
