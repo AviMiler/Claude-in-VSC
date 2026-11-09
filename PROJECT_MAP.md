@@ -90,7 +90,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 
 ## src/diff/ — shared diff view and `/diff`
 - `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
-- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F and `openDiff`.
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F (`openDiff` closed 2026-11-09, not built).
 - `blocks.js` — pure line diff for per-block approval: `diffBlocks`, `applyBlocks`, `reviewTexts` (Edit/Write), `decision` (allow / partial `updatedInput` / deny) (package F).
 - `block-review.js` — `createBlockReview(diffView).review(...)`: CodeLens toggles on the diff view, or a multi-select QuickPick when `diffEditor.codeLens` is off; `cancel(requestId)` (package F).
 - `diff-command.js` — `/diff` QuickPick to diff; exports the shared `showFileDiff` (also used by the changes card).
