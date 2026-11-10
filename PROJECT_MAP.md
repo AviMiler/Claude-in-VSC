@@ -14,6 +14,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `PLAN.md` — the roadmap: feature decisions with reasons, settings provenance, build order (packages A-K), open points, code-navigation design.
 - `FUTURE_FEATURES.md` — undecided ideas; once approved they move into `PLAN.md`.
 - `FIXES.md` — open items of the user-reported fix list.
+- `REVIEW.md` — the 2026-11-10 review: proposals on the approach to the model, architecture and new features; nothing in it is decided.
 - `git-instructions.md` — git workflow. `CHANGELOG.md` — what changed and why, newest first. `SETUP.md` — install and settings for the user's machine (Hebrew).
 
 ## src/cli/ — the CLI process
