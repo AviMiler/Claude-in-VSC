@@ -1,0 +1,485 @@
+﻿// probe5-standalone.js - ONE self-contained file (no other files, no npm needed). Node 18+ (22 recommended).
+// Which CLI control requests does the installed `claude` CLI (target: 2.1.246) support?
+// The request names and payload shapes come from the official extension bundle anthropic.claude-code 2.1.322
+// (PLAN.md section 11, PRODUCT_PROPOSAL.md section 4). For each request the report records
+// supported / unsupported / other error and the SHAPE of the answer (keys and types only, no values).
+// Usage: node probe5-standalone.js --claude "C:\path\claude-bin.exe" [--out probe5-report.json] [--only c1,c2]
+//        [--turn-timeout 400] [--req-timeout 30] [--mcp-wait 20]
+// Checks: c1_requests (no model turn, except side_question which may call the model),
+//         c2_hooks (one model turn), c3_sdk_mcp (one model turn), c4_append_system_prompt (one model turn).
+// Writes nothing except the report (default: next to this script) and a throw-away %TEMP%\claude-probe5-* folder.
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawn } = require('child_process');
+const { EventEmitter } = require('events');
+
+// ---------- part 1: how to start the CLI (from src/cli/spawn.js) ----------
+const ENTRYPOINT = 'claude-local-vscode';
+
+function resolveExecutable(command, env = process.env, platform = process.platform) {
+  if (path.isAbsolute(command) || command.includes('/') || command.includes('\\')) return command;
+  const dirs = (env.PATH || env.Path || '').split(path.delimiter).filter(Boolean);
+  const exts = platform === 'win32'
+    ? (env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)
+    : [''];
+  for (const dir of dirs) {
+    for (const ext of platform === 'win32' && path.extname(command) ? [''] : exts) {
+      const candidate = path.join(dir, command + ext.toLowerCase());
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  return command;
+}
+
+function quoteForCmd(arg) {
+  return /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg;
+}
+
+function spawnCli(claudePath, args, { cwd, env = process.env } = {}) {
+  const exe = resolveExecutable(claudePath, env);
+  const childEnv = { ...env, CLAUDE_CODE_ENTRYPOINT: ENTRYPOINT };
+  const options = { cwd, env: childEnv, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true };
+  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(exe)) {
+    const line = [exe, ...args].map(quoteForCmd).join(' ');
+    return spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `"${line}"`], {
+      ...options,
+      windowsVerbatimArguments: true,
+    });
+  }
+  return spawn(exe, args, options);
+}
+
+// ---------- part 2: CLI arguments (from src/cli/args.js) ----------
+function buildArgs() {
+  return [
+    '-p',
+    '--input-format', 'stream-json',
+    '--output-format', 'stream-json',
+    '--verbose',
+    '--include-partial-messages',
+    '--permission-prompt-tool', 'stdio',
+    '--permission-mode', 'default',
+  ];
+}
+
+// ---------- part 3: the stream-json process wrapper (from src/cli/process.js) ----------
+class CliProcess extends EventEmitter {
+  constructor({ claudePath, args, cwd, env }) {
+    super();
+    this.pending = new Map();
+    this.nextId = 1;
+    this.stderrTail = '';
+    this.exited = false;
+    this.exitInfo = null;
+    this.child = spawnCli(claudePath, args, { cwd, env });
+    this.child.on('error', (err) => this.finish({ code: null, error: String(err.message || err) }));
+    this.child.on('exit', (code, signal) => this.finish({ code, signal }));
+    this.child.stdin.on('error', () => {});
+    this.child.stderr.setEncoding('utf8');
+    this.child.stderr.on('data', (d) => { this.stderrTail = (this.stderrTail + d).slice(-1500); });
+    let buf = '';
+    this.child.stdout.setEncoding('utf8');
+    this.child.stdout.on('data', (chunk) => {
+      buf += chunk;
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim();
+        buf = buf.slice(i + 1);
+        if (line) this.onLine(line);
+      }
+    });
+  }
+
+  onLine(line) {
+    let msg;
+    try { msg = JSON.parse(line); } catch { return; }
+    if (msg.type === 'control_response') {
+      const { request_id: id, subtype, response, error } = msg.response || {};
+      const entry = this.pending.get(id);
+      if (!entry) return;
+      this.pending.delete(id);
+      clearTimeout(entry.timer);
+      if (subtype === 'success') entry.resolve(response === undefined ? {} : response);
+      else entry.reject(new Error(error || 'control request failed'));
+      return;
+    }
+    if (msg.type === 'control_request') { this.emit('controlRequest', msg.request_id, msg.request || {}); return; }
+    if (msg.type === 'control_cancel_request') return;
+    this.emit('message', msg);
+  }
+
+  send(obj) {
+    if (this.exited) return false;
+    this.child.stdin.write(JSON.stringify(obj) + '\n');
+    return true;
+  }
+
+  request(subtype, payload = {}, timeoutMs = 60000) {
+    const requestId = `probe5-${this.nextId++}`;
+    return new Promise((resolve, reject) => {
+      if (this.exited) return reject(new Error('process exited'));
+      const timer = setTimeout(() => {
+        this.pending.delete(requestId);
+        reject(new Error(`${subtype} timed out`));
+      }, timeoutMs);
+      this.pending.set(requestId, { resolve, reject, timer });
+      this.send({ type: 'control_request', request_id: requestId, request: { subtype, ...payload } });
+    });
+  }
+
+  respond(requestId, response) {
+    this.send({ type: 'control_response', response: { subtype: 'success', request_id: requestId, response } });
+  }
+
+  respondError(requestId, error) {
+    this.send({ type: 'control_response', response: { subtype: 'error', request_id: requestId, error } });
+  }
+
+  kill() {
+    if (this.exited) return;
+    const pid = this.child.pid;
+    try { this.child.stdin.end(); } catch {}
+    if (process.platform === 'win32' && pid) {
+      spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { windowsHide: true }).on('error', () => {});
+    } else {
+      this.child.kill('SIGTERM');
+    }
+  }
+
+  finish(info) {
+    if (this.exited) return;
+    this.exited = true;
+    this.exitInfo = info;
+    for (const { reject, timer } of this.pending.values()) {
+      clearTimeout(timer);
+      reject(new Error('process exited'));
+    }
+    this.pending.clear();
+    this.emit('exit', info);
+  }
+}
+
+// ---------- part 4: the checks ----------
+const argv = process.argv.slice(2);
+const opt = (name, fallback) => {
+  const i = argv.indexOf('--' + name);
+  return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : fallback;
+};
+const claudePath = opt('claude', 'claude');
+const outFile = path.resolve(opt('out', path.join(__dirname, 'probe5-report.json')));
+const only = opt('only', '') ? opt('only').split(',') : null;
+const turnTimeoutMs = Number(opt('turn-timeout', '400')) * 1000;
+const reqTimeoutMs = Number(opt('req-timeout', '30')) * 1000;
+const mcpWaitMs = Number(opt('mcp-wait', '20')) * 1000;
+
+const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-probe5-'));
+const nonce = String(Math.floor(100000 + Math.random() * 900000));
+const report = { probe: 'probe5', claudePath, sandbox, startedAt: new Date().toISOString(), checks: {}, summary: {} };
+const save = () => { try { fs.writeFileSync(outFile, JSON.stringify(report, null, 2)); } catch (e) { console.log('cannot write report: ' + e.message); } };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const secs = (t0) => Math.round((Date.now() - t0) / 1000);
+const say = (s) => console.log('  ' + s);
+
+// Keys and types only, never values. Arrays: length plus the shape of the first item.
+function shape(v, depth = 0) {
+  if (v === null) return 'null';
+  if (Array.isArray(v)) return v.length ? { array: v.length, item: depth < 4 ? shape(v[0], depth + 1) : '...' } : 'array(0)';
+  if (typeof v === 'object') {
+    if (depth >= 4) return 'object';
+    const o = {};
+    const keys = Object.keys(v);
+    for (const k of keys.slice(0, 40)) o[k] = shape(v[k], depth + 1);
+    if (keys.length > 40) o['...'] = `${keys.length - 40} more keys`;
+    return o;
+  }
+  return typeof v;
+}
+
+// Only `echo` (no shell operators) and the probe's own SDK MCP tool are approved; everything else is denied.
+const isSafeBash = (cmd) => {
+  const c = String(cmd || '').trim();
+  return c.length > 0 && c.length < 120 && /^echo(\s|$)/i.test(c) && !/[&|;<>`$()\r\n]/.test(c);
+};
+
+// One CLI process. `onControl(id, req)` may answer extra CLI-side requests; return true if handled.
+function start({ extraArgs = [], onControl } = {}) {
+  const h = { seen: [], permissions: [], otherRequests: [] };
+  h.proc = new CliProcess({ claudePath, args: buildArgs().concat(extraArgs), cwd: sandbox, env: process.env });
+  h.proc.on('message', (m) => h.seen.push(m));
+  h.proc.on('controlRequest', (id, req) => {
+    if (onControl && onControl(id, req)) return;
+    if (req.subtype === 'can_use_tool') {
+      const allow = (req.tool_name === 'Bash' && isSafeBash(req.input && req.input.command)) || /^mcp__probe5__/.test(req.tool_name || '');
+      h.permissions.push({ tool: req.tool_name, allowed: allow });
+      h.proc.respond(id, allow ? { behavior: 'allow', updatedInput: req.input } : { behavior: 'deny', message: 'probe: denied' });
+      return;
+    }
+    h.otherRequests.push(req.subtype);
+    h.proc.respondError(id, 'unsupported in probe');
+  });
+  return h;
+}
+
+// supported / unsupported / no answer / process exited / error, plus the answer's shape.
+async function ask(h, subtype, payload = {}, ms = reqTimeoutMs) {
+  const t0 = Date.now();
+  try {
+    const r = await h.proc.request(subtype, payload, ms);
+    return { status: 'supported', seconds: secs(t0), shape: shape(r) };
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (/unsupported control request subtype/i.test(m)) return { status: 'unsupported', seconds: secs(t0), error: m.slice(0, 160) };
+    if (/timed out$/.test(m)) return { status: 'no answer (timeout)', seconds: secs(t0) };
+    if (m === 'process exited') return { status: 'process exited', seconds: secs(t0), exit: h.proc.exitInfo, stderrTail: h.proc.stderrTail.slice(-400) };
+    // Any other error text most likely means the CLI knows the subtype but rejected these arguments; read `error`.
+    return { status: 'error', seconds: secs(t0), error: m.slice(0, 200) };
+  }
+}
+
+// Sends one user message and waits for the next `result`, printing a heartbeat every 30 s.
+function turn(h, text) {
+  const from = h.seen.length;
+  const t0 = Date.now();
+  h.proc.send({ type: 'user', message: { role: 'user', content: [{ type: 'text', text }] } });
+  say(`waiting for the model (up to ${turnTimeoutMs / 1000}s; a cold model load took about 285s)...`);
+  return new Promise((resolve) => {
+    let beat = Date.now();
+    const tick = setInterval(() => {
+      const result = h.seen.slice(from).find((m) => m.type === 'result');
+      if (result || Date.now() - t0 > turnTimeoutMs || h.proc.exited) {
+        clearInterval(tick);
+        say(result ? `model answered after ${secs(t0)}s` : (h.proc.exited ? 'CLI exited during the turn' : 'no answer: timed out'));
+        resolve({ timedOut: !result, seconds: secs(t0), from, text: result && typeof result.result === 'string' ? result.result : '', isError: !!(result && result.is_error) });
+      } else if (Date.now() - beat > 30000) {
+        beat = Date.now();
+        say(`... still waiting (${secs(t0)}s)`);
+      }
+    }, 250);
+  });
+}
+
+const systemSubtypes = (h, from = 0) => [...new Set(h.seen.slice(from).filter((m) => m.type === 'system').map((m) => m.subtype))];
+const toolUses = (h, from = 0) => {
+  const out = [];
+  for (const m of h.seen.slice(from)) {
+    if (m.type === 'assistant' && m.message && Array.isArray(m.message.content)) {
+      for (const b of m.message.content) if (b.type === 'tool_use') out.push(b.name);
+    }
+  }
+  return out;
+};
+const initMsg = (h) => h.seen.find((m) => m.type === 'system' && m.subtype === 'init');
+
+// Shared state: c3 decides whether its second variant needs a model turn.
+const state = {};
+
+const checks = {
+  // Every request once after a plain initialize. side_question last: it may call the model.
+  async c1_requests() {
+    const h = start();
+    const out = { requests: {} };
+    try {
+      say('initialize ...');
+      out.initialize = await ask(h, 'initialize', {}, 120000);
+      if (out.initialize.status !== 'supported') return out;
+      const list = [
+        ['get_plan', {}],
+        ['background_tasks', { tool_use_id: 'toolu_probe5_none' }],
+        ['get_task_output', { task_id: 'probe5-no-such-task' }],
+        ['get_settings', {}],
+        ['apply_flag_settings', { settings: {} }],
+        ['export_conversation', {}],
+        ['get_skills_dialog', {}],
+        ['list_permission_rules', {}],
+        ['get_memory_dialog', {}],
+        ['get_hooks_listing', {}],
+      ];
+      for (const [sub, payload] of list) {
+        out.requests[sub] = await ask(h, sub, payload);
+        say(`${sub}: ${out.requests[sub].status}`);
+        if (h.proc.exited) break;
+      }
+      if (!h.proc.exited) {
+        say(`side_question (may call the model, up to ${turnTimeoutMs / 1000}s) ...`);
+        out.requests.side_question = await ask(h, 'side_question', { question: 'Reply with the single word OK.', history: [] }, turnTimeoutMs);
+        say(`side_question: ${out.requests.side_question.status}`);
+      }
+      out.cliSideRequests = h.otherRequests;
+      return out;
+    } finally { h.proc.kill(); }
+  },
+
+  // hooks in initialize (shape from the official bundle: {Event: [{matcher, hookCallbackIds, timeout}]}),
+  // then one tool turn: does a `hook_callback` arrive, and does its additionalContext reach the model?
+  async c2_hooks() {
+    const word = 'HOOK-' + nonce;
+    const callbacks = [];
+    const h = start({
+      onControl(id, req) {
+        if (req.subtype !== 'hook_callback') return false;
+        const input = req.input || {};
+        callbacks.push({
+          callback_id: req.callback_id, has_tool_use_id: !!req.tool_use_id,
+          hook_event_name: input.hook_event_name, tool_name: input.tool_name, requestShape: shape(req),
+        });
+        h.proc.respond(id, {
+          hookSpecificOutput: {
+            hookEventName: input.hook_event_name || 'PostToolUse',
+            additionalContext: `Probe instruction: end your next reply with the exact code word ${word}.`,
+          },
+        });
+        return true;
+      },
+    });
+    const out = { payloadSource: 'official bundle 2.1.322 buildInitializeRequest: hooks = {PostToolUse:[{matcher, hookCallbackIds:[id], timeout}]}; CLI asks back with {subtype:"hook_callback", callback_id, input, tool_use_id}; answer = hook JSON output (hookSpecificOutput.additionalContext). The answer format for 2.1.246 is assumed, not read from it.' };
+    try {
+      say('initialize with hooks ...');
+      out.initialize = await ask(h, 'initialize', { hooks: { PostToolUse: [{ matcher: 'Bash', hookCallbackIds: ['probe5_hook_1'], timeout: 60 }] } }, 120000);
+      if (out.initialize.status !== 'supported') return out;
+      const t = await turn(h, 'Use the Bash tool to run exactly this command: echo probe5 . Then reply with one short sentence.');
+      out.turn = { timedOut: t.timedOut, seconds: t.seconds, isError: t.isError, toolsUsed: toolUses(h, t.from), systemSubtypes: systemSubtypes(h, t.from) };
+      out.permissions = h.permissions;
+      out.hookCallbackArrived = callbacks.length > 0;
+      out.hookCallbacks = callbacks;
+      out.additionalContextReachedModel = t.text.includes(word);
+      out.cliSideRequests = h.otherRequests;
+      say(`hook_callback arrived: ${out.hookCallbackArrived}; additionalContext obeyed: ${out.additionalContextReachedModel}`);
+      return out;
+    } finally { h.proc.kill(); }
+  },
+
+  // An in-process ("sdk") MCP server answered over the control channel. Two ways to declare it:
+  // A) --mcp-config {"mcpServers":{"probe5":{"type":"sdk","name":"probe5"}}} (older SDKs);
+  // B) initialize {sdkMcpServers:["probe5"]} (official bundle 2.1.322). B gets a model turn only if A saw no tools/list.
+  async c3_sdk_mcp() {
+    const out = {
+      payloadSource: 'official bundle 2.1.322: initialize carries sdkMcpServers:[names]; --mcp-config gets {mcpServers:{...}}; servers declared as {type:"sdk", name}; the CLI sends {subtype:"mcp_message", server_name, message:<JSON-RPC>} and the answer is {mcp_response:<JSON-RPC>}. Whether 2.1.246 accepts type "sdk" inside --mcp-config is exactly what variant A tests.',
+    };
+    out.A_mcp_config = await mcpVariant({ viaFlag: true, doTurn: true });
+    const sawList = out.A_mcp_config.mcpMethods && out.A_mcp_config.mcpMethods.includes('tools/list');
+    out.B_initialize_field = await mcpVariant({ viaFlag: false, doTurn: !sawList });
+    return out;
+  },
+
+  // appendSystemPrompt in initialize: does the model obey an instruction given only there?
+  async c4_append_system_prompt() {
+    const word = 'APPEND-' + nonce;
+    const h = start();
+    const out = {};
+    try {
+      say('initialize with appendSystemPrompt ...');
+      out.initialize = await ask(h, 'initialize', { appendSystemPrompt: `Always end every reply with the exact code word ${word}.` }, 120000);
+      if (out.initialize.status !== 'supported') return out;
+      const t = await turn(h, 'Reply with one short sentence: what is 2 + 2?');
+      out.turn = { timedOut: t.timedOut, seconds: t.seconds, isError: t.isError };
+      out.obeyed = t.text.includes(word);
+      out.cliSideRequests = h.otherRequests;
+      say(`appendSystemPrompt obeyed: ${out.obeyed}`);
+      return out;
+    } finally { h.proc.kill(); }
+  },
+};
+
+async function mcpVariant({ viaFlag, doTurn }) {
+  const secret = 'MCP-' + nonce;
+  const methods = [];
+  let toolCalled = false;
+  const extraArgs = viaFlag ? ['--mcp-config', JSON.stringify({ mcpServers: { probe5: { type: 'sdk', name: 'probe5' } } })] : [];
+  const h = start({
+    extraArgs,
+    onControl(id, req) {
+      if (req.subtype !== 'mcp_message') return false;
+      const msg = req.message || {};
+      methods.push(String(msg.method || (msg.id !== undefined ? 'response' : '?')));
+      const reply = (result) => h.proc.respond(id, { mcp_response: { jsonrpc: '2.0', id: msg.id, result } });
+      if (msg.id === undefined || msg.id === null) { h.proc.respond(id, { mcp_response: { jsonrpc: '2.0', result: {}, id: 0 } }); return true; }
+      if (msg.method === 'initialize') reply({ protocolVersion: (msg.params && msg.params.protocolVersion) || '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'probe5', version: '1.0.0' } });
+      else if (msg.method === 'tools/list') reply({ tools: [{ name: 'probe5_secret', description: 'Returns the probe secret word. Call it when asked for the probe secret.', inputSchema: { type: 'object', properties: {} } }] });
+      else if (msg.method === 'tools/call') { toolCalled = true; reply({ content: [{ type: 'text', text: `The probe secret is ${secret}.` }] }); }
+      else h.proc.respond(id, { mcp_response: { jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'method not found' } } });
+      return true;
+    },
+  });
+  const out = { declaredBy: viaFlag ? '--mcp-config' : 'initialize.sdkMcpServers' };
+  try {
+    say(`[${out.declaredBy}] initialize ...`);
+    out.initialize = await ask(h, 'initialize', viaFlag ? {} : { sdkMcpServers: ['probe5'] }, 120000);
+    if (out.initialize.status !== 'supported') { out.exit = h.proc.exitInfo; out.stderrTail = h.proc.stderrTail.slice(-400); return out; }
+    say(`[${out.declaredBy}] waiting ${mcpWaitMs / 1000}s for mcp_message ...`);
+    await sleep(mcpWaitMs);
+    out.mcpMessageArrived = methods.length > 0;
+    if (doTurn && !h.proc.exited) {
+      const t = await turn(h, 'Call the tool probe5_secret (from the MCP server probe5) once and reply with the secret word it returns.');
+      out.turn = { timedOut: t.timedOut, seconds: t.seconds, isError: t.isError, toolsUsed: toolUses(h, t.from) };
+      out.secretReachedModel = t.text.includes(secret);
+    } else {
+      out.turn = doTurn ? 'skipped: CLI exited' : 'skipped: variant A already listed the tools';
+    }
+    const init = initMsg(h);
+    if (init) {
+      const servers = Array.isArray(init.mcp_servers) ? init.mcp_servers : [];
+      out.initMessage = {
+        probe5Server: servers.find((s) => s && s.name === 'probe5') || 'not listed',
+        probe5ToolListed: Array.isArray(init.tools) && init.tools.some((n) => /^mcp__probe5__/.test(n)),
+      };
+    } else out.initMessage = 'no system/init seen';
+    out.mcpMethods = methods;
+    out.toolCalledByModel = toolCalled;
+    out.permissions = h.permissions;
+    out.cliSideRequests = h.otherRequests;
+    out.exit = h.proc.exitInfo;
+    if (h.proc.exited) out.stderrTail = h.proc.stderrTail.slice(-400);
+    say(`[${out.declaredBy}] mcp_message: ${out.mcpMessageArrived} (${[...new Set(methods)].join(', ') || 'none'}); tool called: ${toolCalled}`);
+    return out;
+  } finally { h.proc.kill(); }
+}
+
+function summarize() {
+  const s = {};
+  const c1 = report.checks.c1_requests;
+  if (c1 && c1.ok) {
+    if (c1.data.initialize) s.initialize = c1.data.initialize.status;
+    for (const [k, v] of Object.entries(c1.data.requests || {})) s[k] = v.status === 'error' ? 'error: ' + v.error.slice(0, 90) : v.status;
+  }
+  const c2 = report.checks.c2_hooks;
+  if (c2 && c2.ok) s.hooks = c2.data.initialize && c2.data.initialize.status !== 'supported' ? 'initialize failed' : `hook_callback=${c2.data.hookCallbackArrived} additionalContextObeyed=${c2.data.additionalContextReachedModel}`;
+  const c3 = report.checks.c3_sdk_mcp;
+  if (c3 && c3.ok) {
+    for (const k of ['A_mcp_config', 'B_initialize_field']) {
+      const v = c3.data[k] || {};
+      s['sdk_mcp_' + k] = v.initialize && v.initialize.status !== 'supported' ? 'initialize failed: ' + v.initialize.status : `mcp_message=${v.mcpMessageArrived} toolCalled=${v.toolCalledByModel} secretInAnswer=${v.secretReachedModel}`;
+    }
+  }
+  const c4 = report.checks.c4_append_system_prompt;
+  if (c4 && c4.ok) s.appendSystemPrompt = c4.data.initialize && c4.data.initialize.status !== 'supported' ? 'initialize failed' : `obeyed=${c4.data.obeyed}`;
+  for (const [k, v] of Object.entries(report.checks)) if (!v.ok) s[k] = 'CHECK FAILED: ' + v.error.split('\n')[0];
+  return s;
+}
+
+(async () => {
+  console.log(`probe5: CLI = ${claudePath}\n  temp folder: ${sandbox}\n  report: ${outFile}`);
+  const names = Object.keys(checks).filter((n) => !only || only.some((o) => n.startsWith(o)));
+  for (const name of names) {
+    console.log(`\n${name} ...`);
+    const t0 = Date.now();
+    try {
+      report.checks[name] = { ok: true, seconds: 0, data: await checks[name]() };
+      report.checks[name].seconds = secs(t0);
+      console.log(`${name} done (${secs(t0)}s)`);
+    } catch (e) {
+      report.checks[name] = { ok: false, seconds: secs(t0), error: String((e && e.stack) || e) };
+      console.log(`${name} FAILED: ${e && e.message}`);
+    }
+    report.summary = summarize();
+    save();
+    await sleep(1500);
+  }
+  report.finishedAt = new Date().toISOString();
+  report.summary = summarize();
+  save();
+  console.log('\n===== summary =====');
+  for (const [k, v] of Object.entries(report.summary)) console.log(`${k.padEnd(28)} ${v}`);
+  console.log(`\nReport written to ${outFile}`);
+  process.exit(0);
+})();

@@ -13,6 +13,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `DEPENDENCIES.md` — vendored libraries and measured findings about the CLI, gateway/Ollama, VS Code.
 - `PLAN.md` — the roadmap: feature decisions with reasons, settings provenance, build order (packages A-K), open points, code-navigation design.
 - `FUTURE_FEATURES.md` — undecided ideas; once approved they move into `PLAN.md`.
+- `PRODUCT_PROPOSAL.md` — Hebrew research document for the user (2026-11-17): comparison with the official extension 2.1.322, unused CLI control requests, feature proposals with ids (L/M/P/R/Q/X/A), proposed order, open decisions. Nothing in it is decided.
 - `FIXES.md` — open items of the user-reported fix list.
 - `git-instructions.md` — git workflow. `CHANGELOG.md` — what changed and why, newest first. `SETUP.md` — install and settings for the user's machine (Hebrew).
 
@@ -135,6 +136,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `preview-server.js`, `preview-host.js`, `preview-theme.css` — browser preview with a simulated host (several conversations, drawer, restore, MCP, bars; URL params `?conv=c2`, `?open=drawer|mcp|slash|attach|mode`, `?theme=light`).
 - `probe-cli.js` — first CLI feasibility probe (needs the repo); `probe-standalone.js`, `probe2-standalone.js`, `probe3-standalone.js` — self-contained probes against the real CLI (checks `p1`-`p8`, `q1`-`q10`, `s1`-`s5`).
 - `probe4-standalone.js` — self-contained probe: background tasks, Task tools, sub-agents, cron tools.
+- `probe5-standalone.js` (+ `probe5-standalone.txt`, the BOM/CRLF delivery copy) — self-contained probe of the control requests found in the official 2.1.322 bundle against CLI 2.1.246 (`PLAN.md` section 11): supported / unsupported and the answer shape per request, `hooks` + `hook_callback`, an `sdk` MCP server (`--mcp-config` and `initialize.sdkMcpServers`), `appendSystemPrompt`. Hebrew steps: `check-control-requests.txt`.
 - `probe-mcp-standalone.js`, `run-h-checks.ps1`, `email/` (`HOW-TO-RUN.txt`, `probe-mcp-standalone.txt`, `run-h-checks.txt` = e-mail copies) — the package H transport/token pre-check run on another machine (`PLAN.md` section 6 item 10).
 - `gateway-probe/` — dev-only VS Code extension (`package.json`, `extension.js`, `probe.js`) that checks the extension host can reach the model gateway.
 - `nav-check/` — dev-only check of the eight navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
