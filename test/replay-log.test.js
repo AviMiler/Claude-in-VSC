@@ -52,3 +52,65 @@ test('injected editor-context text is not kept for the restored view', () => {
   r.record(log, events({ kind: 'delta', key: 'm:1', blockType: 'text', text: '<ide_selection>x</ide_selection>' }));
   assert.strictEqual(r.replay(log).items.length, 0);
 });
+
+test('the cap constants are sane', () => {
+  assert.strictEqual(r.MAX_ITEMS, 2000);
+  assert.strictEqual(r.MAX_CHARS, 2000000);
+  assert.ok(r.TRIM_TARGET > 0 && r.TRIM_TARGET < 1);
+});
+
+test('under the cap nothing is dropped', () => {
+  const log = r.createReplayLog();
+  for (let i = 0; i < r.MAX_ITEMS; i++) r.addUser(log, 'm' + i);
+  const { items } = r.replay(log);
+  assert.strictEqual(items.length, r.MAX_ITEMS);
+  assert.strictEqual(items[0].ev.text, 'm0');
+});
+
+test('over the item cap the oldest go and the newest stay', () => {
+  const log = r.createReplayLog();
+  const total = r.MAX_ITEMS + 5;
+  for (let i = 0; i < total; i++) r.addUser(log, 'm' + i);
+  const { items } = r.replay(log);
+  assert.ok(items.length <= r.MAX_ITEMS);
+  assert.strictEqual(items[items.length - 1].ev.text, 'm' + (total - 1));
+  assert.notStrictEqual(items[0].ev.text, 'm0');
+});
+
+test('over the character cap the oldest go', () => {
+  const log = r.createReplayLog();
+  const big = 'x'.repeat(200000);
+  for (let i = 0; i < 20; i++) r.addUser(log, big + i);
+  const { items } = r.replay(log);
+  assert.ok(items.length < 20);
+  assert.ok(log.chars <= r.MAX_CHARS);
+  assert.ok(items[items.length - 1].ev.text.endsWith('19'));
+});
+
+test('after a trim a streaming block and a tool result still hit their own items', () => {
+  const log = r.createReplayLog();
+  r.record(log, events({ kind: 'delta', key: 's:0', blockType: 'text', text: 'He' }));
+  r.record(log, events({ kind: 'tool', key: 's:1', id: 'tool-live', name: 'Bash', input: {}, final: false }));
+  r.record(log, events({ kind: 'block', key: 'old:0', blockType: 'text', text: 'old' }));
+  for (let i = 0; i < r.MAX_ITEMS + 10; i++) r.addUser(log, 'm' + i);
+  r.record(log, events({ kind: 'delta', key: 's:0', blockType: 'text', text: 'llo' }));
+  r.record(log, events({ kind: 'tool', key: 's:1', id: 'tool-live', name: 'Bash', input: {}, final: true, result: 'ok' }));
+  const { items } = r.replay(log);
+  assert.ok(items.length <= r.MAX_ITEMS);
+  assert.strictEqual(items.filter((i) => i.ev.kind === 'delta').length, 1);
+  assert.strictEqual(items.find((i) => i.ev.kind === 'delta').ev.text, 'Hello');
+  const tool = items.filter((i) => i.ev.kind === 'tool');
+  assert.strictEqual(tool.length, 1);
+  assert.strictEqual(tool[0].ev.result, 'ok');
+  assert.strictEqual(items.some((i) => i.ev.key === 'old:0'), false);
+  assert.strictEqual(items.filter((i) => i.ev.kind === 'user').length, items.length - 2);
+});
+
+test('a block that was dropped does not corrupt others; maps point at the right items', () => {
+  const log = r.createReplayLog();
+  for (let i = 0; i < r.MAX_ITEMS + 50; i++) {
+    r.record(log, events({ kind: 'block', key: 'k' + i, blockType: 'text', text: 't' + i }));
+  }
+  for (const [key, at] of log.blocks) assert.strictEqual(log.items[at].ev.key, key);
+  assert.strictEqual(log.blocks.size, log.items.length);
+});

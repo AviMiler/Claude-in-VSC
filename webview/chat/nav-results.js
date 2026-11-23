@@ -51,8 +51,9 @@
   }
 
   // readSymbol and hover return source code and docs, never locations: a "name:12" in that text is
-  // not a place to open, so they get no card (their row's open button covers the file).
-  const NO_LOCATIONS = ['readSymbol', 'hover'];
+  // not a place to open, so they get no card (their row's open button covers the file). getDiagnostics
+  // lines are "line:col severity: message" (no path), which PATH_FIRST would read as a file named "3".
+  const NO_LOCATIONS = ['readSymbol', 'hover', 'getDiagnostics'];
 
   // The navigation tool name ("findReferences"), or '' when `name` is not a navigation tool with locations.
   function toolOf(name) {

@@ -111,23 +111,41 @@ async function handle(conv, msg) {
 // Called by Conversation.send (not for hidden prompts): {text, context} for the CLI, `context` being
 // the English blocks sent in front of the user's text. After a send with a manual choice the chip
 // returns to automatic and is marked until the next action. A CLI command (`/compact`) is sent as
-// typed and leaves the chips alone; after `/clear` the model has nothing, so the chips count as
-// not sent.
+// typed and leaves the chips alone; after `/clear` or `/compact` the model no longer holds them, so
+// the chips count as not sent. The new-diagnostics block (diagnostics.js) joins the context here,
+// once; a command leaves it pending, `/clear` drops it.
 function applyToSend(conv, text) {
   const cmd = chips.commandName(text);
   if (cmd) {
-    if (cmd === 'clear') conv.lastContextSent = {};
+    if (cmd === 'clear' || cmd === 'compact') contextLost(conv);
+    if (cmd === 'clear' && conv.diagnostics) conv.diagnostics.reset();
     return { text, context: [] };
   }
   const view = shown(conv);
   const out = chips.withContext(text, view, currentCtx(conv), conv.lastContextSent);
-  if (out.context.length) conv.services.logger.info('session', `editor context attached (${out.context.length} block(s))`);
+  const diag = conv.diagnostics ? conv.diagnostics.takeBlock() : null;
+  if (diag) out.context.push(diag);
+  if (out.context.length) conv.services.logger.info('session', `editor context attached (${out.context.length} block(s)${diag ? ', with new diagnostics' : ''})`);
   conv.lastContextSent = out.last;
   const wasManual = Boolean(conv.chip.manual);
   conv.chip.manual = null;
   conv.chip.reverted = wasManual;
   postState(conv);
   return { text: out.text, context: out.context };
+}
+
+// contextLost(conv) -> void: the model no longer holds the chips (after `/clear`, `/compact` or the
+// CLI's own compaction), so the next send hands them again.
+function contextLost(conv) {
+  conv.lastContextSent = {};
+}
+
+// settleBeforeSend(conv, text: string, hidden: boolean) -> Promise<void> | null
+// A short wait for the language server after a fresh edit (diagnostics.js whenSettled), only for a
+// send that will carry the diagnostics block: not for a hidden prompt or a CLI command.
+function settleBeforeSend(conv, text, hidden) {
+  if (hidden || !conv.diagnostics || chips.commandName(text)) return null;
+  return conv.diagnostics.whenSettled();
 }
 
 // Autosave before a send also covers the chip's file or folder when it is outside the project.
@@ -137,4 +155,4 @@ function autosaveFilter(conv) {
     || (file && (editorContext.samePath(file.path, p) || (file.isDir && editorContext.insideDir(file.path, p))));
 }
 
-module.exports = { createState, postState, handle, applyToSend, autosaveFilter, isOutside };
+module.exports = { createState, postState, handle, applyToSend, contextLost, settleBeforeSend, autosaveFilter, isOutside };

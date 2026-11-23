@@ -5,6 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const chips = require('../src/tagging/chips');
+const diagnostics = require('../src/tagging/diagnostics');
 const blocks = require('../src/diff/blocks');
 const { stopPrompt } = require('../src/loop/loop-jobs');
 const { buildBtwPrompt } = require('../src/cli/btw');
@@ -33,6 +34,8 @@ test('model-bound builders produce no Hebrew for ASCII input', () => {
   noHebrew(denied.message, 'block review deny');
   noHebrew(stopPrompt('abcd1234'), '/loop stop');
   noHebrew(buildBtwPrompt([{ q: 'a', a: 'b' }], 'c'), '/btw prompt');
+  const many = Array.from({ length: 25 }, (_, i) => ({ severity: i % 2 ? 'warning' : 'error', line: i + 1, column: 1, message: `m${i}`, source: 'ts', code: 1 }));
+  noHebrew(diagnostics.buildBlock([{ path: 'C:/p/app.js', items: many }]), 'new diagnostics');
 });
 
 test('sendUserText: images, then each context block, then the user text, as separate blocks', () => {
@@ -51,8 +54,10 @@ test('sendUserText: images, then each context block, then the user text, as sepa
 test('display: context blocks are hidden; the old Hebrew context line is stripped', () => {
   assert.ok(content.isInjectedText('<ide_opened_file>The user opened the file a.js in the IDE.</ide_opened_file>'));
   assert.ok(content.isInjectedText('<ide_selection>The user selected the lines 1 to 2 from a.js:\nx\n</ide_selection>'));
+  assert.ok(content.isInjectedText('<ide_diagnostics>After your last edits, the IDE reports:\nC:/p/a.js\n- error at line 1:1: x\n</ide_diagnostics>'));
   const blocksNew = [
     { type: 'text', text: '<ide_opened_file>The user opened the file C:/p/a.js in the IDE.</ide_opened_file>' },
+    { type: 'text', text: '<ide_diagnostics>After your last edits, the IDE reports:\nC:/p/a.js\n- error at line 1:1: x\n</ide_diagnostics>' },
     { type: 'text', text: '<ide_selection>The user selected the lines 1 to 2 from C:/p/a.js:\nx\n</ide_selection>' },
     { type: 'text', text: 'תקן את זה' },
   ];

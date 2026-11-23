@@ -42,6 +42,7 @@ test('title and toolOf: Hebrew titles; readSymbol/hover and other tools get no c
   assert.strictEqual(nav.toolOf('mcp__claude-local-nav__findReferences'), 'findReferences');
   assert.strictEqual(nav.toolOf('mcp__claude-local-nav__hover'), '');
   assert.strictEqual(nav.toolOf('mcp__claude-local-nav__readSymbol'), '');
+  assert.strictEqual(nav.toolOf('mcp__claude-local-nav__getDiagnostics'), ''); // "3:5 error: msg" is not a path:line
   assert.strictEqual(nav.toolOf('Read'), '');
 });
 

@@ -61,7 +61,7 @@ Result (2026-11-01): all endpoints reachable from the extension host in 15-250 m
 
 ## Navigation tools in real VS Code (`nav-check/`)
 
-Runs all eight tools of `src/mcp/nav-tools.js` inside real VS Code through the real nav server (HTTP + token, JSON-RPC `tools/call`, the way the CLI calls them) against `nav-check/fixture/`, and compares each answer with an expected answer written by hand from the fixture's source (37 checks). No CLI, no model, nothing to install.
+Runs all nine tools of `src/mcp/nav-tools.js` (the runner now expects 9 tools since `getDiagnostics` was added 2026-11-23; it was not extended with a diagnostics check and not re-run, so the 37 below are the original eight tools' checks) inside real VS Code through the real nav server (HTTP + token, JSON-RPC `tools/call`, the way the CLI calls them) against `nav-check/fixture/`, and compares each answer with an expected answer written by hand from the fixture's source (37 checks). No CLI, no model, nothing to install.
 
 ```powershell
 code --extensionDevelopmentPath="<repo>\dev\nav-check" --extensionTestsPath="<repo>\dev\nav-check\runner.js" "<repo>\dev\nav-check\fixture"

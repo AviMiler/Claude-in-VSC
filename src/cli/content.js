@@ -22,9 +22,10 @@ function toolResultEvents(blocks) {
 }
 
 // Text the CLI injects into the transcript as a "user" message but the user never typed, and the
-// editor-context blocks the extension sends in front of the user's text (src/tagging/chips.js).
+// editor-context blocks the extension sends in front of the user's text (src/tagging/chips.js,
+// src/tagging/diagnostics.js).
 function isInjectedText(text) {
-  return /^\s*<(system-reminder|local-command-stdout|local-command-stderr|command-message|ide_opened_file|ide_selection)\b/.test(text)
+  return /^\s*<(system-reminder|local-command-stdout|local-command-stderr|command-message|ide_opened_file|ide_selection|ide_diagnostics)\b/.test(text)
     || /^\s*\[Request interrupted/.test(text)
     || /^Caveat: The messages below/.test(text);
 }

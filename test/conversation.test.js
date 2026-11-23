@@ -12,6 +12,7 @@ Module._resolveFilename = function (request, ...rest) {
 };
 require.cache['vscode-stub'] = { id: 'vscode-stub', filename: 'vscode-stub', loaded: true, exports: vscodeStub };
 const { Conversation } = require('../src/panels/conversation');
+const diagnostics = require('../src/tagging/diagnostics');
 
 const FAKE_CMD = path.join(__dirname, '..', 'dev', 'fake-claude.cmd');
 const FAKE_JS = path.join(__dirname, '..', 'dev', 'fake-claude.js');
@@ -116,6 +117,82 @@ test('images without text: the model gets English text, the bubble only the imag
     c.busy = false;
     c.send('  ', []); // no text and no image: nothing is sent
     assert.strictEqual(sent.length, 1);
+  } finally {
+    c.dispose();
+  }
+});
+
+// M-1 part b: the new errors of a file Claude edited go once with the next real send; a hidden prompt
+// and a CLI command leave them pending. Bug 1: the CLI's compaction makes the chips count as not sent.
+test('new diagnostics after an edit: one block with the next real send, kept across hidden and /command', async () => {
+  const { c } = setup();
+  try {
+    const file = path.join(process.cwd(), 'no-such-dir', 'edited.js');
+    const diags = { [file]: [{ severity: 'error', line: 1, column: 1, message: 'old' }] };
+    c.diagnostics = diagnostics.createTracker({ read: (p) => (diags[p] || []).slice(), waitForChange: () => Promise.resolve() });
+    const sent = [];
+    c.proc.sendUserText = (...a) => sent.push(a);
+    c.proc.emit('message', { type: 'assistant', message: { id: 'm1', content: [{ type: 'tool_use', id: 'tu1', name: 'Edit', input: { file_path: file } }] } });
+    diags[file] = [{ severity: 'error', line: 2, column: 1, message: 'old' }, { severity: 'error', line: 4, column: 3, message: 'Unexpected token.' }];
+    c.proc.emit('message', { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'tu1', content: 'ok' }] } });
+    c.busy = false; // the emitted CLI messages look like a turn the CLI started itself (loop-host)
+    c.send('stop the loop', [], { hidden: true });
+    assert.deepStrictEqual(sent[0][2], []);
+    c.busy = false;
+    c.send('/compact');
+    assert.deepStrictEqual(sent[1][2], []);
+    c.busy = false;
+    c.send('fix it');
+    await until(() => sent.length === 3);
+    const diagBlocks = sent[2][2].filter((b) => b.startsWith('<ide_diagnostics>'));
+    assert.strictEqual(diagBlocks.length, 1);
+    assert.match(diagBlocks[0], /Unexpected token\./);
+    assert.ok(!/: old/.test(diagBlocks[0]));
+    assert.strictEqual(sent[2][0], 'fix it');
+    c.busy = false;
+    c.send('again');
+    await until(() => sent.length === 4);
+    assert.ok(!sent[3][2].some((b) => b.startsWith('<ide_diagnostics>'))); // once only
+  } finally {
+    c.dispose();
+  }
+});
+
+// Verify finding: Stop pressed while the send waits for the language server must not send the message.
+test('stop pressed during the diagnostics wait: the waiting message is not sent', async () => {
+  const { c } = setup();
+  try {
+    const file = path.join(process.cwd(), 'no-such-dir', 'edited.js');
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    c.diagnostics = diagnostics.createTracker({ read: () => [], waitForChange: () => gate });
+    const sent = [];
+    c.proc.sendUserText = (...a) => sent.push(a);
+    c.proc.emit('message', { type: 'assistant', message: { id: 'm1', content: [{ type: 'tool_use', id: 'tu1', name: 'Edit', input: { file_path: file } }] } });
+    c.proc.emit('message', { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'tu1', content: 'ok' }] } });
+    c.busy = false;
+    c.send('fix it'); // waits for the gate
+    assert.strictEqual(sent.length, 0);
+    c.stopping = true; // what interrupt() sets
+    release();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(sent.length, 0);
+    c.stopping = false;
+  } finally {
+    c.dispose();
+  }
+});
+
+test('the CLI compacting the conversation makes the file and selection count as not sent', () => {
+  const { c } = setup();
+  try {
+    c.lastContextSent = { file: 'c:/p/a.js', sel: 'c:/p/a.js#1-2' };
+    c.proc.emit('message', { type: 'system', subtype: 'status', status: 'compacting' });
+    assert.deepStrictEqual(c.lastContextSent, {});
+    c.lastContextSent = { file: 'c:/p/a.js' };
+    c.proc.sendUserText = () => {};
+    c.send('/compact keep the plan');
+    assert.deepStrictEqual(c.lastContextSent, {});
   } finally {
     c.dispose();
   }

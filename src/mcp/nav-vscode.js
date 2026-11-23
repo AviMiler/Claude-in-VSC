@@ -46,6 +46,8 @@ function createVscodeNavDeps() {
     incomingCalls: (item) => vscode.commands.executeCommand('vscode.provideIncomingCalls', item),
     // What this item calls (item comes from prepareCallHierarchy).
     outgoingCalls: (item) => vscode.commands.executeCommand('vscode.provideOutgoingCalls', item),
+    // The editor's problems (errors, warnings, ...) for one file.
+    getDiagnostics: (uri) => vscode.languages.getDiagnostics(uri),
     readFile: (p) => fs.promises.readFile(p, 'utf8'),
     searchWorkspaceText,
   };

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const { TOOLS, createNavTools, capLines, isInsideWorkspace, resolveSymbolPosition, textPositions } = require('../src/mcp/nav-tools');
+const { TOOLS, createNavTools, capLines, shapeDiagnostics, isInsideWorkspace, resolveSymbolPosition, textPositions } = require('../src/mcp/nav-tools');
 
 const ROOT = path.resolve('/ws');
 const FILE = path.join(ROOT, 'a.js');
@@ -28,9 +28,66 @@ function make(over) {
   });
 }
 
-test('TOOLS: eight short-described tools', () => {
-  assert.deepStrictEqual(TOOLS.map((t) => t.name), ['documentSymbols', 'readSymbol', 'findReferences', 'goToDefinition', 'findImporters', 'workspaceSymbols', 'hover', 'callHierarchy']);
+test('TOOLS: nine short-described tools', () => {
+  assert.deepStrictEqual(TOOLS.map((t) => t.name), ['documentSymbols', 'readSymbol', 'findReferences', 'goToDefinition', 'findImporters', 'workspaceSymbols', 'hover', 'callHierarchy', 'getDiagnostics']);
   for (const t of TOOLS) assert.ok(t.description.length < 100);
+});
+
+const diag = (line, ch, severity, message) => ({ severity, message, range: { start: { line, character: ch }, end: { line, character: ch + 1 } } });
+
+test('shapeDiagnostics: sorts by position, labels severity, default hides information and hint', () => {
+  const out = shapeDiagnostics([diag(5, 2, 1, 'warn'), diag(1, 0, 0, 'bad\n  thing'), diag(3, 0, 2, 'info'), diag(4, 0, 3, 'hint')]);
+  assert.strictEqual(out, '2:1 error: bad thing\n6:3 warning: warn');
+});
+
+test('shapeDiagnostics: minSeverity widens or narrows', () => {
+  const d = [diag(0, 0, 0, 'e'), diag(1, 0, 1, 'w'), diag(2, 0, 3, 'h')];
+  assert.strictEqual(shapeDiagnostics(d, 'error'), '1:1 error: e');
+  assert.strictEqual(shapeDiagnostics(d, 'hint').split('\n').length, 3);
+});
+
+test('shapeDiagnostics: empty or all filtered gives "no problems found"', () => {
+  assert.strictEqual(shapeDiagnostics([]), 'no problems found');
+  assert.strictEqual(shapeDiagnostics(undefined), 'no problems found');
+  assert.strictEqual(shapeDiagnostics([diag(0, 0, 3, 'h')]), 'no problems found');
+});
+
+test('shapeDiagnostics: caps at 50 items and 2000 chars with "N more not shown"', () => {
+  const many = Array.from({ length: 60 }, (_, i) => diag(i, 0, 0, 'm'));
+  const lines = shapeDiagnostics(many).split('\n');
+  assert.strictEqual(lines.length, 51);
+  assert.strictEqual(lines[50], '10 more not shown');
+  const long = Array.from({ length: 20 }, (_, i) => diag(i, 0, 0, 'x'.repeat(190)));
+  const out = shapeDiagnostics(long);
+  assert.ok(out.length <= 2000 + 30);
+  assert.ok(/\d+ more not shown$/.test(out));
+});
+
+test('getDiagnostics: opens the file, asks the provider, shapes the answer', async () => {
+  const opened = [];
+  let asked;
+  const tools = make({
+    openDocument: async (u) => { opened.push(u.fsPath); },
+    getDiagnostics: async (u) => { asked = u.fsPath; return [diag(2, 4, 0, 'Unexpected token')]; },
+  });
+  const r = await tools.call('getDiagnostics', { file: FILE });
+  assert.deepStrictEqual(r, { text: '3:5 error: Unexpected token' });
+  assert.deepStrictEqual(opened, [FILE]);
+  assert.strictEqual(asked, FILE);
+});
+
+test('getDiagnostics: path outside the workspace answers no access, provider not called', async () => {
+  let called = false;
+  const tools = make({ getDiagnostics: async () => { called = true; return []; } });
+  const r = await tools.call('getDiagnostics', { file: path.resolve('/other/x.js') });
+  assert.match(r.text, /^no access/);
+  assert.strictEqual(called, false);
+});
+
+test('getDiagnostics: bad minSeverity is an error; missing dependency is "not available here"', async () => {
+  const tools = make({ getDiagnostics: async () => [] });
+  assert.ok((await tools.call('getDiagnostics', { file: FILE, minSeverity: 'loud' })).error);
+  assert.strictEqual((await make().call('getDiagnostics', { file: FILE })).text, 'not available here');
 });
 
 test('capLines: under limits returns plain text', () => {

@@ -16,6 +16,7 @@ const fakeVscode = {
   Uri: { file: (p) => ({ fsPath: p }) },
   RelativePattern: function (base, pattern) { this.base = base; this.pattern = pattern; },
   Position: function (line, character) { this.line = line; this.character = character; },
+  languages: { getDiagnostics: (uri) => { calls.push(['getDiagnostics', uri]); return [{ severity: 0 }]; } },
   commands: { executeCommand: async (...args) => { calls.push(args); return []; } },
 };
 const origLoad = Module._load;
@@ -64,6 +65,12 @@ test('symbol, hover and call-hierarchy deps call the right commands', async () =
       assert.strictEqual(c.length, 2);
     }
   }
+});
+
+test('getDiagnostics dep reads vscode.languages.getDiagnostics for the uri', async () => {
+  const res = await createVscodeNavDeps().getDiagnostics('U');
+  assert.deepStrictEqual(calls.at(-1), ['getDiagnostics', 'U']);
+  assert.deepStrictEqual(res, [{ severity: 0 }]);
 });
 
 test('searchWorkspaceText returns 1-based matches, skips big and missing files', async () => {

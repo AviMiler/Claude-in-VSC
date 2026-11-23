@@ -1,12 +1,12 @@
 // Code navigation tools (package H): documentSymbols, readSymbol, findReferences, goToDefinition,
-// findImporters, workspaceSymbols, hover, callHierarchy.
+// findImporters, workspaceSymbols, hover, callHierarchy, getDiagnostics.
 // Every answer comes from VS Code's own providers. This file only (1) finds the position to ask about,
 // (2) makes sure the language server has loaded the files involved, (3) waits for the language server
 // on the first call, and (4) shapes and caps the answer.
 // Deps (all injected, see nav-vscode.js): workspaceFolders, toUri, openDocument, readFile,
 // executeDocumentSymbolProvider(uri), executeReferenceProvider(uri,pos), executeDefinitionProvider(uri,pos),
 // executeWorkspaceSymbolProvider(query), executeHoverProvider(uri,pos), prepareCallHierarchy(uri,pos),
-// incomingCalls(item), outgoingCalls(item),
+// incomingCalls(item), outgoingCalls(item), getDiagnostics(uri) -> Array<vscode.Diagnostic>,
 // searchWorkspaceText(pattern, folders) -> Promise<Array<{ path, line (1-based), text }>> (array.capped = true when cut).
 // Optional for tests: sleep(ms), now(), readyWaitMs. A missing provider makes that tool answer "not available here".
 // No VS Code require, so this is testable alone.
@@ -40,6 +40,11 @@ const KIND_GROUPS = {
   variable: [6, 7, 12, 13],
 };
 const FUNC_KINDS = [5, 8, 11];
+
+// vscode.DiagnosticSeverity numbers (0 = most severe) in order, as the words the tool accepts.
+const SEVERITY_NAMES = ['error', 'warning', 'information', 'hint'];
+const DEFAULT_MIN_SEVERITY = 'warning';
+const MAX_DIAG_MESSAGE = 200;
 
 const fileProp = { type: 'string', description: 'File path' };
 const symbolProp = { type: 'string', description: 'Symbol name' };
@@ -100,6 +105,18 @@ const TOOLS = [
       required: ['file', 'symbol', 'direction'],
     },
   },
+  {
+    name: 'getDiagnostics',
+    description: 'List the errors and warnings the editor reports for a file.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: fileProp,
+        minSeverity: { type: 'string', enum: SEVERITY_NAMES, description: 'Optional; default warning (errors and warnings)' },
+      },
+      required: ['file'],
+    },
+  },
 ];
 
 // Joins up to `max` items within `maxChars`; adds "N more not shown" when anything was cut.
@@ -119,6 +136,24 @@ function capLines(items, max = MAX_RESULTS, maxChars = MAX_CHARS) {
   }
   const hidden = list.length - shown.length;
   return shown.join('\n') + (hidden > 0 ? `${shown.length ? '\n' : ''}${hidden} more not shown` : '');
+}
+
+/**
+ * Shapes editor diagnostics into capped text lines: "line:col severity: message", sorted by position.
+ * @param {Array<{severity:number, message:string, range:{start:{line:number,character:number}}}>} diags raw provider result
+ * @param {string} [minSeverity] 'error' | 'warning' | 'information' | 'hint'; shows that level and worse
+ * @returns {string} text for the model, or 'no problems found'
+ */
+function shapeDiagnostics(diags, minSeverity = DEFAULT_MIN_SEVERITY) {
+  const limit = SEVERITY_NAMES.indexOf(minSeverity);
+  const items = (Array.isArray(diags) ? diags : [])
+    .filter((d) => d && d.range && d.range.start && Number.isInteger(d.severity) && d.severity <= limit)
+    .sort((a, b) => a.range.start.line - b.range.start.line || a.range.start.character - b.range.start.character)
+    .map((d) => {
+      const msg = String(d.message || '').replace(/\s+/g, ' ').trim().slice(0, MAX_DIAG_MESSAGE);
+      return `${d.range.start.line + 1}:${d.range.start.character + 1} ${SEVERITY_NAMES[d.severity] || 'problem'}: ${msg}`;
+    });
+  return items.length ? capLines(items) : 'no problems found';
 }
 
 function norm(p, win) {
@@ -676,7 +711,18 @@ function createNavTools(deps) {
     return { text: capLines(items, MAX_RESULTS, MAX_CHARS - CALL_NOTE.length - 1) + '\n' + CALL_NOTE };
   }
 
-  const impl = { documentSymbols, readSymbol, findReferences, goToDefinition, findImporters, workspaceSymbols, hover, callHierarchy };
+  async function getDiagnostics(args) {
+    if (!deps.getDiagnostics) return { text: NOT_AVAILABLE };
+    const abs = resolvePath(args.file);
+    if (!abs) return { text: NO_ACCESS };
+    const min = args.minSeverity === undefined ? DEFAULT_MIN_SEVERITY : args.minSeverity;
+    if (!SEVERITY_NAMES.includes(min)) return { error: 'minSeverity must be error, warning, information or hint' };
+    const uri = deps.toUri(abs);
+    if (deps.openDocument) await deps.openDocument(uri); // lets the language service report for a closed file
+    return { text: shapeDiagnostics(await deps.getDiagnostics(uri), min) };
+  }
+
+  const impl = { documentSymbols, readSymbol, findReferences, goToDefinition, findImporters, workspaceSymbols, hover, callHierarchy, getDiagnostics };
 
   async function call(name, args) {
     const fn = impl[name];
@@ -691,4 +737,4 @@ function createNavTools(deps) {
   return { list: TOOLS, call };
 }
 
-module.exports = { TOOLS, createNavTools, capLines, isInsideWorkspace, resolveSymbolPosition, textPositions };
+module.exports = { TOOLS, createNavTools, capLines, shapeDiagnostics, isInsideWorkspace, resolveSymbolPosition, textPositions };

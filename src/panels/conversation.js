@@ -13,6 +13,8 @@ const transcripts = require('../history/transcripts');
 const mentions = require('./mentions');
 const fileChip = require('../tagging/file-chip');
 const recentFiles = require('../tagging/recent-files');
+const diagnostics = require('../tagging/diagnostics');
+const diagnosticsVscode = require('../tagging/diagnostics-vscode');
 const fs = require('fs');
 const editorContext = require('./editor-context');
 const blocks = require('../diff/blocks');
@@ -96,6 +98,8 @@ class Conversation {
     this.entries = null;
     this.chip = fileChip.createState(); // the file chip: automatic or a manual choice (package K)
     this.lastContextSent = {}; // the chips last handed to the model: {file, sel} keys
+    // New errors and warnings after Claude's edits, for the next send (M-1); tests inject the source.
+    this.diagnostics = diagnostics.createTracker('diagnosticsSource' in services ? services.diagnosticsSource : diagnosticsVscode.createSource());
     this.models = new ModelSwitcher(this);
     this.subs = [
       services.settings.onDidChange((s) => {
@@ -254,6 +258,8 @@ class Conversation {
       }
       this.trackPlan(events);
       this.autosaveForTools(events);
+      this.diagnostics.observe(events);
+      if (events.some((ev) => ev.kind === 'status' && ev.status === 'compacting')) fileChip.contextLost(this);
       let edited = false;
       for (const ev of events) if (editLog.addEvent(this.edits, ev)) edited = true;
       if (events.length) this.post({ type: 'events', events });
@@ -366,9 +372,18 @@ class Conversation {
     if (!hidden) replayLog.addUser(this.log, valid.length ? `${text.trim() ? `${text}\n` : ''}[תמונות: ${valid.length}]` : text);
     // Not awaited: the model answers long before any tool reads the saved files.
     this.autosave(fileChip.autosaveFilter(this));
-    // The editor context goes as separate English blocks in front of the user's text (file-chip.js).
-    const out = hidden ? { text, context: [] } : fileChip.applyToSend(this, mentions.resolveMentions(text, this.cwd));
-    this.proc.sendUserText(out.text.trim() ? out.text : IMAGE_ONLY_TEXT, valid, out.context);
+    // The editor context goes as separate English blocks in front of the user's text (file-chip.js),
+    // after a short wait for the language server when Claude just edited a file (diagnostics.js).
+    const proc = this.proc;
+    const deliver = () => {
+      // Stop pressed during the wait: the CLI is idle, so nothing is sent; the stop timer ends the turn as "stopped".
+      if (proc !== this.proc || this.stopping) return;
+      const out = hidden ? { text, context: [] } : fileChip.applyToSend(this, mentions.resolveMentions(text, this.cwd));
+      proc.sendUserText(out.text.trim() ? out.text : IMAGE_ONLY_TEXT, valid, out.context);
+    };
+    const settle = fileChip.settleBeforeSend(this, text, hidden);
+    if (settle) settle.then(deliver);
+    else deliver();
   }
 
   // --- file tagging (package K) and autosave (package F) -------------------------------------

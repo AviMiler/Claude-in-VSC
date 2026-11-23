@@ -1,4 +1,4 @@
-// Runs the eight navigation tools (src/mcp/nav-*.js) inside a real VS Code through the real nav server
+// Runs the nine navigation tools (src/mcp/nav-*.js) inside a real VS Code through the real nav server
 // over HTTP (JSON-RPC tools/call with the Bearer token, as the CLI calls them), against ./fixture, and
 // compares every answer with the expected answer written by hand from the fixture's source.
 // How to run and what the report means: dev/README.md, section "Navigation tools in real VS Code".
@@ -64,9 +64,9 @@ exports.run = async function run() {
   const noAuth = await post(srv, {}, false);
   const toolNames = JSON.parse(list.body).result.tools.map((t) => t.name);
   out(`initialize ${init.status}; tools/list ${list.status} (${list.body.length} chars): ${toolNames.join(', ')}; without token ${noAuth.status}`);
-  const protoOk = init.status === 200 && toolNames.length === 8 && noAuth.status === 401;
+  const protoOk = init.status === 200 && toolNames.length === 9 && noAuth.status === 401;
   if (protoOk) passed++; else failed++;
-  out(`### ${protoOk ? 'PASS' : 'FAIL'} protocol: initialize 200, 8 tools, 401 without token`);
+  out(`### ${protoOk ? 'PASS' : 'FAIL'} protocol: initialize 200, 9 tools, 401 without token`);
 
   const C = (label, name, args, expect, test) => check(srv, label, name, args, expect, test);
 
