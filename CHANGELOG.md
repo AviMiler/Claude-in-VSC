@@ -4,6 +4,9 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (Q-7: own font sizes)
+- New settings `claudeLocal.chatFontSize` and `claudeLocal.codeFontSize` (8-32 px, `0` = follow VS Code): applied as CSS variables `--cl-user-font` / `--cl-user-code` on the body (`webview/chat/display.js`, fallbacks in `chat.css`). Covers chat text and code/tool-output blocks; fixed-px UI chrome is unchanged. Verified: unit tests, suite 412/412; not seen in real VS Code.
+
 ## 2026-11-24 (Q-1: initial permission mode)
 - New setting `claudeLocal.defaultPermissionMode` (default/acceptEdits/plan/bypassPermissions): the mode a new conversation starts in, passed to the CLI as `--permission-mode`. `bypassPermissions` needs `allowDangerouslySkipPermissions`, else `default`; junk falls back to `default`. `initialPermissionMode()` in `src/cli/args.js`. Verified: unit test, suite 411/411; not tried in real VS Code or the real CLI.
 

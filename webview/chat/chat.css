@@ -43,7 +43,7 @@
   --cl-blue: var(--vscode-charts-blue, #3794ff);
   --cl-shadow: var(--vscode-widget-shadow, #0000004d);
   --cl-mono: var(--vscode-editor-font-family, Consolas, monospace);
-  --cl-mono-size: var(--vscode-editor-font-size, 12px);
+  --cl-mono-size: var(--cl-user-code, var(--vscode-editor-font-size, 12px)); /* setting codeFontSize */
   /* spacing scale 4 / 8 / 12 / 16, radii 4 / 6 / 8 */
   --cl-radius-s: 4px;
   --cl-radius: 6px;
@@ -64,7 +64,7 @@ body {
   background: var(--cl-bg);
   color: var(--cl-fg);
   font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size, 13px);
+  font-size: var(--cl-user-font, var(--vscode-font-size, 13px)); /* setting chatFontSize */
   line-height: 1.55;
   overflow: hidden;
 }

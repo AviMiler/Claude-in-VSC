@@ -15,6 +15,10 @@
     set('data-focus', display.focusView);
     set('data-timestamps', display.showMessageTimestamps);
     set('data-reduced-motion', display.prefersReducedMotion);
+    // Own font sizes (0 = follow VS Code): the variables fall back to the VS Code values in chat.css.
+    const size = (name, px) => (px > 0 ? document.body.style.setProperty(name, `${px}px`) : document.body.style.removeProperty(name));
+    size('--cl-user-font', display.chatFontSize);
+    size('--cl-user-code', display.codeFontSize);
     document.body.dataset.colorMode = display.colorMode === 'daltonized' ? 'daltonized' : 'default';
   }
 
