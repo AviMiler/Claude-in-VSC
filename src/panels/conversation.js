@@ -440,8 +440,10 @@ class Conversation {
     }
   }
 
-  // Per-block approval of an Edit/Write request: the diff view with CodeLens toggles (block-review.js).
-  // The answer goes back like a card answer; cancelling the review leaves the card open.
+  // Per-block approval of an Edit/Write request: the diff view with a comment thread per block,
+  // editor-title accept-all / reject-all and cursor commands; CodeLens only with diffEditor.codeLens on
+  // (block-review.js). The decision is sent automatically once every block is decided and goes back like
+  // a card answer; cancelling or closing the review tab by hand leaves the card open.
   async reviewBlocks(requestId) {
     const entry = this.pending.get(requestId);
     if (!entry || !this.services.blockReview) return;

@@ -20,7 +20,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 ## src/cli/ — the CLI process
 - `args.js` — builds the stream-json argument list (`--resume`, `--model`, bypass flag).
 - `spawn.js` — resolves the executable on PATH x PATHEXT; `.cmd`/`.bat` via `cmd.exe /d /s /c`.
-- `env.js` — merges `process.env`, `claudeLocal.environmentVariables` and the entrypoint variable (shared by chat and terminal).
+- `env.js` — merges `process.env`, `claudeLocal.environmentVariables` and the entrypoint variable (shared by chat and terminal); applies `CLI_ENV_DEFAULTS` (`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`) under `environmentVariables`.
 - `terminal.js` — Open in Terminal: runs the CLI interactively in a VS Code terminal.
 - `process.js` — `CliProcess`: NDJSON over stdio, control protocol (`send`/`request`/`respond`/`respondError`/`interrupt`/`kill`), kill fallback; `sendUserText(text, images, context)` writes image blocks, context blocks, then the user text.
 - `content.js` — helpers for message content blocks (shared by live stream and transcripts); `isInjectedText` hides the `ide_*` context blocks (incl. `ide_diagnostics`), `stripLegacyContext` removes the old Hebrew `[הקשר מהעורך]` prefix from old transcripts (bubbles, history titles, rewind).
@@ -46,7 +46,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `sidebar-view.js` — the sidebar/activity-bar host; the `ConversationHost` outlives the `WebviewView`; `view.badge` = hidden waiting + unread, description = title.
 - `commands.js` — `claude-local.*` commands (`open` follows `preferredLocation` / `useTerminal`; `newConversation`, `terminal.open`, `focusToggle` via `viewFocus`, `keyboardShortcuts`, `reopenClosed`, `continueLast`, logs); sets the `claude-local:hasClosed` context key.
 - `model-switch.js` — `ModelSwitcher`: model list post, `switchTo` (kill + restart with `--model` + `--resume`), `stopAndSwitch` (modal Hebrew warning), "does not support tools" revert.
-- `context-meter.js` — usage gauge host side: `get_context_usage` after initialize (also after a model switch) and each result; window = Ollama `/api/ps` for the loaded model (`src/models/ollama.js`), else `CLAUDE_CODE_MAX_CONTEXT_TOKENS`, else the CLI value, as a ceiling on the CLI's `maxTokens`; posts `context` with `source`, `categories`, `memoryFiles`, `mcpServers`.
+- `context-meter.js` — usage gauge host side: `get_context_usage` after initialize (also after a model switch) and each result; `readWindow`, `launchWindowFor`, `gaugeWindow`, notices; gauge max = real `/api/ps` window (`src/models/ollama.js`), else last seen, else launch window; posts `context` with `source`, `ollama` (loaded state), `categories`, `memoryFiles`, `mcpServers`.
 - `error-card.js` — builds the Hebrew CLI-failure card (connection checklist, `.cmd`/`.bat` warning).
 - `settings-actions.js` — opens `settings.json` or a given setting from the card buttons.
 - `display-settings.js` — pure: `readDisplay` / `sanitizeVerbs`, the display and accessibility settings sent to the webview.
@@ -69,9 +69,9 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 
 ## src/models/ — model gateway (package D)
 - `gateway.js` — `resolveGatewayUrl`, `fetchModels` (`/v1/models` + `/v1/model/info`, 5 s, in memory).
-- `ollama.js` — `resolveOllamaUrl` (`claudeLocal.ollamaUrl`; empty or `off` = no read), `windowFromPs`, `fetchOllamaWindow` (`GET /api/ps`, 2 s, in memory; approved by the user, `DECISIONS.md` 2026-11-08).
+- `ollama.js` — `resolveOllamaUrl` (`claudeLocal.ollamaUrl`; empty or `off` = no read), `windowFromPs`, `fetchPs`, `loadState`, `readOllama`, `ollamaModelName` and the in-memory window cache (key = Ollama base + normalized model); `GET /api/ps`, 2 s, in memory; approved by the user, `DECISIONS.md` 2026-11-08.
 - `filter.js` (pure) — hides `output_config.format` models and `modelDenylist`; `isNoToolsError`.
-- `launch.js` (pure) — `launchSettings`: the `--settings` env (model aliases for a picked model; the window + `CLAUDE_CODE_DISABLE_1M_CONTEXT`); `contextWindow`.
+- `launch.js` (pure) — `launchSettings`: the `--settings` env (model aliases for a picked model; the window + `CLAUDE_CODE_DISABLE_1M_CONTEXT`); `contextWindow`. `FALLBACK_WINDOW` 64000, `explicitWindowFromInspect`, `pickLaunchWindow` (explicit|cached|fallback); `launchSettings({model, window})` always sets the window + `CLAUDE_CODE_DISABLE_1M_CONTEXT`.
 ## src/background/ — background task map
 - `task-map.js` — pure map from `task_started` / `background_tasks_changed` / `task_updated` / `task_notification`. Test: `test/task-map.test.js`. UI: `webview/chat/tasks-bar.js` (`#bg-tasks` bar with stop).
 
@@ -91,9 +91,11 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 
 ## src/diff/ — shared diff view and `/diff`
 - `edit-log.js` — pure log of final Edit/MultiEdit/Write tool events (`listFiles`, `fileDiff`).
-- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by package F.
+- `diff-view.js` — `createDiffView().show(...)`: read-only virtual documents (`claude-local-diff:`) and `vscode.diff`; returns both URIs; reused by the per-block review.
 - `blocks.js` — pure line diff for per-block approval: `diffBlocks`, `applyBlocks`, `reviewTexts` (Edit/Write), `decision` (allow / partial `updatedInput` / deny) (package F).
-- `block-review.js` — `createBlockReview(diffView).review(...)`: CodeLens toggles on the diff view, or a multi-select QuickPick when `diffEditor.codeLens` is off; `cancel(requestId)` (package F).
+- `block-review.js` — `createBlockReview(diffView).review(...)`: per-block approval on the diff view (state, comment threads, title and cursor commands, CodeLens for `diffEditor.codeLens` users); `cancel(requestId)`, `dispose()` (package F, rewritten by R-1).
+- `block-state.js` — pure per-block state: pending/accepted/rejected, `decide`, `decideRest`, `isComplete`, `accepted()`, `blockAtLine(side, line)`, `lineRange(k)`, `MAX_THREAD_BLOCKS` = 100, `shouldShowThreads` (R-1).
+- `block-comments.js` — comment controller `claude-local.blockReview`: one thread per block on the proposed side, state labels, thread-title actions (R-1).
 - `diff-command.js` — `/diff` QuickPick to diff; exports the shared `showFileDiff` (also used by the changes card).
 - `change-stats.js` — pure: added/removed line counts per file from the edit log (LCS line diff per fragment, prefix/suffix trim, fallback above 2000x2000 cells; `Write` vs the last known content, else all added).
 - `changes-card.js` — pure: builds `{type:'changesCard', files:[{path, rel, added, removed}]}` from the edit log.
@@ -110,7 +112,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `transcript-events.js` — transcript entries to the same UI events as live.
 
 ## src/util/
-- `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel + ring buffer, tagged API, copy), `log-tags.js` (fixed feature tags), `log-buffer.js` (pure: redact, line format, level filter, ring buffer), `settings.js` (`claudeLocal.*` + change events), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
+- `workspace.js` (`workspaceCwd`: first folder or home), `logger.js` (OutputChannel + ring buffer, tagged API, copy), `log-tags.js` (fixed feature tags), `log-buffer.js` (pure: redact, line format, level filter, ring buffer), `settings.js` (`claudeLocal.*` + change events; `explicitWindow` from `inspect('environmentVariables')`), `paths.js` (CLI dirs, `encodeCwd`), `nonce.js`, `vscode-version.js` (secondary sidebar >= 1.106).
 
 ## webview/chat/ — plain scripts loaded by `index.html`
 - `index.html` shell. Styles by topic: `chat.css` (tokens, header, thread), `composer.css`, `drawer.css`, `cards.css`, `mcp.css`, `a11y.css` (focus view, reduced motion, daltonized palette, sr-only), `highlight-theme.css`, `agent-cards.css`.
@@ -144,10 +146,12 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `nav-check/` — dev-only check of the navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers for the original eight tools; the runner now expects 9 tools since 2026-11-23, no diagnostics check added, not re-run), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
 
 ## test/
-- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only (now includes the `<ide_diagnostics>` block). Whole suite: 316 tests (2026-11-23).
+- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only (now includes the `<ide_diagnostics>` block). Whole suite: 403 tests (2026-11-24, after merging R-1 and the context window work).
 - `tagging.test.js` — package K: the single mention function, dedupe, recent list, once-per-change (7 tests). `work-file.test.js` was deleted.
 - `nav-results.test.js` (navigation card parse/title/render), `change-stats.test.js` (changes card counts), `trigger-token.test.js` (mid-sentence `/` and `@` tokens) — 2026-11-09.
 - `blocks.test.js` — block diff, partial apply, Edit/Write review texts, the permission decision.
+- `block-state.test.js` — pending/decided state, decide-the-rest, cursor-to-block mapping, the 100-block limit. `block-review.test.js` — the review flow: automatic send, accept-all / reject-all, cancel, tab close/move, over 100 blocks (R-1).
+- `settings.test.js` — `explicitWindow` wiring (scope order, 64000 not explicit, no inspect).
 - `editor-context.test.js` — Alt+K `@path#lines`, chips and removal, context once per change, tool file paths.
 - `args.test.js`, `process.test.js`, `env.test.js`, `keys.test.js`, `event-translator.test.js`, `transcripts.test.js`, `conversation.test.js` (stub `vscode`), `conversation-host.test.js` (F-2 with the fake CLI, hidden permission, close, open session, stale queue), `replay-log.test.js`, `drawer-logic.test.js`, `prompt-logic.test.js`, `mentions.test.js`, `session-model.test.js`, `panel-registry.test.js`, `mcp.test.js`, `error-card-uri.test.js`, `display.test.js`, `models.test.js`, `edit-log.test.js` (incl. the fake CLI "edit" scenario), `checkpoints.test.js`, `task-map.test.js`, `claude-tasks.test.js`, `agent-map.test.js`, `loop.test.js` (`loop-jobs`, `cron-next`, `self-turn`), `log-buffer.test.js`, `nav-server.test.js`, `nav-tools.test.js` (fake provider results for all nine tools, incl. the 2026-11-06 reliability fixes and `getDiagnostics`), `nav-vscode.test.js`, `usage-gauge.test.js` (Ollama window, breakdown, levels), `btw.test.js`, `btw-session.test.js`, `math-logic.test.js`. 316 tests in all (2026-11-23; `diagnostics-tracker.test.js` is new, `conversation`, `replay-log`, `nav-tools`, `nav-vscode`, `nav-results`, `model-english` grew); all pass on Windows; on Linux `chmod +x dev/fake-claude.js` first.
 

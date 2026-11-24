@@ -113,3 +113,7 @@ Open question for the user: which of these to move to `PLAN.md`.
 ## 5. Product proposal of 2026-11-17 (comparison with the official extension 2.1.322)
 
 `PRODUCT_PROPOSAL.md` (Hebrew) holds about 45 proposals with ids, grouped L (local slow/weak model), M (what the model receives), P (unused CLI control requests), R (change review), Q (small improvements), X (extensions), A (architecture). **Decided 2026-11-17 and moved to `PLAN.md` section 11:** the `L-1` indicator, `M-1`, `R-1`, the control-request probe. **All the others are 💡, not yet discussed;** they stay in that document and are reviewed with the user one by one (user decision 2026-11-17). Its appendix A holds the absorbed 2026-11-10 review. Several items there restate ideas from section 4 above (4.1a, 4.1c-4.1f, 4.2a, 4.2c, 4.3a, 4.3g) with a recommendation; section 4 stays the place of record for those until they are decided. 4.2e and 4.3e were approved as `M-1`.
+
+## 6. External components that work in both extensions (user, 2026-11-24)
+
+💡 Undecided idea, not discussed further: build capabilities as CLI MCP servers, skills or hooks, so they also work in the official Claude Code extension and not only in this one. Limit: servers running outside VS Code have no language-server access (the navigation tools need the extension's VS Code APIs).
