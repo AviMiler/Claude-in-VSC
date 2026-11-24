@@ -250,6 +250,43 @@
         "command": "claude-local.continueLast",
         "title": "המשך את השיחה האחרונה",
         "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.blockReview.acceptAll",
+        "title": "אישור כל השינויים הנותרים",
+        "category": "Claude Code Local",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "claude-local.blockReview.rejectAll",
+        "title": "דחיית כל השינויים הנותרים",
+        "category": "Claude Code Local",
+        "icon": "$(close-all)"
+      },
+      {
+        "command": "claude-local.blockReview.cancel",
+        "title": "ביטול סקירה (הכרטיס נשאר פתוח)",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.blockReview.acceptAtCursor",
+        "title": "אישור השינוי שבמיקום הסמן",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.blockReview.rejectAtCursor",
+        "title": "דחיית השינוי שבמיקום הסמן",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.blockReview.acceptThread",
+        "title": "אישור השינוי",
+        "icon": "$(check)"
+      },
+      {
+        "command": "claude-local.blockReview.rejectThread",
+        "title": "דחיית השינוי",
+        "icon": "$(close)"
       }
     ],
     "keybindings": [
@@ -287,6 +324,63 @@
         {
           "command": "claude-local.open",
           "group": "navigation"
+        },
+        {
+          "command": "claude-local.blockReview.acceptAll",
+          "group": "navigation",
+          "when": "claude-local:blockReviewActive && resourceScheme == claude-local-diff"
+        },
+        {
+          "command": "claude-local.blockReview.rejectAll",
+          "group": "navigation",
+          "when": "claude-local:blockReviewActive && resourceScheme == claude-local-diff"
+        },
+        {
+          "command": "claude-local.blockReview.cancel",
+          "group": "1_blockReview",
+          "when": "claude-local:blockReviewActive && resourceScheme == claude-local-diff"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "claude-local.blockReview.acceptThread",
+          "group": "inline",
+          "when": "commentController == claude-local.blockReview && commentThread != accepted"
+        },
+        {
+          "command": "claude-local.blockReview.rejectThread",
+          "group": "inline",
+          "when": "commentController == claude-local.blockReview && commentThread != rejected"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "claude-local.blockReview.acceptThread",
+          "when": "false"
+        },
+        {
+          "command": "claude-local.blockReview.rejectThread",
+          "when": "false"
+        },
+        {
+          "command": "claude-local.blockReview.acceptAll",
+          "when": "claude-local:blockReviewActive"
+        },
+        {
+          "command": "claude-local.blockReview.rejectAll",
+          "when": "claude-local:blockReviewActive"
+        },
+        {
+          "command": "claude-local.blockReview.cancel",
+          "when": "claude-local:blockReviewActive"
+        },
+        {
+          "command": "claude-local.blockReview.acceptAtCursor",
+          "when": "claude-local:blockReviewActive"
+        },
+        {
+          "command": "claude-local.blockReview.rejectAtCursor",
+          "when": "claude-local:blockReviewActive"
         }
       ]
     },
