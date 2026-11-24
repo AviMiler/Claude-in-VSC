@@ -39,8 +39,7 @@ Pick model and effort per task/subagent by real difficulty: trivial edits → Ha
 ## Next steps (detail: `PLAN.md`, `spec.md` "Verification status", `dev/must-check.txt`)
 - User runs real-VS-Code checks: R-1, window per model, L-1 (`dev/must-check.txt` 7.6.2) and M-3 (6.4).
 - Everything is unverified in real VS Code and the real CLI; open checks in `dev/open-checks.txt`.
-- Next item: only gaps against the official extension plus `A-1`, `A-2` remain (`PLAN.md` section 11).
-- Undecided: `/btw` does not see the main conversation; approve-and-implement / `/plan open` (`FUTURE_FEATURES.md` 4.3g).
+- Build queue (user, 2026-11-24, `PLAN.md` section 11 "Review under the GUI-only rule"): P-3, Q-1, Q-5, Q-6, Q-7, Q-8 (open only), Q-9, R-2; R-4, M-4, X-3 only after a CLI 2.1.246 check; M-6, X-4, Q-4 wait for a CLI upgrade; 4.1g is a check file only; infrastructure A-1, A-2. Rejected: P-1 (`/btw` stays a separate process), P-2/4.3g. Already-built extension features stay.
 - M-1 same-turn hook upgrade is rejected (GUI-only rule); CLI upgrade: no (stay on 2.1.246).
 
 ## How to work here

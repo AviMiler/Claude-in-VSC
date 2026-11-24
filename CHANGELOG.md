@@ -5,6 +5,7 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 Older entries: CHANGELOG-archive.md.
 
 ## 2026-11-24 (docs: GUI-only rule)
+- One-by-one review of the remaining proposals recorded in `PLAN.md` section 11 and `DECISIONS.md`: build P-3, Q-1, Q-5, Q-6, Q-7, Q-8 (open only), Q-9, R-2; R-4, M-4, X-3 after a CLI check; M-6, X-4, Q-4 wait for an upgrade; 4.1g check only; P-1, 4.1b rejected; built features stay.
 - User rule: the extension is only a GUI for the CLI; items that do not come from the CLI are rejected. Removed from `PRODUCT_PROPOSAL.md`: P-1, P-2/R-3, P-4, P-5, Q-2, Q-3, Q-10, X-1, X-5, X-6. Marked ❌ in `FUTURE_FEATURES.md`: 1.2 repository map, 1.3 rename, 2.1, 3.3 resources, 4.1f, 4.2a, 4.2b, 4.2d, 4.3b, 4.3d, 4.3g. The M-1 hook upgrade is dropped. Recorded in `PLAN.md` section 11, `DECISIONS.md`, `AGENT_CONTEXT.md` constraints.
 
 ## 2026-11-24 (docs: plan trimmed to gaps against the official extension)

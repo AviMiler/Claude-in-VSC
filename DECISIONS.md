@@ -285,3 +285,8 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and later, rec
 **Decision:** "I want only a GUI for the CLI; what does not come from there should not appear." Every planned item that does not meet the rule is rejected (list: `PLAN.md` section 11). Already-built extension-originated features are reviewed with the user separately.
 **Alternatives considered:** keep the local-model helpers that the extension adds on its own (P-2 approve-and-implement, repository map, C# navigation, own status/report cards).
 **Why:** the user wants the extension to be a front for the CLI, not a second product with its own behavior; it extends the 2026-10-30 "CLI is the only source of truth" decision from data to features.
+
+## [2026-11-24] Remaining proposals reviewed one by one under the GUI-only rule (user decisions)
+**Decision:** Build `P-3`, `Q-1`, `Q-5`, `Q-6`, `Q-7`, `Q-8` (open only), `Q-9`, `R-2`; build `R-4`, `M-4`, `X-3` only if CLI 2.1.246 supports them; `M-6`, `X-4`, `Q-4` wait for a CLI upgrade; 4.1g is a check only; `P-1` and 4.1b rejected; `A-1`, `A-2` kept. Already-built extension-originated features stay; the rule applies to new work only. Full list: `PLAN.md` section 11.
+**Alternatives considered:** for each item, build / do not build / later; for `X-4` and `Q-4`, building now from the CLI files or transcripts (rejected: the extension would decide the format or the merge, not the CLI); for the built features, removing the nav tools or keeping only what the official extension has.
+**Why:** keep the extension a GUI for what the CLI itself provides; display-only options of CLI data are allowed.

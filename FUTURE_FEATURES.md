@@ -76,9 +76,9 @@ The user's three problems: (1) the context window is small (64,000; local qwen3.
 
 ### 4.1 Context
 
-- **4.1b Short system prompt for a weak model — 💡 (needs a check first):** `--system-prompt` replacing Claude Code's long one. Check: the flag works on CLI 2.1.246.
+- **4.1b Short system prompt for a weak model — ❌ rejected 2026-11-24 (user: an own system-prompt setting is not wanted; short instructions go through CLI output styles, `M-4`) (needs a check first):** `--system-prompt` replacing Claude Code's long one. Check: the flag works on CLI 2.1.246.
 - **4.1f Short project-instructions template (CLAUDE.md) — ❌ rejected 2026-11-24 (GUI-only rule, user 2026-11-24: the extension is only a GUI for the CLI):** every line is sent with each message, so keep it short. Docs only.
-- **4.1g Reduce the autocompact buffer, if the CLI allows it — 💡 (unverified):** the usage card on the work machine shows an autocompact buffer of 33,000 of 64,000 tokens (51.6%), so only about 31,000 are left for the conversation. Check: whether the CLI accepts a smaller buffer (a setting or environment variable; no name found yet). *Evidence 2026-11-09:* the user's usage card (`dev/must-check.txt` section 6; `DEPENDENCIES.md` row 44).
+- **4.1g Reduce the autocompact buffer, if the CLI allows it — ✅ check only (user 2026-11-24): a check file for the work machine; a `SETUP.md` line if it works, no extension code (unverified):** the usage card on the work machine shows an autocompact buffer of 33,000 of 64,000 tokens (51.6%), so only about 31,000 are left for the conversation. Check: whether the CLI accepts a smaller buffer (a setting or environment variable; no name found yet). *Evidence 2026-11-09:* the user's usage card (`dev/must-check.txt` section 6; `DEPENDENCIES.md` row 44).
 
 ### 4.2 Speed
 
