@@ -67,7 +67,7 @@ A VS Code extension (plain JS, no build, no npm): a Hebrew RTL front for the rea
 ## Next steps
 - The user runs the real-VS-Code checks for R-1, the context window per model and L-1 (`spec.md` "Verification status"; `dev/must-check.txt` 7.6.2).
 - The `M-1` same-turn `PostToolUse` hook upgrade is still pending (the hook answer format is not settled). The user also still checks M-1 in real VS Code with the real CLI.
-- Review the remaining `PRODUCT_PROPOSAL.md` items one by one with the user (P-1, P-2, P-3 are feasible on 2.1.246; M-3 was chosen and built 2026-11-24). The user also runs the M-3 checks (`dev/must-check.txt` 6.4).
+- Pick the next item from the remaining `PRODUCT_PROPOSAL.md` proposals: only gaps against the official extension plus `A-1`, `A-2` remain (user removed `L-2` to `L-9`, `M-2`, `M-5`, `M-7`, `M-8`, `X-2`, `A-5` on 2026-11-24, `PLAN.md` section 11). P-1, P-2, P-3 are feasible on 2.1.246; M-3 was built 2026-11-24. The user also runs the M-3 checks (`dev/must-check.txt` 6.4).
 
 ## How to work here
 - Tests: PowerShell, `node --test "test/*.test.js"` (Node 22 needs the glob). Node is not on the Bash PATH.

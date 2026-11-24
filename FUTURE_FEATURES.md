@@ -76,11 +76,7 @@ The user's three problems: (1) the context window is small (64,000; local qwen3.
 
 ### 4.1 Context
 
-- **4.1a Lean mode — 💡 (needs a check first):** launch the CLI with only the needed tools (`--tools`, already used by `/btw`); drop WebFetch, WebSearch, NotebookEdit, Task, Todo etc. Every tool's schema is sent each turn. Check: measure with the usage gauge before/after.
 - **4.1b Short system prompt for a weak model — 💡 (needs a check first):** `--system-prompt` replacing Claude Code's long one. Check: the flag works on CLI 2.1.246.
-- **4.1c Cap tool output size — 💡 (needs a check first):** Bash and MCP output limits through the CLI's environment variables, so one huge output cannot flood the context. Check: exact variable names on 2.1.246.
-- **4.1d Context "X-ray" in the usage gauge — 💡:** show which messages and tool results take the most tokens. No prior check needed.
-- **4.1e "New task, new conversation" — 💡:** a button that summarizes the conversation in a few lines and opens a clean conversation with the summary. No prior check needed.
 - **4.1f Short project-instructions template (CLAUDE.md) — 💡:** every line is sent with each message, so keep it short. Docs only.
 - **4.1g Reduce the autocompact buffer, if the CLI allows it — 💡 (unverified):** the usage card on the work machine shows an autocompact buffer of 33,000 of 64,000 tokens (51.6%), so only about 31,000 are left for the conversation. Check: whether the CLI accepts a smaller buffer (a setting or environment variable; no name found yet). *Evidence 2026-11-09:* the user's usage card (`dev/must-check.txt` section 6; `DEPENDENCIES.md` row 44).
 
@@ -88,32 +84,17 @@ The user's three problems: (1) the context window is small (64,000; local qwen3.
 
 - **4.2a Keep the model loaded — 💡:** cold load takes 285 s and the model is unloaded after ~5 min. Set `keep_alive` without limit in the gateway/Ollama config, or send a small periodic ping from the extension. Probably the biggest time saving.
 - **4.2b Stable prefix — 💡 (needs a check first):** Ollama can reuse the cached prefix computation if the system prompt and tools do not change between messages, dynamic context (chips, selection) goes at the end of the message, and the window size stays constant. Check: confirm today's behavior.
-- **4.2c Attach a symbol with its context — 💡:** a button/Alt+K on a function attaches its definition plus its callers, saving 3-4 search calls.
 - **4.2d Repository map — 💡:** already in section 1.2; stronger rationale now: one call returns the project structure instead of chains of Glob/Grep.
 - **4.2e "Problems in file" tool — ✅ approved 2026-11-17 as `M-1` part (a), `PLAN.md` section 11 — **built 2026-11-23 as the ninth nav tool `getDiagnostics` (unit-tested only, not seen in real VS Code):** in our navigation MCP server (`vscode.languages.getDiagnostics`), so the model sees the editor's errors without running a build. *Evidence 2026-11-09:* the official extension feeds diagnostics to the model through SDK hooks around Edit (`DEPENDENCIES.md` row 42).
 
 ### 4.3 Focus
 
-- **4.3a Recipes as commands — 💡:** e.g. `/fix-bug`, `/add-test`, each giving the model a short step-by-step procedure.
 - **4.3b Plan, then one step at a time — 💡:** plan in plan mode, then run each step in a fresh conversation containing only the plan.
-- **4.3c Fewer tools, fewer wrong tool choices — 💡:** same as 4.1a.
 - **4.3d Edit-by-symbol-name tool — 💡 (needs a user decision):** replace a function body by name instead of Edit's exact `old_string` match, which weak models often fail. Decision: an edit through MCP bypasses the per-block approval flow (package F). See also the rename/refactor note in 1.3.
 - **4.3e Automatic feedback after an edit — ✅ approved 2026-11-17 as `M-1` part (b), way (2) below, `PLAN.md` section 11 — **built 2026-11-23 (unit-tested only); the same-turn hook upgrade stays pending:** the editor's diagnostics for the edited file go back to the model automatically. *Evidence 2026-11-09:* the official extension does this (baseline diagnostics captured before Edit, new ones after; `DEPENDENCIES.md` row 42); new candidate, via SDK hooks, pending the user's decision. *Per-file count 2026-11-09:* the official `extension.js` itself contains getDiagnostics/openDiff/mcp_message/claude-vscode, so it implements them through its `claude-vscode` SDK MCP server. Two ways for us: (1) like the official one, an SDK MCP server plus hooks around Edit (protocol unverified on CLI 2.1.246); (2) recommended: a "problems in file" tool in our nav MCP server (4.2e) and, after each edit, the new diagnostics sent as an English text block before the next message (channels that already work). Pending the user.
 - **4.3f Instructions in English — 💡:** Hebrew costs 2-3x the tokens and local models follow English instructions better; the UI stays Hebrew, model-facing instructions are English.
 - **4.3g Approve and implement after plan mode — 💡 (proposal to the user, not decided):** after a plan-mode turn, an "approve and implement" button switches to default mode and sends "Implement the plan above.". `/plan open` falls back to the last plan-mode assistant message when no `ExitPlanMode` arrives. *Evidence 2026-11-09:* `ExitPlanMode` did not arrive on the work machine, so the plan-approval buttons are dropped (`DEPENDENCIES.md` row 43; `PLAN.md` section 6 item 3).
 
-### 4.4 Recommended order (proposed to the user, not yet approved)
-
-1. Measure: 4.1a and 4.1d.
-2. Big and simple: 4.2a, 4.1c, 4.1b.
-3. Focus: 4.2e with 4.3e, then 4.3a, 4.2c.
-
-Open question for the user: which of these to move to `PLAN.md`.
-
 ## 5. Product proposal of 2026-11-17 (comparison with the official extension 2.1.322)
 
-`PRODUCT_PROPOSAL.md` (Hebrew) holds about 45 proposals with ids, grouped L (local slow/weak model), M (what the model receives), P (unused CLI control requests), R (change review), Q (small improvements), X (extensions), A (architecture). **Decided 2026-11-17 and moved to `PLAN.md` section 11:** the `L-1` indicator, `M-1`, `R-1`, the control-request probe. **All the others are 💡, not yet discussed;** they stay in that document and are reviewed with the user one by one (user decision 2026-11-17). Its appendix A holds the absorbed 2026-11-10 review. Several items there restate ideas from section 4 above (4.1a, 4.1c-4.1f, 4.2a, 4.2c, 4.3a, 4.3g) with a recommendation; section 4 stays the place of record for those until they are decided. 4.2e and 4.3e were approved as `M-1`.
-
-## 6. External components that work in both extensions (user, 2026-11-24)
-
-💡 Undecided idea, not discussed further: build capabilities as CLI MCP servers, skills or hooks, so they also work in the official Claude Code extension and not only in this one. Limit: servers running outside VS Code have no language-server access (the navigation tools need the extension's VS Code APIs).
+`PRODUCT_PROPOSAL.md` (Hebrew) holds about 45 proposals with ids, grouped L (local slow/weak model), M (what the model receives), P (unused CLI control requests), R (change review), Q (small improvements), X (extensions), A (architecture). **Decided 2026-11-17 and moved to `PLAN.md` section 11:** the `L-1` indicator, `M-1`, `R-1`, the control-request probe. **All the others are 💡, not yet discussed;** they stay in that document and are reviewed with the user one by one (user decision 2026-11-17). Its appendix A holds the absorbed 2026-11-10 review. Several items there restated ideas from section 4 above. 4.2e and 4.3e were approved as `M-1`. **Removed 2026-11-24 (user):** every proposal with no counterpart in the official extension (`L-2` to `L-9`, `M-2`, `M-5`, `M-7`, `M-8`, `X-2`, `A-5`), and with them the matching ideas here: 4.1a, 4.1c, 4.3c (`M-2`), 4.1d (`L-7`), 4.1e (`L-6`), 4.2c (`M-8`), 4.3a (`M-5`), the 4.4 order that ranked them, and section 6 (external components, `A-5`). The remaining section-4 ideas are not ranked.

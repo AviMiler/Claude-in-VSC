@@ -2,6 +2,9 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-24 (docs: plan trimmed to gaps against the official extension)
+- User decision: proposals with no counterpart in the official extension are removed from the plan: `L-2` to `L-9`, `M-2`, `M-5`, `M-7`, `M-8`, `X-2`, `A-5`. Deleted from `PRODUCT_PROPOSAL.md` section 5 (with a dated note; later sections keep historical mentions), matching ideas removed from `FUTURE_FEATURES.md` (4.1a, 4.1c, 4.1d, 4.1e, 4.2c, 4.3a, 4.3c, order 4.4, section 6). `A-1` and `A-2` kept. Recorded in `PLAN.md` section 11 and `DECISIONS.md`.
+
 ## 2026-11-24 (dev: VSIX build script)
 - New `dev/build-vsix.py`: packs the git-tracked files minus `.vscodeignore` and the repo docs into `dist/<name>-<version>.vsix` without npm or vsce (`python dev/build-vsix.py`, then `code --install-extension dist/<file>.vsix --force`). `.gitignore` ignores `/dist/`. Why: installing on the work machine without network tools. Not yet installed from a built VSIX.
 
