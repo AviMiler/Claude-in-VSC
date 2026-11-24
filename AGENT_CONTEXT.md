@@ -30,6 +30,7 @@ Pick model and effort per task/subagent by real difficulty: trivial edits → Ha
 - **Split big work** into short agents (build, then docs), not one agent past 200k tokens.
 
 ## Last changes (newest first; details in CHANGELOG.md)
+- 2026-11-24 Q-6: live status-bar item (working + timer / waiting / finished) from `status-summary.js`; suite 420/420, unit-tested only.
 - 2026-11-24 Q-5: focus view toggle (`/focus`, command `claude-local.focusView`, Ctrl+Alt+F in the chat); task list and running tool stay visible; suite 413/413, unit-tested only.
 - 2026-11-24 Q-7: settings `chatFontSize` / `codeFontSize` (0 = follow VS Code); suite 412/412, unit-tested only.
 - 2026-11-24 Q-1: setting `claudeLocal.defaultPermissionMode` (start mode of a new conversation, `--permission-mode`); suite 411/411, unit-tested only.

@@ -28,6 +28,10 @@ function createRegistry() {
       for (const e of entries) if (sessionId && e.conversation.sessionId === sessionId) return e;
       return null;
     },
+    // Every open conversation (busy / waiting / unread are read live): the status-bar item.
+    conversations() {
+      return [...entries].map((e) => e.conversation);
+    },
     // Session id -> {busy, waiting} for the open conversations that have a session.
     openStates() {
       const map = new Map();

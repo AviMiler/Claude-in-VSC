@@ -4,6 +4,9 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (Q-6: live status-bar item)
+- The `✻ Claude` status-bar item now shows the state of the open conversations: `Claude · m:ss` while working (oldest running turn, count if several), `ממתין לאישור` while a permission waits, `הסתיים` for 8 s after the last turn ends or while a finished turn is unread. Pure logic in `src/panels/status-summary.js`; `registry.conversations()` added; the item repaints on registry changes plus a 1 s tick only while working. Verified: 7 new unit tests, suite 420/420; not seen in real VS Code.
+
 ## 2026-11-24 (Q-5: focus view toggle)
 - `/focus` in the `/` menu and the command `claude-local.focusView` (shortcut Ctrl+Alt+F, only when the Claude chat has focus, so it cannot clash elsewhere) toggle the focus view for the open conversation; not stored (the `focusView` setting is the start state). Focus view now keeps visible the task list (`TodoWrite`, class `tl-todo`) and a tool that is still running; permission cards and questions were already outside the hidden rows. Verified: unit tests, suite 413/413; not seen in real VS Code.
 
