@@ -13,6 +13,7 @@ function read() {
     claudePath: c.get('claudePath') || 'claude',
     allowDangerouslySkipPermissions: c.get('allowDangerouslySkipPermissions') === true,
     useCtrlEnterToSend: c.get('useCtrlEnterToSend') === true,
+    defaultPermissionMode: String(c.get('defaultPermissionMode') || 'default'),
     environmentVariables: sanitizeEnvironmentVariables(c.get('environmentVariables')),
     // The user's own CLAUDE_CODE_MAX_CONTEXT_TOKENS (not the package.json default), or null.
     explicitWindow: explicitWindowFromInspect(typeof c.inspect === 'function' ? c.inspect('environmentVariables') : null),

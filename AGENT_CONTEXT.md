@@ -30,6 +30,7 @@ Pick model and effort per task/subagent by real difficulty: trivial edits → Ha
 - **Split big work** into short agents (build, then docs), not one agent past 200k tokens.
 
 ## Last changes (newest first; details in CHANGELOG.md)
+- 2026-11-24 Q-1: setting `claudeLocal.defaultPermissionMode` (start mode of a new conversation, `--permission-mode`); suite 411/411, unit-tested only.
 - 2026-11-24 docs: GUI-only rule recorded; rejected proposals removed from `PRODUCT_PROPOSAL.md`.
 - 2026-11-24 docs: `PLAN.md` trimmed to gaps against the official extension.
 - 2026-11-24 dev: VSIX build script.

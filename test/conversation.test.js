@@ -21,7 +21,7 @@ const FAKE_JS = path.join(__dirname, '..', 'dev', 'fake-claude.js');
 // Port 1 refuses at once, so the model list falls back without real network.
 // ollamaUrl 'off' keeps the usage gauge from reading a real Ollama on this machine.
 // explicitWindow: the user's own CLAUDE_CODE_MAX_CONTEXT_TOKENS (settings.get().explicitWindow), or null.
-function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off', explicitWindow = null, pendingResume = null } = {}) {
+function setup({ defaultPermissionMode, allowBypass = false,gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off', explicitWindow = null, pendingResume = null } = {}) {
   clearWindowCache(); // the real windows seen are kept in memory across conversations
   const posted = [];
   const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage: (m) => posted.push(m) };
@@ -29,7 +29,7 @@ function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environ
   const claudePath = process.platform === 'win32' ? FAKE_CMD : FAKE_JS;
   const services = {
     logger: { info() {}, warn() {}, debug() {} },
-    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables, explicitWindow }), onDidChange: () => ({ dispose() {} }) },
+    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, defaultPermissionMode, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables, explicitWindow }), onDidChange: () => ({ dispose() {} }) },
     registry: { findBySession: () => null },
   };
   const c = new Conversation({ webview, services });
@@ -87,6 +87,16 @@ test('bypass mode is refused without the setting and accepted with it', async ()
     assert.strictEqual(posted.some((m) => m.type === 'notice'), !allowBypass);
     c.dispose();
   }
+});
+
+test('defaultPermissionMode sets the starting mode; bypass needs the allow setting; junk falls back', () => {
+  const modeOf = (opts) => { const { c } = setup(opts); const m = c.permissionMode; c.dispose(); return m; };
+  assert.strictEqual(modeOf({}), 'default');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'plan' }), 'plan');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'acceptEdits' }), 'acceptEdits');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'bypassPermissions' }), 'default');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'bypassPermissions', allowBypass: true }), 'bypassPermissions');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'nonsense' }), 'default');
 });
 
 test('renameSession sends /rename to the CLI, one line, and refuses without a session or while busy', () => {

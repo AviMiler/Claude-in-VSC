@@ -36,6 +36,18 @@
           "default": false,
           "markdownDescription": "מציג את המצב **ללא הרשאות** (`bypassPermissions`) בבורר המצבים. Claude יפעל בלי לבקש אישור."
         },
+        "claudeLocal.defaultPermissionMode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits", "plan", "bypassPermissions"],
+          "default": "default",
+          "enumDescriptions": [
+            "רגיל: מבקש אישור",
+            "קבלת עריכות אוטומטית",
+            "תכנון בלבד",
+            "ללא הרשאות (דורש את allowDangerouslySkipPermissions)"
+          ],
+          "markdownDescription": "מצב ההרשאות שבו שיחה **חדשה** מתחילה (נשלח ל-CLI כ-`--permission-mode`). `bypassPermissions` חל רק כש-`allowDangerouslySkipPermissions` פעיל, אחרת השיחה מתחילה במצב רגיל. שיחה שכבר רצה לא משתנה."
+        },
         "claudeLocal.useCtrlEnterToSend": {
           "type": "boolean",
           "default": false,
