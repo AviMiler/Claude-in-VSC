@@ -280,3 +280,8 @@ User decisions were made through AskUserQuestion on 2026-10-29/30 and later, rec
 **Decision:** Proposals with no counterpart in the official extension are removed from the plan: `L-2` to `L-9`, `M-2`, `M-5`, `M-7`, `M-8`, `X-2`, `A-5`. The infrastructure items `A-1` (split `conversation.js`) and `A-2` (real-stream recording for tests) stay.
 **Alternatives considered:** (1) Remove `A-1`, `A-2` too: plan holds only official gaps, but `conversation.js` keeps growing and every feature touching it costs more. (2) Keep `A-5` as well (components that work in both extensions).
 **Why:** The user wants the extension to match the official one; local-model-only ideas are out of scope. `A-1`/`A-2` lower the cost and risk of building the remaining gaps.
+
+## [2026-11-24] GUI only for the CLI (user decision)
+**Decision:** "I want only a GUI for the CLI; what does not come from there should not appear." Every planned item that does not meet the rule is rejected (list: `PLAN.md` section 11). Already-built extension-originated features are reviewed with the user separately.
+**Alternatives considered:** keep the local-model helpers that the extension adds on its own (P-2 approve-and-implement, repository map, C# navigation, own status/report cards).
+**Why:** the user wants the extension to be a front for the CLI, not a second product with its own behavior; it extends the 2026-10-30 "CLI is the only source of truth" decision from data to features.

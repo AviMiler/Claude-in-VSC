@@ -2,6 +2,9 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-24 (docs: GUI-only rule)
+- User rule: the extension is only a GUI for the CLI; items that do not come from the CLI are rejected. Removed from `PRODUCT_PROPOSAL.md`: P-1, P-2/R-3, P-4, P-5, Q-2, Q-3, Q-10, X-1, X-5, X-6. Marked ❌ in `FUTURE_FEATURES.md`: 1.2 repository map, 1.3 rename, 2.1, 3.3 resources, 4.1f, 4.2a, 4.2b, 4.2d, 4.3b, 4.3d, 4.3g. The M-1 hook upgrade is dropped. Recorded in `PLAN.md` section 11, `DECISIONS.md`, `AGENT_CONTEXT.md` constraints.
+
 ## 2026-11-24 (docs: plan trimmed to gaps against the official extension)
 - User decision: proposals with no counterpart in the official extension are removed from the plan: `L-2` to `L-9`, `M-2`, `M-5`, `M-7`, `M-8`, `X-2`, `A-5`. Deleted from `PRODUCT_PROPOSAL.md` section 5 (with a dated note; later sections keep historical mentions), matching ideas removed from `FUTURE_FEATURES.md` (4.1a, 4.1c, 4.1d, 4.1e, 4.2c, 4.3a, 4.3c, order 4.4, section 6). `A-1` and `A-2` kept. Recorded in `PLAN.md` section 11 and `DECISIONS.md`.
 

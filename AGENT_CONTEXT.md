@@ -26,6 +26,7 @@ Added 2026-11-05 after one Opus subagent used about 4.1M effective tokens on a s
 A VS Code extension (plain JS, no build, no npm): a Hebrew RTL front for the real `claude` CLI. The CLI is the only source of truth: the extension persists nothing (no globalState/workspaceState/own files) and reads history read-only from `~/.claude/projects/<encoded cwd>/*.jsonl`. The basic version (v0.1.0) works on the user's machine (CLI 2.1.246, VS Code 1.91.1, local model `qwen3.8:27b` behind a LiteLLM gateway).
 
 ## Constraints (mandatory)
+- **GUI only for the CLI (user, 2026-11-24).** The extension shows and sends only what comes from the `claude` CLI (stream events, control requests, CLI flags, commands and files). Features that originate in the extension are not planned or built (`PLAN.md` section 11, `DECISIONS.md` 2026-11-24).
 - **No internet on the user's machine.** A few files can be brought in (delivered as under "Working agreements"). No installs from the network (`npm install`, marketplace/extension downloads, package managers, runtime fetching). Code libraries only as a last resort: vendor plain files under `webview/vendor/` only when truly no other way, after trying VS Code APIs, Node built-ins, the CLI and hand-written code; record each exception in `DEPENDENCIES.md` with the reason. When proposing a feature, say first what it needs from outside the repo.
 - **Model-bound text is English (user, 2026-11-09).** Every text the extension itself sends to the CLI/model (editor-context blocks, deny/reject results, the image-only placeholder, injected prompts) is English; only the user's own typed text may be in another language; the UI stays Hebrew. Why: `DECISIONS.md` 2026-11-09.
 - Docs are English; every user-facing string and every question to the user is Hebrew (exception addressing the user: `SETUP.md`).
@@ -66,7 +67,7 @@ A VS Code extension (plain JS, no build, no npm): a Hebrew RTL front for the rea
 
 ## Next steps
 - The user runs the real-VS-Code checks for R-1, the context window per model and L-1 (`spec.md` "Verification status"; `dev/must-check.txt` 7.6.2).
-- The `M-1` same-turn `PostToolUse` hook upgrade is still pending (the hook answer format is not settled). The user also still checks M-1 in real VS Code with the real CLI.
+- The `M-1` same-turn hook upgrade is rejected (GUI-only rule).
 - Pick the next item from the remaining `PRODUCT_PROPOSAL.md` proposals: only gaps against the official extension plus `A-1`, `A-2` remain (user removed `L-2` to `L-9`, `M-2`, `M-5`, `M-7`, `M-8`, `X-2`, `A-5` on 2026-11-24, `PLAN.md` section 11). P-1, P-2, P-3 are feasible on 2.1.246; M-3 was built 2026-11-24. The user also runs the M-3 checks (`dev/must-check.txt` 6.4).
 
 ## How to work here
