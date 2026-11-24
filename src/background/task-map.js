@@ -1,8 +1,8 @@
 // Pure: background tasks (Bash with run_in_background, background sub-agents) from the CLI's
 // `system` lines, captured in probe4 (DEPENDENCIES.md): `task_started`, `background_tasks_changed
 // {tasks}`, `task_updated {patch:{status}}`, `task_notification {status, summary}`. Stop is the
-// `stop_task {task_id}` control request. The CLI has no request that moves a running foreground
-// tool to the background, so there is no "move to background" here.
+// `stop_task {task_id}` control request. Moving a running Bash tool to the background is the
+// `background_tasks {tool_use_id}` request (conversation.backgroundTool, DEPENDENCIES.md row 45).
 
 const TASK_SUBTYPES = new Set(['task_started', 'background_tasks_changed', 'task_updated', 'task_notification']);
 

@@ -113,6 +113,24 @@ test('toggleFocusView posts toggleFocus; the focus command, shortcut and /focus 
   assert.match(fs.readFileSync(require('node:path').join(root, 'a11y.css'), 'utf8'), /\.tl-tool:not\(\.running\):not\(\.tl-todo\)/);
 });
 
+test('backgroundTool sends background_tasks with the tool_use_id; a refusal or backgrounded:false shows a notice', async () => {
+  const { c, posted } = setup();
+  const calls = [];
+  const orig = c.proc;
+  c.proc = { request: async (sub, payload) => { calls.push([sub, payload]); return { backgrounded: false }; } };
+  await c.backgroundTool('toolu_1');
+  assert.deepStrictEqual(calls, [['background_tasks', { tool_use_id: 'toolu_1' }]]);
+  assert.strictEqual(posted.filter((m) => m.type === 'notice').length, 1);
+  c.proc = { request: async () => ({ backgrounded: true }) };
+  await c.backgroundTool('toolu_2');
+  assert.strictEqual(posted.filter((m) => m.type === 'notice').length, 1);
+  c.proc = { request: async () => { throw new Error('Unsupported control request subtype'); } };
+  await c.backgroundTool('toolu_3');
+  assert.strictEqual(posted.filter((m) => m.type === 'notice').length, 2);
+  c.proc = orig;
+  c.dispose();
+});
+
 test('renameSession sends /rename to the CLI, one line, and refuses without a session or while busy', () => {
   const { c } = setup();
   try {

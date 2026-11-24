@@ -749,6 +749,16 @@ class Conversation {
     this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
   }
 
+  // "Run in background" on a running Bash tool: `background_tasks {tool_use_id}` (DEPENDENCIES.md row 45,
+  // CLI 2.1.246). The CLI answers {backgrounded}; the task then arrives through the usual background lines.
+  backgroundTool(toolUseId) {
+    if (!this.proc || !toolUseId) return Promise.resolve();
+    this.services.logger.info('background', `background_tasks ${toolUseId}`);
+    return this.proc.request('background_tasks', { tool_use_id: toolUseId }, 10000).then((res) => {
+      if (res && res.backgrounded === false) this.post({ type: 'notice', text: 'לא ניתן להעביר את הכלי לרקע (אולי כבר הסתיים).' });
+    }, (err) => this.notifyFailure('background_tasks', err));
+  }
+
   // The stop button of the /loop bar (src/loop/loop-host.js).
   stopLoop(id) {
     return loopHost.stopLoop(this, id);

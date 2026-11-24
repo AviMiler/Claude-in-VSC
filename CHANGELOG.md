@@ -4,6 +4,9 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (P-3: run a Bash tool in the background)
+- A running Bash tool row gets a "לרקע" button (hidden once the tool ends or when it was already started with `run_in_background`): it sends the control request `background_tasks {tool_use_id}` (supported on CLI 2.1.246 per `DEPENDENCIES.md` row 45, but that row was probed with a dummy id only). `backgrounded:false` or a refusal shows a notice; the new task then appears in the existing background-task bar. `dev/fake-claude.js` answers the request. Verified: unit test, suite 424/424; **not tried on a really running command**: the answer shape `{backgrounded}` on a live tool is unconfirmed.
+
 ## 2026-11-24 (Q-8: open the project CLAUDE.md)
 - `/claudemd` in the `/` menu and the command `claude-local.openClaudeMd` open `<cwd>/CLAUDE.md`; when it is missing a message offers to create it (a short English template) and opens it. No file or folder open: a notice. No token count (user decision). Logic in `src/panels/claude-md.js`. Verified: 3 unit tests, suite 423/423; the real message box and editor not tried.
 

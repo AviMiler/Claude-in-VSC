@@ -181,7 +181,11 @@
         el('span', { class: 'tool-toggle', text: '▾' }));
       // A sibling of the head (never nested in it): the editor moves only on this click.
       const openBtn = el('button', { class: 'tool-open', type: 'button', title: 'פתיחה בעורך', 'aria-label': 'פתיחה בעורך', hidden: true }, openIcon());
-      const node = el('div', { class: `tl tl-tool running${ev.name === 'TodoWrite' ? ' tl-todo' : ''}` }, el('div', { class: 'tool-line' }, head, openBtn), bodyEl);
+      // Bash only: moves the running command to the background (the CLI request background_tasks).
+      const bgBtn = ev.name === 'Bash'
+        ? el('button', { class: 'tool-bg', type: 'button', text: 'לרקע', title: 'הרצה ברקע: Claude ימשיך בלי לחכות לפקודה' })
+        : null;
+      const node = el('div', { class: `tl tl-tool running${ev.name === 'TodoWrite' ? ' tl-todo' : ''}` }, el('div', { class: 'tool-line' }, head, bgBtn, openBtn), bodyEl);
       t = { node, summaryEl, bodyEl, openBtn, navCard: null, name: ev.name, input: ev.input || {}, result: null };
       head.addEventListener('click', () => {
         node.classList.toggle('open');
@@ -190,10 +194,19 @@
       openBtn.addEventListener('click', () => {
         if (t.path) post({ type: 'openFile', path: t.path, line: t.line });
       });
+      if (bgBtn) {
+        bgBtn.addEventListener('click', () => {
+          bgBtn.disabled = true;
+          bgBtn.textContent = 'מועבר לרקע…';
+          post({ type: 'backgroundTool', toolUseId: ev.id });
+        });
+      }
       tools.set(ev.id, t);
       currentTurn().append(node);
     }
     if (ev.final) t.input = ev.input || {};
+    // A command that was started in the background has nothing left to move.
+    if (ev.final && t.input.run_in_background === true) t.node.querySelector('.tool-bg')?.remove();
     renderTool(t);
   }
 

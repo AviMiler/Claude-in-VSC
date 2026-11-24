@@ -409,6 +409,15 @@ kbd {
   border: none; border-radius: var(--cl-radius-s);
   background: transparent; color: var(--cl-muted); cursor: pointer;
 }
+/* "Run in background" (Bash only): visible while the command runs. */
+.tool-bg {
+  flex: none; padding: 0 8px; height: 20px;
+  border: 1px solid var(--cl-border, currentColor); border-radius: var(--cl-radius-s);
+  background: transparent; color: var(--cl-muted); font-size: 11px; cursor: pointer;
+}
+.tool-bg:hover:not(:disabled) { background: var(--cl-hover); color: var(--cl-fg); }
+.tool-bg:disabled { opacity: .6; cursor: default; }
+.tl-tool:not(.running) .tool-bg { display: none; }
 .tool-open[hidden] { display: none; }
 .tool-open svg { width: 13px; height: 13px; }
 .tool-open:hover { background: var(--cl-hover); color: var(--cl-fg); }

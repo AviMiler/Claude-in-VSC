@@ -25,6 +25,7 @@ const ROUTES = {
   openChangeDiff: (c, m) => c.openChangeDiff(String(m.path || '')),
   btwOpen: (c, m) => c.services.btwPanel.open(c.btwRunOptions(), String(m.question || '')),
   rewindMenu: (c) => c.rewindMenu(),
+  backgroundTool: (c, m) => c.backgroundTool(String(m.toolUseId || '')),
   stopTask: (c, m) => c.stopTask(String(m.id || '')),
   stopLoop: (c, m) => c.stopLoop(String(m.id || '')),
   openTerminal: (c) => c.openTerminal(),
