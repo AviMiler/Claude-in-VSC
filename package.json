@@ -258,6 +258,11 @@
         "category": "Claude Code Local"
       },
       {
+        "command": "claude-local.openClaudeMd",
+        "title": "פתיחת CLAUDE.md של הפרויקט",
+        "category": "Claude Code Local"
+      },
+      {
         "command": "claude-local.keyboardShortcuts",
         "title": "קיצורי מקלדת",
         "category": "Claude Code Local"

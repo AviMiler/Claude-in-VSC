@@ -17,6 +17,7 @@
     { name: 'plan open', description: 'פתיחת התוכנית האחרונה בעורך (פקודה של התוסף)' },
     { name: 'btw', description: 'שאלה צדדית בחלונית נפרדת (פקודה של התוסף)', argumentHint: '<שאלה>' },
     { name: 'focus', description: 'מעבר לתצוגת מיקוד ובחזרה (פקודה של התוסף)' },
+    { name: 'claudemd', description: 'פתיחת CLAUDE.md של הפרויקט, או יצירתו (פקודה של התוסף)' },
     { name: 'diff', description: 'השינויים שClaude עשה בשיחה (פקודה של התוסף)' },
   ].map((c) => ({ ...c, group: 'local', local: true }));
 

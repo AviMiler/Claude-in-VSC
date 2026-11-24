@@ -75,6 +75,11 @@ function registerCommands(context, services) {
       const host = places.active();
       if (host && host.current) host.current.toggleFocusView();
     },
+    'claude-local.openClaudeMd': () => {
+      const host = places.active();
+      if (host && host.current) return host.current.openClaudeMd();
+      return vscode.window.showInformationMessage('פתחו שיחה כדי לפתוח את CLAUDE.md.');
+    },
     'claude-local.keyboardShortcuts': () => vscode.commands.executeCommand('workbench.action.openGlobalKeybindings', 'claude-local'),
     // Alt+K: put @path of the open file into the chat box, with #5-10 when lines are selected
     // (package F). Absolute: the CLI does not expand "@relative" (F-4).

@@ -20,6 +20,7 @@ const ROUTES = {
   openFile: (c, m) => c.openFile(String(m.path), m.line),
   mentionSearch: (c, m) => c.mentionSearch(String(m.query || ''), m.seq),
   planCommand: (c, m) => c.planCommand(m.open === true),
+  openClaudeMd: (c) => c.openClaudeMd(),
   diffCommand: (c) => c.diffCommand(),
   openChangeDiff: (c, m) => c.openChangeDiff(String(m.path || '')),
   btwOpen: (c, m) => c.services.btwPanel.open(c.btwRunOptions(), String(m.question || '')),

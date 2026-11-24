@@ -4,6 +4,9 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (Q-8: open the project CLAUDE.md)
+- `/claudemd` in the `/` menu and the command `claude-local.openClaudeMd` open `<cwd>/CLAUDE.md`; when it is missing a message offers to create it (a short English template) and opens it. No file or folder open: a notice. No token count (user decision). Logic in `src/panels/claude-md.js`. Verified: 3 unit tests, suite 423/423; the real message box and editor not tried.
+
 ## 2026-11-24 (Q-6: live status-bar item)
 - The `✻ Claude` status-bar item now shows the state of the open conversations: `Claude · m:ss` while working (oldest running turn, count if several), `ממתין לאישור` while a permission waits, `הסתיים` for 8 s after the last turn ends or while a finished turn is unread. Pure logic in `src/panels/status-summary.js`; `registry.conversations()` added; the item repaints on registry changes plus a 1 s tick only while working. Verified: 7 new unit tests, suite 420/420; not seen in real VS Code.
 

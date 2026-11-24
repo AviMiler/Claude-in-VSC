@@ -642,6 +642,18 @@ class Conversation {
     return true;
   }
 
+  // /claudemd and the claude-local.openClaudeMd command: open the project's CLAUDE.md, or offer to create it.
+  openClaudeMd() {
+    const { openProjectClaudeMd } = require('./claude-md');
+    return openProjectClaudeMd(this.cwd, this.noFolder, {
+      exists: fs.existsSync,
+      write: (p, text) => fs.writeFileSync(p, text, 'utf8'),
+      open: (p) => this.openFile(p),
+      ask: async () => (await vscode.window.showInformationMessage('אין CLAUDE.md בפרויקט. ליצור אחד?', 'יצירה')) === 'יצירה',
+      notice: (text) => this.post({ type: 'notice', text }),
+    });
+  }
+
   // filePath may be relative to the workspace (navigation tool results): see resolve-path.js.
   openFile(filePath, line) {
     const { resolvePath } = require('./resolve-path');
