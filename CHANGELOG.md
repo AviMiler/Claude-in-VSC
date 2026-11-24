@@ -2,6 +2,9 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-24 (dev: VSIX build script)
+- New `dev/build-vsix.py`: packs the git-tracked files minus `.vscodeignore` and the repo docs into `dist/<name>-<version>.vsix` without npm or vsce (`python dev/build-vsix.py`, then `code --install-extension dist/<file>.vsix --force`). `.gitignore` ignores `/dist/`. Why: installing on the work machine without network tools. Not yet installed from a built VSIX.
+
 ## 2026-11-24 (M-3: guidance toward the navigation tools)
 - Two-three English lines go to the model through `appendSystemPrompt` in the `initialize` control request, only when the nav server started and the new setting `claudeLocal.navGuidance` (default on, applies from a new conversation) is on. Why: a weak local model picks `Grep`/`Read` from habit, so the nine nav tools were rarely used (`PRODUCT_PROPOSAL.md` M-3). New `src/mcp/nav-guidance.js` (`NAV_GUIDANCE`, `initializePayload`), `src/cli/process.js` (`request()` accepts a function payload evaluated when written; `write(item)`; `this.nav` set before spawn; spawn failure with nav finishes the process so `initialize` never hangs), `src/panels/conversation.js`, `src/util/settings.js`, `package.json`, `test/nav-guidance.test.js`.
 - Deviation from the plan: the first build deferred `initialize` behind a `navReady` promise; verify-agent found a user message could reach the CLI before `initialize`, so it was replaced by the lazy payload and `initialize` is strictly first. Suite 410/410, verify-agent GO after one NO-GO round; unit-tested only, not run in real VS Code or the real CLI.
