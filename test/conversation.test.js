@@ -21,7 +21,7 @@ const FAKE_JS = path.join(__dirname, '..', 'dev', 'fake-claude.js');
 // Port 1 refuses at once, so the model list falls back without real network.
 // ollamaUrl 'off' keeps the usage gauge from reading a real Ollama on this machine.
 // explicitWindow: the user's own CLAUDE_CODE_MAX_CONTEXT_TOKENS (settings.get().explicitWindow), or null.
-function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off', explicitWindow = null, pendingResume = null } = {}) {
+function setup({ defaultPermissionMode, allowBypass = false,gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off', explicitWindow = null, pendingResume = null } = {}) {
   clearWindowCache(); // the real windows seen are kept in memory across conversations
   const posted = [];
   const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage: (m) => posted.push(m) };
@@ -29,7 +29,7 @@ function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environ
   const claudePath = process.platform === 'win32' ? FAKE_CMD : FAKE_JS;
   const services = {
     logger: { info() {}, warn() {}, debug() {} },
-    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables, explicitWindow }), onDidChange: () => ({ dispose() {} }) },
+    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, defaultPermissionMode, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables, explicitWindow }), onDidChange: () => ({ dispose() {} }) },
     registry: { findBySession: () => null },
   };
   const c = new Conversation({ webview, services });
@@ -87,6 +87,48 @@ test('bypass mode is refused without the setting and accepted with it', async ()
     assert.strictEqual(posted.some((m) => m.type === 'notice'), !allowBypass);
     c.dispose();
   }
+});
+
+test('defaultPermissionMode sets the starting mode; bypass needs the allow setting; junk falls back', () => {
+  const modeOf = (opts) => { const { c } = setup(opts); const m = c.permissionMode; c.dispose(); return m; };
+  assert.strictEqual(modeOf({}), 'default');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'plan' }), 'plan');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'acceptEdits' }), 'acceptEdits');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'bypassPermissions' }), 'default');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'bypassPermissions', allowBypass: true }), 'bypassPermissions');
+  assert.strictEqual(modeOf({ defaultPermissionMode: 'nonsense' }), 'default');
+});
+
+test('toggleFocusView posts toggleFocus; the focus command, shortcut and /focus entry exist', () => {
+  const { c, posted } = setup();
+  c.toggleFocusView();
+  assert.ok(posted.some((m) => m.type === 'toggleFocus'));
+  c.dispose();
+  const fs = require('node:fs');
+  const pkg = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, '..', 'package.json'), 'utf8'));
+  assert.ok(pkg.contributes.commands.some((x) => x.command === 'claude-local.focusView'));
+  assert.ok(pkg.contributes.keybindings.some((x) => x.command === 'claude-local.focusView' && x.key === 'ctrl+alt+f'));
+  const root = require('node:path').join(__dirname, '..', 'webview', 'chat');
+  assert.match(fs.readFileSync(require('node:path').join(root, 'slash-menu.js'), 'utf8'), /name: 'focus'/);
+  assert.match(fs.readFileSync(require('node:path').join(root, 'a11y.css'), 'utf8'), /\.tl-tool:not\(\.running\):not\(\.tl-todo\)/);
+});
+
+test('backgroundTool sends background_tasks with the tool_use_id; a refusal or backgrounded:false shows a notice', async () => {
+  const { c, posted } = setup();
+  const calls = [];
+  const orig = c.proc;
+  c.proc = { request: async (sub, payload) => { calls.push([sub, payload]); return { backgrounded: false }; } };
+  await c.backgroundTool('toolu_1');
+  assert.deepStrictEqual(calls, [['background_tasks', { tool_use_id: 'toolu_1' }]]);
+  assert.strictEqual(posted.filter((m) => m.type === 'notice').length, 1);
+  c.proc = { request: async () => ({ backgrounded: true }) };
+  await c.backgroundTool('toolu_2');
+  assert.strictEqual(posted.filter((m) => m.type === 'notice').length, 1);
+  c.proc = { request: async () => { throw new Error('Unsupported control request subtype'); } };
+  await c.backgroundTool('toolu_3');
+  assert.strictEqual(posted.filter((m) => m.type === 'notice').length, 2);
+  c.proc = orig;
+  c.dispose();
 });
 
 test('renameSession sends /rename to the CLI, one line, and refuses without a session or while busy', () => {

@@ -218,6 +218,18 @@
       post({ type: 'btwOpen', question: (btw[1] || '').trim() });
       return clearInput();
     }
+    if (/^\/claudemd\s*$/i.test(text.trim())) {
+      post({ type: 'openClaudeMd' });
+      return clearInput();
+    }
+    if (/^\/find\s*$/i.test(text.trim())) {
+      clearInput();
+      return CL.find.open();
+    }
+    if (/^\/focus\s*$/i.test(text.trim())) {
+      CL.display.toggleFocus();
+      return clearInput();
+    }
     if (/^\/diff\s*$/i.test(text.trim())) {
       post({ type: 'diffCommand' });
       return clearInput();

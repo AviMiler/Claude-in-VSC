@@ -30,6 +30,13 @@ Pick model and effort per task/subagent by real difficulty: trivial edits → Ha
 - **Split big work** into short agents (build, then docs), not one agent past 200k tokens.
 
 ## Last changes (newest first; details in CHANGELOG.md)
+- 2026-11-24 Q-9: Ctrl+F or `/find` searches the open conversation (CSS highlights); the drawer's search box also matches words inside past conversations (`transcripts.searchSessions`, read-only); suite 428/428, unit-tested only.
+- 2026-11-24 P-3: "לרקע" button on a running Bash tool (`background_tasks {tool_use_id}`); suite 424/424, unit-tested only; the real CLI answer on a running tool is unverified.
+- 2026-11-24 Q-8: `/claudemd` and command `claude-local.openClaudeMd` open the project `CLAUDE.md` or offer to create it (no token count); suite 423/423, unit-tested only.
+- 2026-11-24 Q-6: live status-bar item (working + timer / waiting / finished) from `status-summary.js`; suite 420/420, unit-tested only.
+- 2026-11-24 Q-5: focus view toggle (`/focus`, command `claude-local.focusView`, Ctrl+Alt+F in the chat); task list and running tool stay visible; suite 413/413, unit-tested only.
+- 2026-11-24 Q-7: settings `chatFontSize` / `codeFontSize` (0 = follow VS Code); suite 412/412, unit-tested only.
+- 2026-11-24 Q-1: setting `claudeLocal.defaultPermissionMode` (start mode of a new conversation, `--permission-mode`); suite 411/411, unit-tested only.
 - 2026-11-24 docs: GUI-only rule recorded; rejected proposals removed from `PRODUCT_PROPOSAL.md`.
 - 2026-11-24 docs: `PLAN.md` trimmed to gaps against the official extension.
 - 2026-11-24 dev: VSIX build script.

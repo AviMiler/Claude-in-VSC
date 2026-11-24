@@ -279,6 +279,8 @@ function onControlRequest(msg) {
   } else if (subtype === 'get_context_usage') {
     const maxTokens = /\[1m\]$/i.test(MODEL) ? 1000000 : Number(ENV.CLAUDE_CODE_MAX_CONTEXT_TOKENS) || 200000;
     reply({ categories: [], totalTokens: 23400, maxTokens, model: MODEL });
+  } else if (subtype === 'background_tasks') {
+    reply({ backgrounded: true });
   } else if (subtype === 'stop_task') {
     // The sequence probe4 captured after a stop.
     const id = msg.request.task_id;

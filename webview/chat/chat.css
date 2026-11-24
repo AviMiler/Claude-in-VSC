@@ -43,7 +43,7 @@
   --cl-blue: var(--vscode-charts-blue, #3794ff);
   --cl-shadow: var(--vscode-widget-shadow, #0000004d);
   --cl-mono: var(--vscode-editor-font-family, Consolas, monospace);
-  --cl-mono-size: var(--vscode-editor-font-size, 12px);
+  --cl-mono-size: var(--cl-user-code, var(--vscode-editor-font-size, 12px)); /* setting codeFontSize */
   /* spacing scale 4 / 8 / 12 / 16, radii 4 / 6 / 8 */
   --cl-radius-s: 4px;
   --cl-radius: 6px;
@@ -64,7 +64,7 @@ body {
   background: var(--cl-bg);
   color: var(--cl-fg);
   font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size, 13px);
+  font-size: var(--cl-user-font, var(--vscode-font-size, 13px)); /* setting chatFontSize */
   line-height: 1.55;
   overflow: hidden;
 }
@@ -409,6 +409,15 @@ kbd {
   border: none; border-radius: var(--cl-radius-s);
   background: transparent; color: var(--cl-muted); cursor: pointer;
 }
+/* "Run in background" (Bash only): visible while the command runs. */
+.tool-bg {
+  flex: none; padding: 0 8px; height: 20px;
+  border: 1px solid var(--cl-border, currentColor); border-radius: var(--cl-radius-s);
+  background: transparent; color: var(--cl-muted); font-size: 11px; cursor: pointer;
+}
+.tool-bg:hover:not(:disabled) { background: var(--cl-hover); color: var(--cl-fg); }
+.tool-bg:disabled { opacity: .6; cursor: default; }
+.tl-tool:not(.running) .tool-bg { display: none; }
 .tool-open[hidden] { display: none; }
 .tool-open svg { width: 13px; height: 13px; }
 .tool-open:hover { background: var(--cl-hover); color: var(--cl-fg); }

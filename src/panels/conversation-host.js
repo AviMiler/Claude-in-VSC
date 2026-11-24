@@ -23,6 +23,7 @@ const HOST_ROUTES = {
   openSession: (h, m) => h.openSession(String(m.id), { ui: m.ui }),
   renameConversation: (h, m) => h.rename(m),
   listConversations: (h) => h.postList(),
+  searchSessions: (h, m) => h.searchSessions(String(m.query || ''), m.seq),
   viewFocus: (h, m) => { h.focused = m.on === true; },
 };
 
@@ -223,6 +224,18 @@ class ConversationHost {
       }
     }
     this.refresh();
+  }
+
+  // Word search in the past conversations' text (the drawer's box); the answer carries `seq` so a
+  // slow answer to an older query is ignored.
+  async searchSessions(query, seq) {
+    let ids = [];
+    try {
+      ids = await transcripts.searchSessions(this.current ? this.current.cwd : workspaceCwd().cwd, query);
+    } catch (err) {
+      this.services.logger.warn('history', `searchSessions failed: ${err.message}`);
+    }
+    this.postWebview({ type: 'sessionSearch', seq, query, ids });
   }
 
   // The visibility of the place changed: a shown conversation is read.

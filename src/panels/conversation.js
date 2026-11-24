@@ -7,7 +7,7 @@ const { CliProcess } = require('../cli/process');
 const { mergeEnv } = require('../cli/env');
 const { initializePayload } = require('../mcp/nav-guidance');
 const { workspaceCwd } = require('../util/workspace');
-const { buildArgs } = require('../cli/args');
+const { buildArgs, initialPermissionMode } = require('../cli/args');
 const { createStreamTranslator } = require('./event-translator');
 const replayLog = require('./replay-log');
 const transcripts = require('../history/transcripts');
@@ -78,7 +78,8 @@ class Conversation {
     this.activitySig = ''; // busy|waiting|unread at the last onActivity call
     this.proc = null;
     this.sessionId = null;
-    this.permissionMode = 'default';
+    const startSettings = (services && services.settings && services.settings.get()) || {};
+    this.permissionMode = initialPermissionMode(startSettings.defaultPermissionMode, startSettings.allowDangerouslySkipPermissions);
     this.model = 'default';
     this.launch = null; // the context window the running CLI was started with: { window, source, real }
     this.lastReportedModel = ''; // the model name the CLI last reported (names the default model for /api/ps)
@@ -641,6 +642,18 @@ class Conversation {
     return true;
   }
 
+  // /claudemd and the claude-local.openClaudeMd command: open the project's CLAUDE.md, or offer to create it.
+  openClaudeMd() {
+    const { openProjectClaudeMd } = require('./claude-md');
+    return openProjectClaudeMd(this.cwd, this.noFolder, {
+      exists: fs.existsSync,
+      write: (p, text) => fs.writeFileSync(p, text, 'utf8'),
+      open: (p) => this.openFile(p),
+      ask: async () => (await vscode.window.showInformationMessage('אין CLAUDE.md בפרויקט. ליצור אחד?', 'יצירה')) === 'יצירה',
+      notice: (text) => this.post({ type: 'notice', text }),
+    });
+  }
+
   // filePath may be relative to the workspace (navigation tool results): see resolve-path.js.
   openFile(filePath, line) {
     const { resolvePath } = require('./resolve-path');
@@ -736,6 +749,16 @@ class Conversation {
     this.proc.request('stop_task', { task_id: id }, 10000).catch((err) => this.notifyFailure('stop_task', err));
   }
 
+  // "Run in background" on a running Bash tool: `background_tasks {tool_use_id}` (DEPENDENCIES.md row 45,
+  // CLI 2.1.246). The CLI answers {backgrounded}; the task then arrives through the usual background lines.
+  backgroundTool(toolUseId) {
+    if (!this.proc || !toolUseId) return Promise.resolve();
+    this.services.logger.info('background', `background_tasks ${toolUseId}`);
+    return this.proc.request('background_tasks', { tool_use_id: toolUseId }, 10000).then((res) => {
+      if (res && res.backgrounded === false) this.post({ type: 'notice', text: 'לא ניתן להעביר את הכלי לרקע (אולי כבר הסתיים).' });
+    }, (err) => this.notifyFailure('background_tasks', err));
+  }
+
   // The stop button of the /loop bar (src/loop/loop-host.js).
   stopLoop(id) {
     return loopHost.stopLoop(this, id);
@@ -821,6 +844,11 @@ class Conversation {
 
   openLink(url) {
     if (/^https?:\/\//i.test(url)) vscode.env.openExternal(vscode.Uri.parse(url));
+  }
+
+  // Focus view on/off in this conversation's chat (the claude-local.focusView command).
+  toggleFocusView() {
+    this.post({ type: 'toggleFocus' });
   }
 
   focusInput() {

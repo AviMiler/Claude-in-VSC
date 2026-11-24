@@ -24,7 +24,7 @@ function register(context, services) {
   const sidebarHost = registerSidebar(context, services);
   services.places = createPlaces(services, sidebarHost);
   registerCommands(context, services);
-  registerStatusBar(context);
+  registerStatusBar(context, services);
 }
 
 module.exports = { register };

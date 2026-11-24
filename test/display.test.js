@@ -14,6 +14,8 @@ test('readDisplay applies the plan defaults', () => {
     prefersReducedMotion: false,
     colorMode: 'default',
     collapseUserMessageLines: 8,
+    chatFontSize: 0,
+    codeFontSize: 0,
   });
 });
 
@@ -24,6 +26,14 @@ test('readDisplay takes explicit values and rejects bad ones', () => {
   assert.strictEqual(out.colorMode, 'daltonized');
   assert.strictEqual(out.prefersReducedMotion, false);
   assert.strictEqual(readDisplay(fromMap({ colorMode: 'neon' })).colorMode, 'default');
+});
+
+test('font sizes: 8-32 accepted (rounded to .5), anything else means follow VS Code', () => {
+  const f = (v) => readDisplay(fromMap({ chatFontSize: v })).chatFontSize;
+  assert.strictEqual(f(16), 16);
+  assert.strictEqual(f(13.3), 13.5);
+  for (const bad of [0, 7, 33, -1, '14', NaN, null, undefined]) assert.strictEqual(f(bad), 0);
+  assert.strictEqual(readDisplay(fromMap({ codeFontSize: 11 })).codeFontSize, 11);
 });
 
 test('sanitizeVerbs trims, drops empties and non-strings, strips a trailing ellipsis, caps length and count', () => {

@@ -18,12 +18,13 @@
   }
 
   // open: [{id, title, status, current}], past: [{id, title, mtime}].
-  function filterRows(open, past, filter, query) {
+  // contentIds: past session ids whose text matched the word (the host's searchSessions), or undefined.
+  function filterRows(open, past, filter, query, contentIds) {
     const q = String(query || '').trim().toLowerCase();
     const hit = (title) => !q || String(title || '').toLowerCase().includes(q);
     return {
       open: (open || []).filter((r) => matches(r.status, filter) && hit(r.title)),
-      past: (past || []).filter((r) => matches('past', filter) && hit(r.title)),
+      past: (past || []).filter((r) => matches('past', filter) && (hit(r.title) || Boolean(q && contentIds && contentIds.has(r.id)))),
     };
   }
 

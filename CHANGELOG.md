@@ -4,6 +4,28 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (Q-9: search)
+- Search in the open conversation: `Ctrl+F` in the chat or `/find` opens a bar (`webview/chat/find.js`, pure part `find-logic.js`); all matches are highlighted with the CSS Custom Highlight API, Enter / Shift+Enter move, Esc closes. Reads the page text only.
+- The drawer's search box now also matches words inside past conversations: after 300 ms it asks the host (`searchSessions`), which reads the CLI's transcript files read-only (user and assistant text only, newest 300 files, each up to 20 MB) and returns matching ids; title matches still show at once. Stale answers are dropped by `seq`. Verified: 4 new unit tests (incl. a real temp transcript folder), suite 428/428; the bar, the highlights and the drawer were not seen in real VS Code.
+
+## 2026-11-24 (P-3: run a Bash tool in the background)
+- A running Bash tool row gets a "לרקע" button (hidden once the tool ends or when it was already started with `run_in_background`): it sends the control request `background_tasks {tool_use_id}` (supported on CLI 2.1.246 per `DEPENDENCIES.md` row 45, but that row was probed with a dummy id only). `backgrounded:false` or a refusal shows a notice; the new task then appears in the existing background-task bar. `dev/fake-claude.js` answers the request. Verified: unit test, suite 424/424; **not tried on a really running command**: the answer shape `{backgrounded}` on a live tool is unconfirmed.
+
+## 2026-11-24 (Q-8: open the project CLAUDE.md)
+- `/claudemd` in the `/` menu and the command `claude-local.openClaudeMd` open `<cwd>/CLAUDE.md`; when it is missing a message offers to create it (a short English template) and opens it. No file or folder open: a notice. No token count (user decision). Logic in `src/panels/claude-md.js`. Verified: 3 unit tests, suite 423/423; the real message box and editor not tried.
+
+## 2026-11-24 (Q-6: live status-bar item)
+- The `✻ Claude` status-bar item now shows the state of the open conversations: `Claude · m:ss` while working (oldest running turn, count if several), `ממתין לאישור` while a permission waits, `הסתיים` for 8 s after the last turn ends or while a finished turn is unread. Pure logic in `src/panels/status-summary.js`; `registry.conversations()` added; the item repaints on registry changes plus a 1 s tick only while working. Verified: 7 new unit tests, suite 420/420; not seen in real VS Code.
+
+## 2026-11-24 (Q-5: focus view toggle)
+- `/focus` in the `/` menu and the command `claude-local.focusView` (shortcut Ctrl+Alt+F, only when the Claude chat has focus, so it cannot clash elsewhere) toggle the focus view for the open conversation; not stored (the `focusView` setting is the start state). Focus view now keeps visible the task list (`TodoWrite`, class `tl-todo`) and a tool that is still running; permission cards and questions were already outside the hidden rows. Verified: unit tests, suite 413/413; not seen in real VS Code.
+
+## 2026-11-24 (Q-7: own font sizes)
+- New settings `claudeLocal.chatFontSize` and `claudeLocal.codeFontSize` (8-32 px, `0` = follow VS Code): applied as CSS variables `--cl-user-font` / `--cl-user-code` on the body (`webview/chat/display.js`, fallbacks in `chat.css`). Covers chat text and code/tool-output blocks; fixed-px UI chrome is unchanged. Verified: unit tests, suite 412/412; not seen in real VS Code.
+
+## 2026-11-24 (Q-1: initial permission mode)
+- New setting `claudeLocal.defaultPermissionMode` (default/acceptEdits/plan/bypassPermissions): the mode a new conversation starts in, passed to the CLI as `--permission-mode`. `bypassPermissions` needs `allowDangerouslySkipPermissions`, else `default`; junk falls back to `default`. `initialPermissionMode()` in `src/cli/args.js`. Verified: unit test, suite 411/411; not tried in real VS Code or the real CLI.
+
 ## 2026-11-24 (docs: GUI-only rule)
 - One-by-one review of the remaining proposals recorded in `PLAN.md` section 11 and `DECISIONS.md`: build P-3, Q-1, Q-5, Q-6, Q-7, Q-8 (open only), Q-9, R-2; R-4, M-4, X-3 after a CLI check; M-6, X-4, Q-4 wait for an upgrade; 4.1g check only; P-1, 4.1b rejected; built features stay.
 - User rule: the extension is only a GUI for the CLI; items that do not come from the CLI are rejected. Removed from `PRODUCT_PROPOSAL.md`: P-1, P-2/R-3, P-4, P-5, Q-2, Q-3, Q-10, X-1, X-5, X-6. Marked ❌ in `FUTURE_FEATURES.md`: 1.2 repository map, 1.3 rename, 2.1, 3.3 resources, 4.1f, 4.2a, 4.2b, 4.2d, 4.3b, 4.3d, 4.3g. The M-1 hook upgrade is dropped. Recorded in `PLAN.md` section 11, `DECISIONS.md`, `AGENT_CONTEXT.md` constraints.

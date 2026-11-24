@@ -129,11 +129,13 @@
       CL.restore.restore(m, { reset: resetView, dispatch, setTitle, setBusy });
     },
     conversations: (m) => CL.drawer.setList(m),
+    sessionSearch: (m) => CL.drawer.setSearchResult(m),
     conversationStates: (m) => CL.drawer.setStates(m),
     title: (m) => setTitle(m.text),
     notice: (m) => showNotice(m.text),
     mentionResults: (m) => CL.mentions.setResults(m.items, m.seq),
     insertText: (m) => CL.composer.insertText(m.text),
+    toggleFocus: () => CL.display.toggleFocus(),
     planReady() {
       CL.thread.addNode(CL.el('button', { class: 'info-card-btn plan-open', type: 'button', text: 'פתיחת התוכנית בעורך', onclick: () => post({ type: 'planCommand', open: true }) }));
     },

@@ -22,6 +22,12 @@ function sanitizeLines(value) {
   return Number.isInteger(value) && value >= 0 && value <= 200 ? value : 8;
 }
 
+// Font size in px: a number 8-32 (rounded to .5), else 0 = follow VS Code.
+function sanitizeFontSize(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 8 || value > 32) return 0;
+  return Math.round(value * 2) / 2;
+}
+
 // `get(name)` returns the raw configuration value (undefined when unset).
 function readDisplay(get) {
   return {
@@ -32,7 +38,9 @@ function readDisplay(get) {
     prefersReducedMotion: get('prefersReducedMotion') === true,
     colorMode: COLOR_MODES.includes(get('colorMode')) ? get('colorMode') : 'default',
     collapseUserMessageLines: sanitizeLines(get('collapseUserMessageLines')),
+    chatFontSize: sanitizeFontSize(get('chatFontSize')),
+    codeFontSize: sanitizeFontSize(get('codeFontSize')),
   };
 }
 
-module.exports = { readDisplay, sanitizeVerbs, sanitizeLines, COLOR_MODES };
+module.exports = { readDisplay, sanitizeVerbs, sanitizeFontSize, sanitizeLines, COLOR_MODES };

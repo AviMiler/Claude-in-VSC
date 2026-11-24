@@ -101,4 +101,40 @@ function sessionTitle(cwd, id, env = process.env) {
   return titleOf(file, fs.statSync(file).size) || '';
 }
 
-module.exports = { listSessions, readSession, sessionTitle };
+// The text a transcript line shows in the chat: the user's prompt or the assistant's text blocks.
+function entryText(e) {
+  if (!e || e.isMeta || e.isSidechain) return '';
+  if (e.type === 'user') return userTextFromEntry(e.message && e.message.content) || '';
+  if (e.type !== 'assistant') return '';
+  const content = e.message && e.message.content;
+  if (typeof content === 'string') return content;
+  return Array.isArray(content) ? content.filter((b) => b && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join(' ') : '';
+}
+
+// Ids of the past sessions whose conversation text contains `query` (case-insensitive), newest first.
+// Reads the CLI's own transcript files (read-only); skips files over maxBytes and stops after maxFiles.
+async function searchSessions(cwd, query, env = process.env, { maxFiles = 300, maxBytes = 20 * 1024 * 1024 } = {}) {
+  const q = String(query || '').trim().toLowerCase();
+  if (q.length < 2) return [];
+  const dir = projectDir(cwd, env);
+  const hits = [];
+  let names;
+  try { names = await fs.promises.readdir(dir); } catch { return []; }
+  const files = [];
+  for (const name of names) {
+    const id = name.endsWith('.jsonl') ? name.slice(0, -'.jsonl'.length) : '';
+    if (!ID_RE.test(id)) continue;
+    try { const st = await fs.promises.stat(path.join(dir, name)); if (st.size <= maxBytes) files.push({ id, mtime: st.mtimeMs }); } catch { /* skip */ }
+  }
+  files.sort((a, b) => b.mtime - a.mtime);
+  for (const { id } of files.slice(0, maxFiles)) {
+    try {
+      const raw = await fs.promises.readFile(path.join(dir, `${id}.jsonl`), 'utf8');
+      if (!raw.toLowerCase().includes(q)) continue; // cheap pre-check before parsing
+      if (parseLines(raw).some((e) => entryText(e).toLowerCase().includes(q))) hits.push(id);
+    } catch { /* unreadable: skip */ }
+  }
+  return hits;
+}
+
+module.exports = { searchSessions, entryText, listSessions, readSession, sessionTitle };

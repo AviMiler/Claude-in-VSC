@@ -24,4 +24,12 @@ function buildArgs({ permissionMode = 'default', resume, model, allowBypass = fa
   return args;
 }
 
-module.exports = { buildArgs, PERMISSION_MODES };
+// The mode a new conversation starts in (claudeLocal.defaultPermissionMode). Unknown values fall back to
+// 'default'; bypassPermissions needs the allowDangerouslySkipPermissions setting, else it is 'default'.
+function initialPermissionMode(value, allowBypass = false) {
+  if (!PERMISSION_MODES.includes(value)) return 'default';
+  if (value === 'bypassPermissions' && !allowBypass) return 'default';
+  return value;
+}
+
+module.exports = { buildArgs, PERMISSION_MODES, initialPermissionMode };

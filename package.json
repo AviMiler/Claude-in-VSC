@@ -36,6 +36,18 @@
           "default": false,
           "markdownDescription": "מציג את המצב **ללא הרשאות** (`bypassPermissions`) בבורר המצבים. Claude יפעל בלי לבקש אישור."
         },
+        "claudeLocal.defaultPermissionMode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits", "plan", "bypassPermissions"],
+          "default": "default",
+          "enumDescriptions": [
+            "רגיל: מבקש אישור",
+            "קבלת עריכות אוטומטית",
+            "תכנון בלבד",
+            "ללא הרשאות (דורש את allowDangerouslySkipPermissions)"
+          ],
+          "markdownDescription": "מצב ההרשאות שבו שיחה **חדשה** מתחילה (נשלח ל-CLI כ-`--permission-mode`). `bypassPermissions` חל רק כש-`allowDangerouslySkipPermissions` פעיל, אחרת השיחה מתחילה במצב רגיל. שיחה שכבר רצה לא משתנה."
+        },
         "claudeLocal.useCtrlEnterToSend": {
           "type": "boolean",
           "default": false,
@@ -136,6 +148,20 @@
           "default": false,
           "markdownDescription": "מכבה אנימציות בצ'אט (גם כשמערכת ההפעלה מבקשת תנועה מופחתת)."
         },
+        "claudeLocal.chatFontSize": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 32,
+          "markdownDescription": "גודל הגופן של הצ'אט בפיקסלים (8–32). `0` = לפי VS Code."
+        },
+        "claudeLocal.codeFontSize": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 32,
+          "markdownDescription": "גודל הגופן של בלוקי קוד ושל פלט כלים בפיקסלים (8–32). `0` = לפי VS Code."
+        },
         "claudeLocal.colorMode": {
           "type": "string",
           "enum": [
@@ -227,6 +253,16 @@
         "category": "Claude Code Local"
       },
       {
+        "command": "claude-local.focusView",
+        "title": "תצוגת מיקוד (הצגה/הסתרה)",
+        "category": "Claude Code Local"
+      },
+      {
+        "command": "claude-local.openClaudeMd",
+        "title": "פתיחת CLAUDE.md של הפרויקט",
+        "category": "Claude Code Local"
+      },
+      {
         "command": "claude-local.keyboardShortcuts",
         "title": "קיצורי מקלדת",
         "category": "Claude Code Local"
@@ -304,6 +340,12 @@
         "command": "claude-local.focusToggle",
         "key": "ctrl+alt+e",
         "mac": "cmd+alt+e"
+      },
+      {
+        "command": "claude-local.focusView",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
+        "when": "activeWebviewPanelId == 'claudeLocalPanel' || focusedView =~ /^claudeLocalSidebar/"
       },
       {
         "command": "claude-local.insertAtMention",

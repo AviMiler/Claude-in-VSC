@@ -15,6 +15,10 @@
     set('data-focus', display.focusView);
     set('data-timestamps', display.showMessageTimestamps);
     set('data-reduced-motion', display.prefersReducedMotion);
+    // Own font sizes (0 = follow VS Code): the variables fall back to the VS Code values in chat.css.
+    const size = (name, px) => (px > 0 ? document.body.style.setProperty(name, `${px}px`) : document.body.style.removeProperty(name));
+    size('--cl-user-font', display.chatFontSize);
+    size('--cl-user-code', display.codeFontSize);
     document.body.dataset.colorMode = display.colorMode === 'daltonized' ? 'daltonized' : 'default';
   }
 
@@ -45,8 +49,17 @@
     }
   }, true);
 
+  // Focus view on/off for this conversation (the /focus command and the Ctrl+Alt+F command). Not stored:
+  // the claudeLocal.focusView setting sets the start state, and a settings change applies it again.
+  function toggleFocus() {
+    const on = !document.body.hasAttribute('data-focus');
+    document.body.toggleAttribute('data-focus', on);
+    return on;
+  }
+
   CL.display = {
     apply,
+    toggleFocus,
     verb: (defaults) => logic.pickVerb(defaults, settings.spinnerVerbs),
     scrollOnSend: () => settings.scrollToBottomOnSend !== false,
     collapseLines: () => (Number.isInteger(settings.collapseUserMessageLines) ? settings.collapseUserMessageLines : 8),
