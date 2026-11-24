@@ -22,6 +22,7 @@ function read() {
     respectGitIgnore: c.get('respectGitIgnore') !== false,
     attachSelection: c.get('attachSelection') !== false,
     attachOpenFile: c.get('attachOpenFile') !== false,
+    navGuidance: c.get('navGuidance') !== false,
     autosave: c.get('autosave') !== false,
     display: readDisplay((name) => c.get(name)),
     gatewayUrl: String(c.get('gatewayUrl') || ''),

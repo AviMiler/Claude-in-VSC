@@ -52,8 +52,13 @@ class CliProcess extends EventEmitter {
     startNavServer({ tools: navTools, log: (t) => log(t, 'nav') }).then(
       (srv) => {
         if (this.exited) { srv.close(); return; }
-        this.nav = srv;
-        spawnWith(['--mcp-config', buildMcpConfig(srv), '--allowedTools', NAV_ALLOWED_TOOL]);
+        this.nav = srv; // set before the child spawns: lazy request payloads read it when flushed
+        try {
+          spawnWith(['--mcp-config', buildMcpConfig(srv), '--allowedTools', NAV_ALLOWED_TOOL]);
+        } catch (err) {
+          log(`spawn with nav failed: ${err && err.message}`, 'nav', 'warn');
+          this.finish({ code: null, error: err }); // rejects pending requests instead of hanging
+        }
       },
       (err) => {
         log(`nav server failed to start: ${err && err.message}`, 'nav', 'warn');
@@ -73,7 +78,18 @@ class CliProcess extends EventEmitter {
       this.emit('stderr', d);
     });
     this.readLines(this.child.stdout, (line) => this.onLine(line));
-    for (const line of this.queue.splice(0)) this.child.stdin.write(line + '\n');
+    for (const item of this.queue.splice(0)) this.write(item);
+  }
+
+  // item: a ready JSON line, or a function returning the message object (evaluated now, when written).
+  write(item) {
+    let line = item;
+    if (typeof item === 'function') {
+      const obj = item();
+      line = JSON.stringify(obj);
+      this.log(`>> ${describe(obj, line.length)}`);
+    }
+    this.child.stdin.write(line + '\n');
   }
 
   readLines(stream, onLine) {
@@ -139,6 +155,7 @@ class CliProcess extends EventEmitter {
     return this.send({ type: 'user', message: { role: 'user', content } });
   }
 
+  // payload: an object, or a function returning one, evaluated when the line is actually written.
   request(subtype, payload = {}, timeoutMs = 60000) {
     const requestId = `ext-${this.nextId++}`;
     return new Promise((resolve, reject) => {
@@ -149,7 +166,13 @@ class CliProcess extends EventEmitter {
       }, timeoutMs);
       this.pending.set(requestId, { resolve, reject, timer });
       this.log(`request ${requestId} ${subtype}`, 'control', 'info');
-      this.send({ type: 'control_request', request_id: requestId, request: { subtype, ...payload } });
+      const build = () => ({ type: 'control_request', request_id: requestId, request: { subtype, ...(typeof payload === 'function' ? payload() : payload) } });
+      if (typeof payload === 'function') {
+        if (!this.child) this.queue.push(build);
+        else this.write(build);
+      } else {
+        this.send(build());
+      }
     });
   }
 

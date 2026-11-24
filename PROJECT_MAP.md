@@ -61,6 +61,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `nav-server.js` — code-navigation MCP server: HTTP on 127.0.0.1, Bearer token, hand-written JSON-RPC.
 - `nav-config.js` — inline `--mcp-config` JSON and allowed-tool name for `claude-local-nav`.
 - `nav-tools.js` — the nine tools (`documentSymbols`, `readSymbol`, `findReferences`, `goToDefinition`, `findImporters`, `workspaceSymbols`, `hover`, `callHierarchy`, and since 2026-11-23 `getDiagnostics` with the pure `shapeDiagnostics(diags, minSeverity)`): position finding, language-server wait, file loading, verification of missed uses, caps, workspace path limit; no `vscode` import.
+- `nav-guidance.js` — M-3: `NAV_GUIDANCE` (the English lines for the model) and `initializePayload(navStarted, enabled)` → `{appendSystemPrompt}` or `{}`; used lazily by the `initialize` request in `conversation.js` (`CliProcess.request()` takes a function payload).
 - `nav-vscode.js` — the only file that requires `vscode`; supplies the dependencies to `createNavTools` (providers, `getDiagnostics(uri)` from `vscode.languages.getDiagnostics`, bounded workspace text search that marks a cut result).
 
 ## src/uri/ — URI handler
@@ -146,7 +147,7 @@ One line per file; hand-maintained (no `graphify-out/graph.json`): update when f
 - `nav-check/` — dev-only check of the navigation tools in real VS Code through the real nav server over HTTP: `runner.js` (37 checks with hand-written expected answers for the original eight tools; the runner now expects 9 tools since 2026-11-23, no diagnostics check added, not re-run), `package.json` + `ext.js` (empty extension that loads it), `fixture/` (JS/React project with a same-named decoy module, multi-line, CommonJS, `import()`, side-effect and re-export imports, a commented import, a C# file), `outside.js` (path-limit check). Writes `nav-check-report.txt` (not committed).
 
 ## test/
-- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only (now includes the `<ide_diagnostics>` block). Whole suite: 403 tests (2026-11-24, after merging R-1 and the context window work).
+- `model-english.test.js` — every extension-written model-bound text is English (context blocks, deny/reject, image-only placeholder); guards the builders only (now includes the `<ide_diagnostics>` block). Whole suite: 410 tests (2026-11-24, after M-3; earlier 403 after merging R-1 and the context window work). `nav-guidance.test.js` — M-3: payload cases, the named tools exist in `nav-tools.js`, and ordering (initialize written before the user line and `set_permission_mode` with nav on, nav off and the setting off).
 - `tagging.test.js` — package K: the single mention function, dedupe, recent list, once-per-change (7 tests). `work-file.test.js` was deleted.
 - `nav-results.test.js` (navigation card parse/title/render), `change-stats.test.js` (changes card counts), `trigger-token.test.js` (mid-sentence `/` and `@` tokens) — 2026-11-09.
 - `blocks.test.js` — block diff, partial apply, Edit/Write review texts, the permission decision.

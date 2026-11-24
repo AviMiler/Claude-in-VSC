@@ -2,6 +2,11 @@
 
 Newest first. Each entry: what changed + why. Dates are commit dates. "Verified" lines record the test state at the time; what is still not verified is consolidated in `spec.md` "Verification status".
 
+## 2026-11-24 (M-3: guidance toward the navigation tools)
+- Two-three English lines go to the model through `appendSystemPrompt` in the `initialize` control request, only when the nav server started and the new setting `claudeLocal.navGuidance` (default on, applies from a new conversation) is on. Why: a weak local model picks `Grep`/`Read` from habit, so the nine nav tools were rarely used (`PRODUCT_PROPOSAL.md` M-3). New `src/mcp/nav-guidance.js` (`NAV_GUIDANCE`, `initializePayload`), `src/cli/process.js` (`request()` accepts a function payload evaluated when written; `write(item)`; `this.nav` set before spawn; spawn failure with nav finishes the process so `initialize` never hangs), `src/panels/conversation.js`, `src/util/settings.js`, `package.json`, `test/nav-guidance.test.js`.
+- Deviation from the plan: the first build deferred `initialize` behind a `navReady` promise; verify-agent found a user message could reach the CLI before `initialize`, so it was replaced by the lazy payload and `initialize` is strictly first. Suite 410/410, verify-agent GO after one NO-GO round; unit-tested only, not run in real VS Code or the real CLI.
+- Not measured yet: count `mcp__claude-local-nav__*` calls against `Grep`/`Read` in the log with the setting on versus off. Known limit: the text is fixed per conversation (an MCP-panel toggle of `claude-local-nav` mid-conversation does not change it). Decision: `DECISIONS.md` 2026-11-24.
+
 ## 2026-11-24 (R-1: per-block approval buttons; context window per model, L-1, telemetry off)
 Two features merged into `develop` (R-1 `9cef7be`, window/L-1 `07b6871`). Whole suite after the merge: 403/403 (R-1 alone 374; window work 316 -> 345).
 

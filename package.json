@@ -81,6 +81,11 @@
           "default": true,
           "markdownDescription": "השלמת `@` לקבצים ותיקיות מדלגת על מה ש-`.gitignore` מתעלם ממנו (דורש `git` בנתיב)."
         },
+        "claudeLocal.navGuidance": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "הוספת כמה שורות קבועות להנחיית המערכת שמכוונות את המודל לכלי הניווט (`documentSymbols`, `readSymbol`, `findReferences` ועוד). חל משיחה חדשה."
+        },
         "claudeLocal.attachSelection": {
           "type": "boolean",
           "default": true,

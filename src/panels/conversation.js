@@ -5,6 +5,7 @@
 const vscode = require('vscode');
 const { CliProcess } = require('../cli/process');
 const { mergeEnv } = require('../cli/env');
+const { initializePayload } = require('../mcp/nav-guidance');
 const { workspaceCwd } = require('../util/workspace');
 const { buildArgs } = require('../cli/args');
 const { createStreamTranslator } = require('./event-translator');
@@ -292,7 +293,10 @@ class Conversation {
     proc.on('stderr', (d) => this.logLine(`stderr: ${d}`, 'spawn', 'warn'));
     proc.on('exit', (info) => this.onExit(proc, info, claudePath));
 
-    proc.request('initialize', {}, 60000).then(
+    // Requested right away (first in the queue); the payload is built lazily when the line is written,
+    // by which time proc.nav says whether the nav server really started.
+    const guidance = this.services.settings.get().navGuidance;
+    proc.request('initialize', () => initializePayload(!!proc.nav, guidance), 60000).then(
       (info) => {
         if (proc !== this.proc) return;
         this.initInfo = info;
