@@ -23,7 +23,7 @@ const { buildErrorCard } = require('./error-card');
 const { launchSettings } = require('../models/launch');
 const { isNoVisionError } = require('../models/filter');
 const { ModelSwitcher } = require('./model-switch');
-const { refreshContextMeter } = require('./context-meter');
+const { refreshContextMeter, needsWindowRead, readWindow, launchWindowFor, announceWindow } = require('./context-meter');
 const editLog = require('../diff/edit-log');
 const { runDiffCommand, showFileDiff } = require('../diff/diff-command');
 const { changesCardMessage } = require('../diff/changes-card');
@@ -79,6 +79,10 @@ class Conversation {
     this.sessionId = null;
     this.permissionMode = 'default';
     this.model = 'default';
+    this.launch = null; // the context window the running CLI was started with: { window, source, real }
+    this.lastReportedModel = ''; // the model name the CLI last reported (names the default model for /api/ps)
+    this.windowNoticed = new Set(); // "window differs" notices already shown for this process
+    this.whenStarted = Promise.resolve(); // settles when the first start (after the /api/ps read) has run
     this.busy = false;
     this.hasMessages = false;
     this.pending = new Map();
@@ -191,7 +195,11 @@ class Conversation {
 
   // --- lifecycle -------------------------------------------------------------------------
 
-  // The first time the conversation is shown: start the CLI (or resume a past session).
+  // The first time the conversation is shown: start the CLI (or resume a past session). A resume loads
+  // at once, with the cached or fallback window (history is not delayed, and a send during a wait
+  // would otherwise start a new session that the resume then kills). A plain start, with the Ollama
+  // read on, waits (at most the read's 2 s timeout) for the model's real window so the CLI is started
+  // with it; a send before that starts the process itself with the cached window.
   onReady() {
     this.started = true;
     this.post(this.initMessage());
@@ -200,8 +208,13 @@ class Conversation {
       const id = this.pendingResume;
       this.pendingResume = null;
       this.loadSession(id);
-    } else if (!this.proc) {
-      this.startProcess();
+    } else {
+      const begin = () => {
+        if (!this.disposed && !this.proc) this.startProcess();
+      };
+      if (needsWindowRead(this.services.settings.get())) {
+        this.whenStarted = readWindow(this).then(begin).catch((err) => this.services.logger.warn('spawn', `start failed: ${err.message}`));
+      } else begin();
     }
     this.webviewReady = true;
     this.flushPrefill();
@@ -209,7 +222,10 @@ class Conversation {
 
   startProcess({ resume, fork = false } = {}) {
     const { claudePath, allowDangerouslySkipPermissions, environmentVariables } = this.services.settings.get();
-    const settings = launchSettings({ model: this.model, environmentVariables });
+    // Synchronous: the window comes from the user's setting or the cache the /api/ps reads fill.
+    this.launch = launchWindowFor(this);
+    this.windowNoticed = new Set();
+    const settings = launchSettings({ model: this.model, window: this.launch.window });
     const args = buildArgs({
       permissionMode: this.permissionMode,
       resume,
@@ -219,7 +235,7 @@ class Conversation {
     }).concat(checkpoints.checkpointArgs({ fork: fork && Boolean(resume) }));
     this.services.logger.info('spawn', `start ${claudePath} ${args.join(' ')} (cwd ${this.cwd}, resume=${Boolean(resume)}, fork=${fork})`);
     // Its own line: the start line can pass the log's 500-character cut.
-    if (settings) this.services.logger.info('spawn', `--settings env ${JSON.stringify(settings.env)}`);
+    this.services.logger.info('spawn', `--settings env ${JSON.stringify(settings.env)}`);
     const proc = new CliProcess({
       claudePath,
       args,
@@ -229,6 +245,7 @@ class Conversation {
     });
     const translate = createStreamTranslator();
     this.proc = proc;
+    announceWindow(this, this.launch.real); // N1: the user's window differs from the model's known real one
     // Background tasks live in the CLI process; a new process starts with none.
     const hadTasks = this.tasks && this.tasks.tasks.size > 0;
     this.tasks = taskMap.createTaskMap();
@@ -503,12 +520,13 @@ class Conversation {
   }
 
   // A model switch restarts the CLI (model-switch.js).
+  // Returns the switch's promise (settles after the restart; see model-switch.js).
   setModel(value) {
-    this.models.switchTo(value);
+    return this.models.switchTo(value);
   }
 
   stopAndSwitchModel(value) {
-    this.models.stopAndSwitch(value);
+    return this.models.stopAndSwitch(value);
   }
 
   onControlRequest(proc, id, req) {
@@ -664,7 +682,7 @@ class Conversation {
       claudePath,
       env: mergeEnv(process.env, environmentVariables),
       model: this.model !== 'default' ? this.model : undefined,
-      settings: launchSettings({ model: this.model, environmentVariables }),
+      settings: launchSettings({ model: this.model, window: launchWindowFor(this).window }),
     };
   }
 

@@ -3,6 +3,7 @@ const vscode = require('vscode');
 
 const { sanitizeEnvironmentVariables } = require('../cli/env');
 const { readDisplay } = require('../panels/display-settings');
+const { explicitWindowFromInspect } = require('../models/launch');
 
 const SECTION = 'claudeLocal';
 
@@ -13,6 +14,8 @@ function read() {
     allowDangerouslySkipPermissions: c.get('allowDangerouslySkipPermissions') === true,
     useCtrlEnterToSend: c.get('useCtrlEnterToSend') === true,
     environmentVariables: sanitizeEnvironmentVariables(c.get('environmentVariables')),
+    // The user's own CLAUDE_CODE_MAX_CONTEXT_TOKENS (not the package.json default), or null.
+    explicitWindow: explicitWindowFromInspect(typeof c.inspect === 'function' ? c.inspect('environmentVariables') : null),
     preferredLocation: c.get('preferredLocation') === 'sidebar' ? 'sidebar' : 'panel',
     lockEditorGroups: c.get('lockEditorGroups') === true,
     useTerminal: c.get('useTerminal') === true,

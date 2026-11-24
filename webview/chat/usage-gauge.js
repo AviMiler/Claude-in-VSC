@@ -2,7 +2,9 @@
 // window, orange from 70%, red from 85%. Hover or focus previews the card, a click (Enter/Space)
 // keeps it open; Escape or a click outside closes it. Display only (F-10: no /compact on click).
 // The card is a context breakdown of the current session in the style of the Claude app's
-// "Context" panel; numbers and rows come from CL.usageLogic.
+// "Context" panel; numbers and rows come from CL.usageLogic. Next to the ring a small text shows
+// whether the model is loaded in Ollama (L-1: "טעון עד 10:05" / "לא טעון"), and the same line is
+// in the card's footer; it is hidden when the host sent no load state.
 (function () {
   const { el, onOutsideClick } = CL;
   const L = CL.usageLogic;
@@ -25,6 +27,22 @@
   }, ring, pctText);
   btn.hidden = true;
   modeBtn.before(btn);
+
+  // The load state text. Styled through CSSOM only (the CSP has no 'unsafe-inline' for style attributes,
+  // and the CSS files are not part of this change); theme variables only. Hidden at the narrow width
+  // where the gauge's percentage hides (composer.css, max-width 340px).
+  const loadEl = el('span', { class: 'gauge-load', 'aria-live': 'off' });
+  Object.assign(loadEl.style, {
+    fontSize: '11px', whiteSpace: 'nowrap', userSelect: 'none', cursor: 'default', padding: '0 4px',
+    color: 'var(--cl-muted, var(--vscode-descriptionForeground))',
+  });
+  loadEl.hidden = true;
+  btn.after(loadEl);
+  const narrow = window.matchMedia('(max-width: 340px)');
+  let loadText = '';
+  const showLoad = () => { loadEl.hidden = !loadText || narrow.matches; };
+  if (narrow.addEventListener) narrow.addEventListener('change', showLoad);
+  let loadTimer = null;
 
   const card = el('div', { class: 'popover usage-card', id: 'usage-card', role: 'dialog', 'aria-label': 'פירוט ההקשר', tabindex: '-1' });
   card.hidden = true;
@@ -65,6 +83,7 @@
         el('span', { class: 'usage-share' })));
     }
     const facts = L.factsLine(last.memoryFiles, last.mcpServers);
+    const loadLine = L.loadTitle(last.ollama, Date.now());
     // replaceChildren(null) would insert the text "null", so empty parts are filtered out first.
     card.replaceChildren(...[
       el('div', { class: 'usage-head' },
@@ -78,6 +97,7 @@
       el('div', { class: 'usage-foot' },
         facts ? el('div', { text: facts }) : null,
         el('div', { text: L.sourceText(last.source) }),
+        loadLine ? el('div', { text: loadLine }) : null,
         el('div', {}, 'לכיווץ השיחה: ', el('bdi', { class: 'num', dir: 'ltr', text: '/compact' }))),
     ].filter(Boolean));
   }
@@ -138,17 +158,39 @@
   btn.addEventListener('keydown', onEsc);
   card.addEventListener('keydown', onEsc);
 
+  // Paints the load state now and schedules the repaint for the moment the unload time passes.
+  function renderLoad() {
+    clearTimeout(loadTimer);
+    loadTimer = null;
+    const now = Date.now();
+    const load = last && last.ollama;
+    loadText = L.loadText(load, now);
+    loadEl.textContent = loadText;
+    loadEl.title = L.loadTitle(load, now);
+    showLoad();
+    const wait = L.loadChangeIn(load, now);
+    // setTimeout takes at most 2^31-1 ms; a longer wait is re-checked when the next message arrives.
+    if (wait !== null && wait < 2147483647) {
+      loadTimer = setTimeout(() => {
+        renderLoad();
+        if (!card.hidden) render();
+      }, wait + 50);
+    }
+  }
+
   CL.contextMeter = {
-    // m: the host's { used, max, source, categories, memoryFiles, mcpServers }; null clears the
+    // m: the host's { used, max, source, categories, memoryFiles, mcpServers, ollama }; null clears the
     // gauge (new conversation).
     set(m) {
       const ok = Boolean(m) && Number.isFinite(m.used) && Number.isFinite(m.max) && m.max > 0;
       btn.hidden = !ok;
       if (!ok) {
         last = null;
+        renderLoad();
         return close();
       }
       last = m;
+      renderLoad();
       const pct = L.percent(m.used, m.max);
       const lvl = L.level(pct);
       fill.style.strokeDasharray = `${pct} 100`;

@@ -44,4 +44,4 @@ async function fetchModels(baseUrl) {
   return { ids, info };
 }
 
-module.exports = { resolveGatewayUrl, fetchModels };
+module.exports = { resolveGatewayUrl, fetchModels, readCliSettingsEnv };

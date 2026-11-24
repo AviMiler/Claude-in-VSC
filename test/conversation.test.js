@@ -13,23 +13,27 @@ Module._resolveFilename = function (request, ...rest) {
 require.cache['vscode-stub'] = { id: 'vscode-stub', filename: 'vscode-stub', loaded: true, exports: vscodeStub };
 const { Conversation } = require('../src/panels/conversation');
 const diagnostics = require('../src/tagging/diagnostics');
+const { clearWindowCache } = require('../src/models/ollama');
 
 const FAKE_CMD = path.join(__dirname, '..', 'dev', 'fake-claude.cmd');
 const FAKE_JS = path.join(__dirname, '..', 'dev', 'fake-claude.js');
 
 // Port 1 refuses at once, so the model list falls back without real network.
 // ollamaUrl 'off' keeps the usage gauge from reading a real Ollama on this machine.
-function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off' } = {}) {
+// explicitWindow: the user's own CLAUDE_CODE_MAX_CONTEXT_TOKENS (settings.get().explicitWindow), or null.
+function setup({ allowBypass = false, gatewayUrl = 'http://127.0.0.1:1', environmentVariables, ollamaUrl = 'off', explicitWindow = null, pendingResume = null } = {}) {
+  clearWindowCache(); // the real windows seen are kept in memory across conversations
   const posted = [];
   const webview = { onDidReceiveMessage: () => ({ dispose() {} }), postMessage: (m) => posted.push(m) };
   // On Windows the .cmd wrapper is the realistic path; elsewhere run the script directly.
   const claudePath = process.platform === 'win32' ? FAKE_CMD : FAKE_JS;
   const services = {
     logger: { info() {}, warn() {}, debug() {} },
-    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables }), onDidChange: () => ({ dispose() {} }) },
+    settings: { get: () => ({ claudePath, allowDangerouslySkipPermissions: allowBypass, gatewayUrl, ollamaUrl, modelDenylist: ['gemma3:27b'], environmentVariables, explicitWindow }), onDidChange: () => ({ dispose() {} }) },
     registry: { findBySession: () => null },
   };
   const c = new Conversation({ webview, services });
+  if (pendingResume) c.pendingResume = pendingResume;
   c.onReady();
   return { c, posted };
 }
@@ -258,51 +262,395 @@ test('switching model restarts the CLI with --model, every alias through --setti
   }
 });
 
-// F-9: on the default model the CLI resolves "<model>[1m]" and assumes 1,000,000 unless 1M is off.
-test('the default model uses the configured window, not 1M', async () => {
-  const { c, posted } = setup({ environmentVariables: { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000' } });
+// A fake Ollama. state.windows: model name -> context_length (may change between requests);
+// state.expires_at: the unload time given for every entry; state.delay: ms before each answer.
+function fakeOllama(state) {
+  state.requests = [];
+  const server = http.createServer((req, res) => {
+    state.requests.push(`${req.method} ${req.url}`);
+    setTimeout(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ models: Object.entries(state.windows).map(([name, n]) => ({ name, model: name, context_length: n, ...(state.expires_at ? { expires_at: state.expires_at } : {}) })) }));
+    }, state.delay || 0);
+  });
+  return new Promise((r) => server.listen(0, '127.0.0.1', () => r({ server, url: `http://127.0.0.1:${server.address().port}` })));
+}
+
+// The window the running fake CLI itself reports (it reads CLAUDE_CODE_MAX_CONTEXT_TOKENS from --settings).
+async function cliMax(c) {
+  return (await c.proc.request('get_context_usage', {}, 5000)).maxTokens;
+}
+
+const contexts = (posted) => posted.filter((m) => m.type === 'context');
+const notices = (posted, re) => posted.filter((m) => m.type === 'notice' && re.test(m.text));
+const NAMED = { ANTHROPIC_MODEL: 'fake-model' }; // names the default model for the /api/ps lookup
+
+// The window the CLI starts with (F-9: never 1M, the model's real window): with no Ollama read and no
+// user value it is 64,000 and the gauge says it is the fallback.
+test('without an Ollama read or a user value the CLI starts with 64,000 and the gauge shows the fallback', async () => {
+  const { c, posted } = setup();
   try {
     const init = await initOf(c.proc);
     assert.strictEqual(init.model, 'fake-model');
-    await until(() => posted.some((m) => m.type === 'context'));
-    assert.strictEqual(posted.find((m) => m.type === 'context').max, 64000);
+    assert.strictEqual(await cliMax(c), 64000);
+    await until(() => contexts(posted).length > 0);
+    const ctx = contexts(posted)[0];
+    assert.strictEqual(ctx.max, 64000);
+    assert.strictEqual(ctx.source, 'fallback');
+    assert.strictEqual(ctx.ollama, null, 'no load state without the read');
   } finally {
     c.dispose();
   }
 });
 
-// Usage gauge: the real window from Ollama's /api/ps caps the CLI value; unreachable falls back.
-test('the usage gauge takes the window from Ollama /api/ps, else the configured one', async () => {
-  const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ models: [{ name: 'fake-model', model: 'fake-model', context_length: 32000 }] }));
-  });
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const env = { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '64000' };
-  const live = setup({ environmentVariables: env, ollamaUrl: `http://127.0.0.1:${server.address().port}` });
-  const down = setup({ environmentVariables: env, ollamaUrl: 'http://127.0.0.1:1' });
+test('a user window starts the CLI with it and the gauge shows it while Ollama is not read', async () => {
+  const { c, posted } = setup({ explicitWindow: 48000 });
   try {
-    await until(() => live.posted.some((m) => m.type === 'context') && down.posted.some((m) => m.type === 'context'));
-    const a = live.posted.find((m) => m.type === 'context');
+    await initOf(c.proc);
+    assert.strictEqual(await cliMax(c), 48000);
+    await until(() => contexts(posted).length > 0);
+    assert.strictEqual(contexts(posted)[0].max, 48000);
+    assert.strictEqual(contexts(posted)[0].source, 'explicit');
+    assert.strictEqual(c.btwRunOptions().settings.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS, '48000', '/btw starts with the same window');
+  } finally {
+    c.dispose();
+  }
+});
+
+test('the start waits for /api/ps: the CLI gets the real window and the gauge shows it', async () => {
+  const state = { windows: { 'fake-model': 32000 } };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    assert.strictEqual(c.proc, null, 'not started before the window is known');
+    await c.whenStarted;
+    assert.ok(c.proc);
+    assert.deepStrictEqual(state.requests.slice(0, 1), ['GET /api/ps']);
+    assert.strictEqual(await cliMax(c), 32000);
+    assert.strictEqual(c.btwRunOptions().settings.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS, '32000');
+    await until(() => contexts(posted).length > 0);
+    const a = contexts(posted)[0];
     assert.strictEqual(a.max, 32000);
     assert.strictEqual(a.source, 'ollama');
     assert.ok(Array.isArray(a.categories));
-    const b = down.posted.find((m) => m.type === 'context');
-    assert.strictEqual(b.max, 64000);
-    assert.strictEqual(b.source, 'settings');
+    assert.strictEqual(notices(posted, /החלון האמיתי|הגדרתם חלון/).length, 0, 'the CLI got the real window: nothing to say');
   } finally {
-    live.c.dispose();
-    down.c.dispose();
+    c.dispose();
     server.close();
   }
 });
-test('without a configured window the default model keeps the CLI value', async () => {
-  const { c, posted } = setup();
+
+test('Ollama unreachable: the CLI starts at once with 64,000 and the gauge shows the fallback', async () => {
+  const { c, posted } = setup({ ollamaUrl: 'http://127.0.0.1:1', environmentVariables: NAMED });
   try {
-    await until(() => posted.some((m) => m.type === 'context'));
-    assert.strictEqual(posted.find((m) => m.type === 'context').max, 1000000);
+    await c.whenStarted;
+    assert.strictEqual(await cliMax(c), 64000);
+    await until(() => contexts(posted).length > 0);
+    assert.strictEqual(contexts(posted)[0].max, 64000);
+    assert.strictEqual(contexts(posted)[0].source, 'fallback');
+    assert.strictEqual(contexts(posted)[0].ollama, null, 'the load state is hidden');
   } finally {
     c.dispose();
+  }
+});
+
+test('a user window wins for the CLI while the gauge shows the real one, with one notice (N1)', async () => {
+  const state = { windows: { 'fake-model': 32000 } };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED, explicitWindow: 48000 });
+  try {
+    await c.whenStarted;
+    assert.strictEqual(await cliMax(c), 48000);
+    await until(() => contexts(posted).length > 0);
+    assert.strictEqual(contexts(posted)[0].max, 32000);
+    assert.strictEqual(contexts(posted)[0].source, 'ollama');
+    const n = notices(posted, /הגדרתם חלון/);
+    assert.strictEqual(n.length, 1, 'once per process, not again after the result');
+    assert.strictEqual(n[0].text, 'הגדרתם חלון של 48,000 אסימונים, אבל החלון האמיתי של המודל ב-Ollama הוא 32,000. נשאר הערך שהגדרתם.');
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+test('a window that changed in Ollama after the start is reported once after a result (N2) and applies at the next start', async () => {
+  const state = { windows: { 'fake-model': 32000 } };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => contexts(posted).length > 0);
+    assert.strictEqual(notices(posted, /החלון האמיתי/).length, 0);
+    state.windows['fake-model'] = 16000;
+    c.send('hello');
+    await until(() => contexts(posted).length > 1 && results(posted).length > 0);
+    const last = contexts(posted)[1];
+    assert.strictEqual(last.max, 16000);
+    const n = notices(posted, /החלון האמיתי/);
+    assert.strictEqual(n.length, 1);
+    assert.strictEqual(n[0].text, 'החלון האמיתי של המודל הוא 16,000 אסימונים (Claude Code הופעל עם 32,000). השינוי יחול מההפעלה הבאה.');
+    assert.strictEqual(await cliMax(c), 32000, 'the running process keeps what it started with');
+    c.send('again');
+    await until(() => contexts(posted).length > 2);
+    assert.strictEqual(notices(posted, /החלון האמיתי/).length, 1, 'the same text is not repeated for this process');
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+test('a model switch waits for the new model\'s window and restarts the CLI with it', async () => {
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 16000 } };
+  const { server, url } = await fakeOllama(state);
+  const { c } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => c.sessionId);
+    const oldProc = c.proc;
+    const session = c.sessionId;
+    const pending = c.setModel('gpt-oss:20b');
+    assert.strictEqual(c.proc, null, 'killed now, restarted once the window is read');
+    await pending;
+    assert.ok(c.proc && c.proc !== oldProc);
+    const init = await initOf(c.proc);
+    assert.strictEqual(init.model, 'gpt-oss:20b');
+    assert.strictEqual(init.session_id, session);
+    assert.strictEqual(await cliMax(c), 16000);
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+// Counts the CLI processes a conversation starts from now on.
+function countStarts(c) {
+  const counter = { n: 0 };
+  const orig = c.startProcess.bind(c);
+  c.startProcess = (...args) => {
+    counter.n += 1;
+    return orig(...args);
+  };
+  return counter;
+}
+
+test('a switch changed again while it waited (A -> B -> A) ends with exactly one process, on the last choice', async () => {
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 16000 }, delay: 0 };
+  const { server, url } = await fakeOllama(state);
+  const { c } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => c.sessionId);
+    const starts = countStarts(c);
+    state.delay = 150;
+    const first = c.setModel('gpt-oss:20b');
+    c.setModel('default');
+    assert.strictEqual(c.model, 'default');
+    await first;
+    assert.strictEqual(starts.n, 1);
+    assert.ok(c.proc);
+    assert.strictEqual((await initOf(c.proc)).model, 'fake-model');
+    assert.strictEqual(await cliMax(c), 32000, 'with the window of the model chosen last');
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+test('a switch changed to a third model while it waited starts with that model\'s window, not the first one\'s', async () => {
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 16000, 'other:7b': 8000 }, delay: 0 };
+  const { server, url } = await fakeOllama(state);
+  const { c } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => c.sessionId);
+    const starts = countStarts(c);
+    state.delay = 150;
+    const first = c.setModel('gpt-oss:20b');
+    c.setModel('other:7b'); // its window was never read before
+    await first;
+    assert.strictEqual(starts.n, 1);
+    assert.strictEqual((await initOf(c.proc)).model, 'other:7b');
+    assert.strictEqual(await cliMax(c), 8000);
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+test('a switch waiting for /api/ps starts nothing once the conversation was closed', async () => {
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 16000 }, delay: 0 };
+  const { server, url } = await fakeOllama(state);
+  const { c } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => c.sessionId);
+    const starts = countStarts(c);
+    state.delay = 150;
+    const pending = c.setModel('gpt-oss:20b');
+    c.dispose();
+    await pending;
+    assert.strictEqual(starts.n, 0);
+    assert.strictEqual(c.proc, null);
+  } finally {
+    server.close();
+  }
+});
+
+test('a send while a switch waits for /api/ps starts the one process, and the switch leaves it alone', async () => {
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 16000 }, delay: 0 };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => c.sessionId);
+    const starts = countStarts(c);
+    state.delay = 300;
+    const pending = c.setModel('gpt-oss:20b');
+    c.send('hello');
+    const started = c.proc;
+    assert.ok(started, 'the send started it on the new model');
+    await pending;
+    assert.strictEqual(c.proc, started);
+    assert.strictEqual(starts.n, 1);
+    await until(() => results(posted).length > 0);
+    assert.strictEqual(c.busy, false);
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+test('the default model is found by the name the CLI reported, and the next start uses the window cached under it', async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const emptyConfig = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-noconfig-')); // no ~/.claude/settings.json env on this machine
+  const saved = { dir: process.env.CLAUDE_CONFIG_DIR, model: process.env.ANTHROPIC_MODEL };
+  process.env.CLAUDE_CONFIG_DIR = emptyConfig;
+  delete process.env.ANTHROPIC_MODEL;
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 16000 } };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url }); // no ANTHROPIC_MODEL anywhere
+  try {
+    await c.whenStarted;
+    assert.deepStrictEqual(state.requests, [], 'the default model has no name yet: nothing to look up before the start');
+    assert.strictEqual(await cliMax(c), 64000);
+    await until(() => contexts(posted).length > 0);
+    const first = contexts(posted)[0];
+    assert.strictEqual(first.source, 'ollama', 'found by what get_context_usage reported');
+    assert.strictEqual(first.max, 32000);
+    assert.deepStrictEqual(first.ollama, { loaded: true, until: null, permanent: false });
+    await until(() => c.sessionId && !c.busy);
+    await c.setModel('gpt-oss:20b');
+    await c.setModel('default');
+    assert.strictEqual(c.launch.source, 'cached');
+    assert.strictEqual(await cliMax(c), 32000, 'the new default-model process got the real window');
+  } finally {
+    c.dispose();
+    server.close();
+    if (saved.dir === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved.dir;
+    if (saved.model !== undefined) process.env.ANTHROPIC_MODEL = saved.model;
+    fs.rmSync(emptyConfig, { recursive: true, force: true });
+  }
+});
+
+test('after the "applies at the next start" notice, a restart gets the new window and the notice is not repeated', async () => {
+  const state = { windows: { 'fake-model': 32000, 'gpt-oss:20b': 8000 } };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    await c.whenStarted;
+    await until(() => contexts(posted).length > 0);
+    state.windows['fake-model'] = 16000;
+    c.send('hello');
+    await until(() => contexts(posted).length > 1 && !c.busy);
+    assert.strictEqual(notices(posted, /החלון האמיתי/).length, 1);
+    assert.strictEqual(await cliMax(c), 32000, 'the running process still has the old window');
+    await c.setModel('gpt-oss:20b');
+    await c.setModel('default');
+    assert.strictEqual(await cliMax(c), 16000, 'the next start applies the new window');
+    await until(() => contexts(posted).length > 2);
+    assert.strictEqual(contexts(posted).at(-1).max, 16000);
+    assert.strictEqual(notices(posted, /החלון האמיתי/).length, 1, 'nothing stale or repeated once the window matches');
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+test('a send while the start waits for /api/ps starts the process once, with the cached or fallback window', async () => {
+  const state = { windows: { 'fake-model': 32000 }, delay: 300 };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+  try {
+    c.send('hello');
+    const started = c.proc;
+    assert.ok(started, 'the send started it');
+    await c.whenStarted;
+    assert.strictEqual(c.proc, started, 'the deferred start did not start a second process');
+    await until(() => results(posted).length > 0);
+    assert.strictEqual(await cliMax(c), 64000);
+  } finally {
+    c.dispose();
+    server.close();
+  }
+});
+
+// A resume must not wait for /api/ps: a send during the wait would start a new session that the
+// late resume then killed (verify finding), losing the message and leaving the turn busy.
+test('a resumed session loads at once even while /api/ps is slow, and a send goes to that session', async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const { encodeCwd } = require('../src/util/paths');
+  const ID = '11111111-2222-4333-8444-555555555555';
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-resume-'));
+  const projectDir = path.join(dir, 'projects', encodeCwd(process.cwd()));
+  fs.mkdirSync(projectDir, { recursive: true });
+  fs.writeFileSync(path.join(projectDir, `${ID}.jsonl`), '');
+  const savedDir = process.env.CLAUDE_CONFIG_DIR;
+  process.env.CLAUDE_CONFIG_DIR = dir;
+  const state = { windows: { 'fake-model': 32000 }, delay: 400 };
+  const { server, url } = await fakeOllama(state);
+  const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED, pendingResume: ID });
+  try {
+    assert.ok(c.proc, 'loadSession started the process inside onReady');
+    assert.strictEqual(c.sessionId, ID);
+    assert.strictEqual(c.pendingResume, null);
+    assert.ok(posted.some((m) => m.type === 'sessionLoaded' && m.id === ID));
+    const proc = c.proc;
+    c.send('hello');
+    assert.strictEqual(c.proc, proc, 'the send used the resumed process');
+    await c.whenStarted;
+    assert.strictEqual(c.proc, proc, 'nothing killed or replaced it later');
+    await until(() => results(posted).length > 0);
+    assert.strictEqual(c.busy, false);
+    assert.strictEqual(c.sessionId, ID);
+    assert.strictEqual(results(posted)[0].isError, false);
+  } finally {
+    c.dispose();
+    server.close();
+    if (savedDir === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+    else process.env.CLAUDE_CONFIG_DIR = savedDir;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('context.ollama: loaded until a time, permanent, not loaded, or null when Ollama is off', async () => {
+  const soon = new Date(Date.now() + 3600e3).toISOString();
+  const cases = [
+    { name: 'loaded', state: { windows: { 'fake-model': 32000 }, expires_at: soon }, want: { loaded: true, until: Date.parse(soon), permanent: false } },
+    { name: 'permanent', state: { windows: { 'fake-model': 32000 }, expires_at: '2318-02-01T00:00:00Z' }, want: { loaded: true, until: Date.parse('2318-02-01T00:00:00Z'), permanent: true } },
+    { name: 'not loaded', state: { windows: {} }, want: { loaded: false } },
+  ];
+  for (const { name, state, want } of cases) {
+    const { server, url } = await fakeOllama(state);
+    const { c, posted } = setup({ ollamaUrl: url, environmentVariables: NAMED });
+    try {
+      await until(() => contexts(posted).length > 0);
+      assert.deepStrictEqual(contexts(posted)[0].ollama, want, name);
+    } finally {
+      c.dispose();
+      server.close();
+    }
   }
 });
 
