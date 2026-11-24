@@ -4,6 +4,10 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (Q-9: search)
+- Search in the open conversation: `Ctrl+F` in the chat or `/find` opens a bar (`webview/chat/find.js`, pure part `find-logic.js`); all matches are highlighted with the CSS Custom Highlight API, Enter / Shift+Enter move, Esc closes. Reads the page text only.
+- The drawer's search box now also matches words inside past conversations: after 300 ms it asks the host (`searchSessions`), which reads the CLI's transcript files read-only (user and assistant text only, newest 300 files, each up to 20 MB) and returns matching ids; title matches still show at once. Stale answers are dropped by `seq`. Verified: 4 new unit tests (incl. a real temp transcript folder), suite 428/428; the bar, the highlights and the drawer were not seen in real VS Code.
+
 ## 2026-11-24 (P-3: run a Bash tool in the background)
 - A running Bash tool row gets a "לרקע" button (hidden once the tool ends or when it was already started with `run_in_background`): it sends the control request `background_tasks {tool_use_id}` (supported on CLI 2.1.246 per `DEPENDENCIES.md` row 45, but that row was probed with a dummy id only). `backgrounded:false` or a refusal shows a notice; the new task then appears in the existing background-task bar. `dev/fake-claude.js` answers the request. Verified: unit test, suite 424/424; **not tried on a really running command**: the answer shape `{backgrounded}` on a live tool is unconfirmed.
 

@@ -222,6 +222,10 @@
       post({ type: 'openClaudeMd' });
       return clearInput();
     }
+    if (/^\/find\s*$/i.test(text.trim())) {
+      clearInput();
+      return CL.find.open();
+    }
     if (/^\/focus\s*$/i.test(text.trim())) {
       CL.display.toggleFocus();
       return clearInput();

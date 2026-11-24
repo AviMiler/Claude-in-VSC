@@ -129,6 +129,7 @@
       CL.restore.restore(m, { reset: resetView, dispatch, setTitle, setBusy });
     },
     conversations: (m) => CL.drawer.setList(m),
+    sessionSearch: (m) => CL.drawer.setSearchResult(m),
     conversationStates: (m) => CL.drawer.setStates(m),
     title: (m) => setTitle(m.text),
     notice: (m) => showNotice(m.text),

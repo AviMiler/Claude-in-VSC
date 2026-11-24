@@ -110,7 +110,7 @@
   function renderList() {
     if (drawer.hidden) return;
     const now = Date.now();
-    const rows = logic.filterRows(open, past || [], filter, query);
+    const rows = logic.filterRows(open, past || [], filter, query, contentIds);
     const out = [];
     if (rows.open.length) {
       out.push(el('div', { class: 'drawer-group', text: 'פתוחות' }), ...rows.open.map(openRow));
@@ -152,7 +152,18 @@
     if (restoreFocus && lastFocus && lastFocus.focus) lastFocus.focus();
   }
 
-  search.addEventListener('input', () => { query = search.value; renderList(); });
+  // Word search inside the past conversations: asked of the host after a short pause, shown together with the title matches.
+  let contentIds = new Set();
+  let searchSeq = 0;
+  let searchTimer = null;
+  search.addEventListener('input', () => {
+    query = search.value;
+    contentIds = new Set();
+    renderList();
+    clearTimeout(searchTimer);
+    if (query.trim().length < 2) return;
+    searchTimer = setTimeout(() => post({ type: 'searchSessions', query: query.trim(), seq: ++searchSeq }), 300);
+  });
   drawer.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !renaming) { e.preventDefault(); close(true); return; }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -172,6 +183,12 @@
       open = m.open || [];
       past = m.past || [];
       renderList();
+    },
+    // The host's answer to searchSessions; an answer to an older query is ignored.
+    setSearchResult(m) {
+      if (m.seq !== searchSeq) return;
+      contentIds = new Set(m.ids || []);
+      if (!renaming) renderList();
     },
     // Status changes of the open conversations (sent by the host whenever one changes).
     setStates(m) {
