@@ -824,6 +824,11 @@ class Conversation {
     if (/^https?:\/\//i.test(url)) vscode.env.openExternal(vscode.Uri.parse(url));
   }
 
+  // Focus view on/off in this conversation's chat (the claude-local.focusView command).
+  toggleFocusView() {
+    this.post({ type: 'toggleFocus' });
+  }
+
   focusInput() {
     this.post({ type: 'focus' });
   }

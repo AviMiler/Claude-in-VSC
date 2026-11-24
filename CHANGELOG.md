@@ -4,6 +4,9 @@ Newest first. Each entry: what changed + why. Dates are commit dates. "Verified"
 
 Older entries: CHANGELOG-archive.md.
 
+## 2026-11-24 (Q-5: focus view toggle)
+- `/focus` in the `/` menu and the command `claude-local.focusView` (shortcut Ctrl+Alt+F, only when the Claude chat has focus, so it cannot clash elsewhere) toggle the focus view for the open conversation; not stored (the `focusView` setting is the start state). Focus view now keeps visible the task list (`TodoWrite`, class `tl-todo`) and a tool that is still running; permission cards and questions were already outside the hidden rows. Verified: unit tests, suite 413/413; not seen in real VS Code.
+
 ## 2026-11-24 (Q-7: own font sizes)
 - New settings `claudeLocal.chatFontSize` and `claudeLocal.codeFontSize` (8-32 px, `0` = follow VS Code): applied as CSS variables `--cl-user-font` / `--cl-user-code` on the body (`webview/chat/display.js`, fallbacks in `chat.css`). Covers chat text and code/tool-output blocks; fixed-px UI chrome is unchanged. Verified: unit tests, suite 412/412; not seen in real VS Code.
 

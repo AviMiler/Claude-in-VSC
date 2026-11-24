@@ -27,8 +27,9 @@ body:not([data-timestamps]) .msg-heading {
 .items { position: relative; }
 
 /* Focus view: only the conversation itself; tool rows, thinking, result lines and copy buttons are hidden.
-   Permission cards, questions and errors stay. */
-body[data-focus] .tl-tool,
+   Permission cards, questions and errors stay, and so do the task list (TodoWrite) and a tool that is still
+   running (its name and summary). */
+body[data-focus] .tl-tool:not(.running):not(.tl-todo),
 body[data-focus] .tl-thinking,
 body[data-focus] .result-line,
 body[data-focus] .turn-actions { display: none; }

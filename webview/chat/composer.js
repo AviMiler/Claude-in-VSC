@@ -218,6 +218,10 @@
       post({ type: 'btwOpen', question: (btw[1] || '').trim() });
       return clearInput();
     }
+    if (/^\/focus\s*$/i.test(text.trim())) {
+      CL.display.toggleFocus();
+      return clearInput();
+    }
     if (/^\/diff\s*$/i.test(text.trim())) {
       post({ type: 'diffCommand' });
       return clearInput();

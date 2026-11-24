@@ -49,8 +49,17 @@
     }
   }, true);
 
+  // Focus view on/off for this conversation (the /focus command and the Ctrl+Alt+F command). Not stored:
+  // the claudeLocal.focusView setting sets the start state, and a settings change applies it again.
+  function toggleFocus() {
+    const on = !document.body.hasAttribute('data-focus');
+    document.body.toggleAttribute('data-focus', on);
+    return on;
+  }
+
   CL.display = {
     apply,
+    toggleFocus,
     verb: (defaults) => logic.pickVerb(defaults, settings.spinnerVerbs),
     scrollOnSend: () => settings.scrollToBottomOnSend !== false,
     collapseLines: () => (Number.isInteger(settings.collapseUserMessageLines) ? settings.collapseUserMessageLines : 8),

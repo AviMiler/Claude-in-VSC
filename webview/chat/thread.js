@@ -181,7 +181,7 @@
         el('span', { class: 'tool-toggle', text: '▾' }));
       // A sibling of the head (never nested in it): the editor moves only on this click.
       const openBtn = el('button', { class: 'tool-open', type: 'button', title: 'פתיחה בעורך', 'aria-label': 'פתיחה בעורך', hidden: true }, openIcon());
-      const node = el('div', { class: 'tl tl-tool running' }, el('div', { class: 'tool-line' }, head, openBtn), bodyEl);
+      const node = el('div', { class: `tl tl-tool running${ev.name === 'TodoWrite' ? ' tl-todo' : ''}` }, el('div', { class: 'tool-line' }, head, openBtn), bodyEl);
       t = { node, summaryEl, bodyEl, openBtn, navCard: null, name: ev.name, input: ev.input || {}, result: null };
       head.addEventListener('click', () => {
         node.classList.toggle('open');

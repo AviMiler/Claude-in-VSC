@@ -253,6 +253,11 @@
         "category": "Claude Code Local"
       },
       {
+        "command": "claude-local.focusView",
+        "title": "תצוגת מיקוד (הצגה/הסתרה)",
+        "category": "Claude Code Local"
+      },
+      {
         "command": "claude-local.keyboardShortcuts",
         "title": "קיצורי מקלדת",
         "category": "Claude Code Local"
@@ -330,6 +335,12 @@
         "command": "claude-local.focusToggle",
         "key": "ctrl+alt+e",
         "mac": "cmd+alt+e"
+      },
+      {
+        "command": "claude-local.focusView",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
+        "when": "activeWebviewPanelId == 'claudeLocalPanel' || focusedView =~ /^claudeLocalSidebar/"
       },
       {
         "command": "claude-local.insertAtMention",

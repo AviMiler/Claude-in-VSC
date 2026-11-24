@@ -70,6 +70,11 @@ function registerCommands(context, services) {
       }
       return open();
     },
+    // Ctrl+Alt+F: focus view in the active conversation (also the /focus command in the chat).
+    'claude-local.focusView': () => {
+      const host = places.active();
+      if (host && host.current) host.current.toggleFocusView();
+    },
     'claude-local.keyboardShortcuts': () => vscode.commands.executeCommand('workbench.action.openGlobalKeybindings', 'claude-local'),
     // Alt+K: put @path of the open file into the chat box, with #5-10 when lines are selected
     // (package F). Absolute: the CLI does not expand "@relative" (F-4).

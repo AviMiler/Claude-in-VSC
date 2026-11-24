@@ -99,6 +99,20 @@ test('defaultPermissionMode sets the starting mode; bypass needs the allow setti
   assert.strictEqual(modeOf({ defaultPermissionMode: 'nonsense' }), 'default');
 });
 
+test('toggleFocusView posts toggleFocus; the focus command, shortcut and /focus entry exist', () => {
+  const { c, posted } = setup();
+  c.toggleFocusView();
+  assert.ok(posted.some((m) => m.type === 'toggleFocus'));
+  c.dispose();
+  const fs = require('node:fs');
+  const pkg = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, '..', 'package.json'), 'utf8'));
+  assert.ok(pkg.contributes.commands.some((x) => x.command === 'claude-local.focusView'));
+  assert.ok(pkg.contributes.keybindings.some((x) => x.command === 'claude-local.focusView' && x.key === 'ctrl+alt+f'));
+  const root = require('node:path').join(__dirname, '..', 'webview', 'chat');
+  assert.match(fs.readFileSync(require('node:path').join(root, 'slash-menu.js'), 'utf8'), /name: 'focus'/);
+  assert.match(fs.readFileSync(require('node:path').join(root, 'a11y.css'), 'utf8'), /\.tl-tool:not\(\.running\):not\(\.tl-todo\)/);
+});
+
 test('renameSession sends /rename to the CLI, one line, and refuses without a session or while busy', () => {
   const { c } = setup();
   try {
