@@ -1,5 +1,6 @@
 // Pure logic of the usage gauge and its card (PLAN.md section 9, "Usage gauge in the prompt line"):
-// the fill level, and the per-category rows of the current session against the window.
+// the fill level, the per-category rows of the current session against the window, and the texts of
+// the model's load state in Ollama (the L-1 indicator, PLAN.md section 11).
 // Loaded as a plain script in the webview (CL.usageLogic) and required by the node tests.
 (function (root) {
   const WARN_PCT = 70;
@@ -23,7 +24,9 @@
   };
   const SOURCE_TEXT = {
     ollama: 'גודל החלון: לפי Ollama (המודל הטעון)',
-    settings: 'גודל החלון: לפי ההגדרות (Ollama לא זמין)',
+    explicit: 'גודל החלון: לפי מה שהגדרתם (Ollama לא זמין)',
+    cached: 'גודל החלון: הערך האחרון שנקרא מ-Ollama (המודל לא טעון כרגע)',
+    fallback: 'גודל החלון: ברירת המחדל, 64,000 (Ollama לא זמין)',
     cli: 'גודל החלון: לפי Claude Code',
   };
 
@@ -133,7 +136,52 @@
     return `הקשר בשימוש: ${pct}% (${fmt(used)} מתוך ${fmt(max)} אסימונים). לחיצה לפירוט`;
   }
 
-  const api = { WARN_PCT, DANGER_PCT, percent, level, fmt, fmtPct, breakdown, segments, factsLine, sourceText, gaugeLabel };
+  // Local time as HH:MM.
+  function hhmm(ms) {
+    const d = new Date(ms);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  // The load state of the model ({ loaded, until, permanent } from the host's `context` message, or
+  // null) as shown now: an unload time already passed counts as not loaded (also for a replayed old
+  // message). Returns { kind: 'unloaded' | 'permanent' | 'until' | 'loaded', until? } or null.
+  function loadView(load, now) {
+    if (!load || typeof load !== 'object') return null;
+    if (load.loaded !== true) return { kind: 'unloaded' };
+    if (load.permanent) return { kind: 'permanent' };
+    if (Number.isFinite(load.until)) return load.until > now ? { kind: 'until', until: load.until } : { kind: 'unloaded' };
+    return { kind: 'loaded' };
+  }
+
+  // The short text beside the gauge: 'טעון עד 10:05' | 'טעון קבוע' | 'טעון' | 'לא טעון'; '' when unknown.
+  function loadText(load, now) {
+    const v = loadView(load, now);
+    if (!v) return '';
+    if (v.kind === 'until') return `טעון עד ${hhmm(v.until)}`;
+    if (v.kind === 'permanent') return 'טעון קבוע';
+    return v.kind === 'loaded' ? 'טעון' : 'לא טעון';
+  }
+
+  // Its tooltip and card line; '' when unknown.
+  function loadTitle(load, now) {
+    const v = loadView(load, now);
+    if (!v) return '';
+    if (v.kind === 'until') return `המודל טעון בזיכרון השרת. אם לא יהיה בו שימוש, Ollama יפרוק אותו בשעה ${hhmm(v.until)}.`;
+    if (v.kind === 'permanent') return 'המודל טעון בזיכרון השרת ויישאר טעון.';
+    if (v.kind === 'loaded') return 'המודל טעון בזיכרון השרת.';
+    return 'המודל לא טעון כרגע. הבקשה הבאה תטען אותו, וזה עשוי לקחת זמן.';
+  }
+
+  // Milliseconds until the text changes by itself (the unload time passes), or null when it does not.
+  function loadChangeIn(load, now) {
+    const v = loadView(load, now);
+    return v && v.kind === 'until' ? v.until - now : null;
+  }
+
+  const api = {
+    WARN_PCT, DANGER_PCT, percent, level, fmt, fmtPct, breakdown, segments, factsLine, sourceText, gaugeLabel,
+    hhmm, loadText, loadTitle, loadChangeIn,
+  };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else (root.CL = root.CL || {}).usageLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

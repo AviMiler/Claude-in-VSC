@@ -1,4 +1,11 @@
-// The environment of the CLI process: the VS Code environment with claudeLocal.environmentVariables on top.
+// The environment of the CLI process: the VS Code environment, then the extension's own defaults
+// (CLI_ENV_DEFAULTS), then claudeLocal.environmentVariables on top. Every CLI spawn goes through
+// mergeEnv: the chat process, the /btw one-shot, the MCP commands and Open in Terminal.
+
+// Set for every CLI spawn unless the user sets the same variable in claudeLocal.environmentVariables
+// (any value, "0" included). CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 turns off telemetry, error
+// reporting and update checks (the machine has no internet; the CLI logged export failures).
+const CLI_ENV_DEFAULTS = { CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };
 
 // Keeps only usable entries: a non-empty name without "=" and a string/number/boolean value.
 function sanitizeEnvironmentVariables(raw) {
@@ -13,9 +20,9 @@ function sanitizeEnvironmentVariables(raw) {
 }
 
 // Windows variable names are case-insensitive, so an override replaces the existing spelling.
-function mergeEnv(base, overrides, platform = process.platform) {
+function applyEnv(base, overrides, platform) {
   const merged = { ...base };
-  for (const [name, value] of Object.entries(sanitizeEnvironmentVariables(overrides))) {
+  for (const [name, value] of Object.entries(overrides)) {
     if (platform === 'win32') {
       const existing = Object.keys(merged).find((k) => k.toLowerCase() === name.toLowerCase());
       if (existing) delete merged[existing];
@@ -25,4 +32,10 @@ function mergeEnv(base, overrides, platform = process.platform) {
   return merged;
 }
 
-module.exports = { mergeEnv, sanitizeEnvironmentVariables };
+// base (not mutated), then CLI_ENV_DEFAULTS (replacing a same-name variable of base), then the user's
+// overrides, which win over both (on Windows also when spelled in another case).
+function mergeEnv(base, overrides, platform = process.platform) {
+  return applyEnv(applyEnv(base, CLI_ENV_DEFAULTS, platform), sanitizeEnvironmentVariables(overrides), platform);
+}
+
+module.exports = { mergeEnv, sanitizeEnvironmentVariables, CLI_ENV_DEFAULTS };

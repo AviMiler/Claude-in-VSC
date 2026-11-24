@@ -1,36 +1,48 @@
 // Usage gauge (the context meter): how full the model's window is now, with a breakdown per
-// category for the card (PLAN.md section 9, "Usage gauge in the prompt line").
+// category for the card (PLAN.md section 9, "Usage gauge in the prompt line"), and the model's load
+// state in Ollama (the L-1 indicator, PLAN.md section 11).
 // Usage comes from the control request `get_context_usage` (DEPENDENCIES.md section 2 #16):
 // `totalTokens`, `maxTokens`, `model`, `categories`, `memoryFiles`, `mcpTools`.
-// The window, in order: the real one from Ollama's /api/ps for the loaded model
-// (src/models/ollama.js), else CLAUDE_CODE_MAX_CONTEXT_TOKENS from claudeLocal.environmentVariables
-// (src/models/launch.js passes it with CLAUDE_CODE_DISABLE_1M_CONTEXT), else the CLI's maxTokens.
-// The window is a ceiling on the CLI's maxTokens, so a CLI that still assumes 1M for a
-// "<model>[1m]" name (CHANGELOG F-9) cannot make the gauge show 1,000,000.
-const { contextWindow } = require('../models/launch');
-const { resolveOllamaUrl, normalizeModelName, fetchOllamaWindow } = require('../models/ollama');
+// The window is the model's REAL one from Ollama's /api/ps (src/models/ollama.js), read at conversation
+// open, before a model switch and after each result; the CLI is started with it (launchWindowFor ->
+// src/models/launch.js) unless the user set CLAUDE_CODE_MAX_CONTEXT_TOKENS. The gauge shows the real
+// window when known, else the last one seen, else the window the CLI was started with, else the CLI's
+// own maxTokens. One /api/ps answer feeds both the window and the load state.
+const { pickLaunchWindow } = require('../models/launch');
+const { resolveOllamaUrl, readOllama, cachedWindow, ollamaModelName } = require('../models/ollama');
+const { readCliSettingsEnv } = require('../models/gateway');
 
 const TIMEOUT_MS = 15000;
 
-// The last real window seen per model, in memory only: Ollama unloads an idle model (keep_alive),
-// and its window does not change while it is unloaded.
-const lastOllamaWindow = new Map();
+const fmt = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
 
 // Pure: the response to { used, max, cliMax, model } or null when it does not carry both numbers.
-// window: the window to cap at (a positive integer) or null.
+// window: the model's window when known (a positive integer) or null; it is the maximum whatever the
+// CLI's own maxTokens says, which stays only as the last resort and as cliMax.
 function parseContextUsage(response, window = null) {
   const used = response && response.totalTokens;
   const cliMax = response && response.maxTokens;
   if (!(Number.isFinite(used) && Number.isFinite(cliMax) && cliMax > 0)) return null;
-  const max = window && window < cliMax ? window : cliMax;
-  return { used, max, cliMax, model: typeof response.model === 'string' ? response.model : '' };
+  return { used, max: window || cliMax, cliMax, model: typeof response.model === 'string' ? response.model : '' };
 }
 
-// Pure: which window applies. ollama and configured are positive integers or null.
-function pickWindow(ollama, configured) {
-  if (ollama) return { window: ollama, source: 'ollama' };
-  if (configured) return { window: configured, source: 'settings' };
+// Pure: which window the gauge shows and why. fresh: from this /api/ps answer; cached: the last one
+// seen for the model; launch: what the process was started with ({ window, source } or null).
+function gaugeWindow({ fresh = null, cached = null, launch = null } = {}) {
+  if (fresh) return { window: fresh, source: 'ollama' };
+  if (cached) return { window: cached, source: 'cached' };
+  if (launch && launch.window) return { window: launch.window, source: launch.source };
   return { window: null, source: 'cli' };
+}
+
+// Pure: the Hebrew notice when the real window differs from what the CLI runs with, else null.
+// N1: the user set a window (it stays). N2: the CLI got the fallback or an older value; applies at the next start.
+function windowNotice(launch, real) {
+  if (!launch || !real || real === launch.window) return null;
+  if (launch.source === 'explicit') {
+    return `הגדרתם חלון של ${fmt(launch.window)} אסימונים, אבל החלון האמיתי של המודל ב-Ollama הוא ${fmt(real)}. נשאר הערך שהגדרתם.`;
+  }
+  return `החלון האמיתי של המודל הוא ${fmt(real)} אסימונים (Claude Code הופעל עם ${fmt(launch.window)}). השינוי יחול מההפעלה הבאה.`;
 }
 
 // Pure: the card's data from the response, defensively (the shape is the CLI's, not ours):
@@ -90,24 +102,58 @@ function describeUsage(response) {
   return line.length > 400 ? `${line.slice(0, 397)}...` : line;
 }
 
-// The real window for the model, from Ollama or the last value seen this window; null when unknown.
-async function realWindow(settings, model, logger) {
-  const base = resolveOllamaUrl({ ollamaUrl: settings.ollamaUrl });
-  if (!base) return null; // the read is off (setting empty or 'off')
-  const key = `${base} ${normalizeModelName(model)}`;
-  const { window, note } = await fetchOllamaWindow(base, model);
-  if (window) {
-    lastOllamaWindow.set(key, window);
-    return window;
-  }
-  const cached = lastOllamaWindow.get(key) || null;
-  logger.info('context', `ollama /api/ps: ${note}${cached ? `, using the last seen window ${cached}` : ''}`);
-  return cached;
+// Whether a conversation should read /api/ps before starting its CLI: only when the read is on.
+function needsWindowRead(settings) {
+  return Boolean(resolveOllamaUrl({ ollamaUrl: settings && settings.ollamaUrl }));
 }
 
-// Asks the CLI, then posts { type: 'context', used, max, source, ...detail } to the webview;
-// failures are only logged. The configured window is read from the settings now; a changed setting
-// applies to the CLI from the next process start, so the two can differ only until then.
+// The model name to look up in /api/ps for `model` (see ollamaModelName); '' when unknown.
+function lookupName(conv, settings, model = conv.model) {
+  return ollamaModelName(model, {
+    environmentVariables: settings.environmentVariables,
+    env: process.env,
+    cliEnv: readCliSettingsEnv(),
+    lastReported: conv.lastReportedModel,
+  });
+}
+
+// Reads /api/ps for the model (default: the conversation's) and fills the window cache. Never rejects:
+// { window, load, note, base, name }, nulls when the read is off or fails.
+async function readWindow(conv, model = conv.model) {
+  const logger = conv.services.logger;
+  try {
+    const settings = conv.services.settings.get();
+    const base = resolveOllamaUrl(settings);
+    const name = lookupName(conv, settings, model);
+    const read = await readOllama(base, name);
+    if (base) logger.info('context', `ollama /api/ps: ${read.note} (model ${name || '?'})`);
+    return { ...read, base, name };
+  } catch (err) {
+    logger.warn('context', `ollama read failed: ${err.message}`);
+    return { window: null, load: null, note: 'failed', base: '', name: '' };
+  }
+}
+
+// Synchronous: the window for the next CLI start from the settings and the cache only (a read is
+// started elsewhere: conversation open, before a model switch). { window, source, real }.
+function launchWindowFor(conv) {
+  const settings = conv.services.settings.get();
+  const base = resolveOllamaUrl(settings);
+  const real = base ? cachedWindow(base, lookupName(conv, settings)) : null;
+  return pickLaunchWindow({ explicit: settings.explicitWindow || null, real });
+}
+
+// Posts the "window differs" notice (windowNotice) once per process and text; conv.launch is what the process got.
+function announceWindow(conv, real) {
+  const text = windowNotice(conv.launch, real);
+  if (!text || conv.windowNoticed.has(text)) return;
+  conv.windowNoticed.add(text);
+  conv.post({ type: 'notice', text });
+}
+
+// Asks the CLI, reads /api/ps once, then posts { type: 'context', used, max, source, ...detail, ollama }
+// to the webview (ollama: null = unknown/hidden, { loaded: false }, or { loaded: true, until, permanent }
+// for the L-1 indicator); failures are only logged.
 // Called after `initialize` (also after a model switch, which restarts the CLI) and after each result.
 function refreshContextMeter(conversation) {
   const proc = conversation.proc;
@@ -116,19 +162,23 @@ function refreshContextMeter(conversation) {
   proc.request('get_context_usage', {}, TIMEOUT_MS).then(
     async (response) => {
       logger.info('context', describeUsage(response));
-      const settings = conversation.services.settings.get();
-      const model = (response && typeof response.model === 'string' && response.model) || conversation.model;
-      const ollama = await realWindow(settings, model, logger);
-      const { window, source: wanted } = pickWindow(ollama, contextWindow(settings.environmentVariables));
+      if (response && typeof response.model === 'string' && response.model) conversation.lastReportedModel = response.model;
+      const read = await readWindow(conversation);
+      if (proc !== conversation.proc) return;
+      const cached = read.base ? cachedWindow(read.base, read.name) : null;
+      const { window, source } = gaugeWindow({ fresh: read.window, cached, launch: conversation.launch });
       const usage = parseContextUsage(response, window);
-      if (!usage || proc !== conversation.proc) return;
-      const source = window && usage.max === window ? wanted : 'cli';
-      const capped = usage.max !== usage.cliMax ? ` (CLI max=${usage.cliMax}, capped)` : '';
+      if (!usage) return;
+      const capped = usage.max !== usage.cliMax ? ` (CLI max=${usage.cliMax})` : '';
       logger.info('context', `used=${usage.used} max=${usage.max} source=${source}${capped} model=${usage.model || '?'}`);
-      conversation.post({ type: 'context', used: usage.used, max: usage.max, source, ...contextDetail(response) });
+      announceWindow(conversation, read.window);
+      conversation.post({ type: 'context', used: usage.used, max: usage.max, source, ...contextDetail(response), ollama: read.load });
     },
     (err) => logger.warn('context', `get_context_usage failed: ${err.message}`),
   ).catch((err) => logger.warn('context', `usage gauge failed: ${err.message}`));
 }
 
-module.exports = { parseContextUsage, pickWindow, contextDetail, describeUsage, refreshContextMeter };
+module.exports = {
+  parseContextUsage, gaugeWindow, windowNotice, contextDetail, describeUsage,
+  needsWindowRead, readWindow, launchWindowFor, announceWindow, refreshContextMeter,
+};

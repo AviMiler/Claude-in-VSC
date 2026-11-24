@@ -1,11 +1,13 @@
 // Model picker and model switching for one conversation (PLAN.md section 3, decisions 1, 4, 6).
 // A switch restarts the CLI with `--model <id>`, every model alias pointed at <id> through
-// `--settings` (src/models/launch.js) and `--resume <session>`. The run-time `set_model` request is not used: the CLI accepts any name and
+// `--settings` (src/models/launch.js) and `--resume <session>`; with the Ollama read on, the restart waits
+// for the new model's real window (the CLI is started with it). The run-time `set_model` request is not used: the CLI accepts any name and
 // only the next turn fails (DEPENDENCIES.md section 2 #26).
 const vscode = require('vscode');
 const { resolveGatewayUrl, fetchModels } = require('../models/gateway');
 const { filterModels, isNoToolsError } = require('../models/filter');
 const { DEFAULT_MODEL } = require('../models/launch');
+const { needsWindowRead, readWindow } = require('./context-meter');
 
 const STOP_AND_SWITCH = 'עצירה והחלפה';
 const STOP_AND_SWITCH_DETAIL = [
@@ -47,6 +49,8 @@ class ModelSwitcher {
     conv.post({ type: 'models', models, current: conv.model });
   }
 
+  // Returns undefined when nothing restarts or the restart was synchronous, else the promise of the
+  // restart that waits for the new model's window.
   switchTo(value, { revert = false } = {}) {
     const conv = this.conv;
     if (!value || value === conv.model) return conv.post({ type: 'model', value: conv.model });
@@ -58,10 +62,36 @@ class ModelSwitcher {
     this.previous = revert ? null : conv.model;
     conv.model = value;
     conv.post({ type: 'model', value });
-    if (!conv.proc) return; // the next send starts the process with the new model
+    if (!conv.proc) {
+      // The next send starts the process with the new model; the read only warms the window cache for it.
+      readWindow(conv);
+      return;
+    }
+    const resume = conv.sessionId || undefined;
     conv.killProcess();
-    conv.startProcess({ resume: conv.sessionId || undefined });
     if (!revert) conv.post({ type: 'notice', text: `המודל הוחלף ל-${value}. הטעינה הראשונה עשויה להימשך זמן מה.` });
+    // Not if the conversation closed or a send already started a process. The model is the one chosen
+    // by now (startProcess reads conv.model), so A -> B -> A ends with one process on A.
+    const restart = () => {
+      if (conv.disposed || conv.proc) return;
+      conv.startProcess({ resume });
+    };
+    if (!needsWindowRead(conv.services.settings.get())) return restart();
+    const failed = (err) => conv.services.logger.warn('model-switch', `restart failed: ${err.message}`);
+    return readWindow(conv, value)
+      // The choice changed while waiting: the window of the model chosen last is what the start needs.
+      .then(() => (conv.model === value ? null : readWindow(conv)))
+      .then(restart)
+      .catch(failed);
+  }
+
+  // A switch started from a timer tick (stop-and-switch, revert): nothing may reject unhandled.
+  later(value, opts) {
+    setImmediate(() => {
+      Promise.resolve()
+        .then(() => this.switchTo(value, opts))
+        .catch((err) => this.conv.services.logger.warn('model-switch', `switch to ${value} failed: ${err.message}`));
+    });
   }
 
   async stopAndSwitch(value) {
@@ -85,14 +115,14 @@ class ModelSwitcher {
     if (this.pendingSwitch) {
       const value = this.pendingSwitch;
       this.pendingSwitch = null;
-      setImmediate(() => this.switchTo(value));
+      this.later(value);
       return;
     }
     if (ev.isError && isNoToolsError(ev.errorText) && this.previous !== null) {
       const failed = conv.model;
       const back = this.previous;
       conv.post({ type: 'notice', text: `המודל ${failed} לא תומך בכלים ולכן לא יכול לעבוד עם Claude Code. חוזרים ל-${back === DEFAULT_MODEL ? 'מודל ברירת המחדל' : back}.` });
-      setImmediate(() => this.switchTo(back, { revert: true }));
+      this.later(back, { revert: true });
       return;
     }
     if (ev.kind === 'result' && !ev.isError) this.previous = null;
